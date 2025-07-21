@@ -1,0 +1,194 @@
+[
+  {
+    "id": 1753029885039,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911166.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885040,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911186.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885041,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911214.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885042,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911246.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885043,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911271.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885044,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911302.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885045,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911330.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885046,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911358.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885047,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911388.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885048,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911422.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885049,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911453.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885050,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911479.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885051,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911511.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885052,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911542.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753029885053,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753029911576.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  },
+  {
+    "id": 1753030053291,
+    "name": "Món mới",
+    "imageUrl": "http://localhost:5000/images/SNACK TRAVEL/1753030103791.jpg",
+    "type": "SNACK TRAVEL",
+    "status": "Available",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ]
+  }
+]
