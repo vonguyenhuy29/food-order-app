@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -10,9 +11,7 @@ const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
+const io = new Server(server, { cors: { origin: '*' } });
 const PORT = 5000;
 
 app.use(cors());
@@ -20,7 +19,6 @@ app.use(bodyParser.json());
 app.use(express.json());
 app.use('/images', express.static('public/images'));
 
-// 📦 Đọc danh sách món ăn từ file
 const foodsPath = path.join(__dirname, 'data', 'foods.json');
 let foods = [];
 
@@ -28,16 +26,14 @@ try {
   if (fs.existsSync(foodsPath)) {
     const raw = fs.readFileSync(foodsPath, 'utf-8');
     foods = JSON.parse(raw);
-    console.log(`✅ Đã load ${foods.length} món ăn từ foods.json`);
   } else {
-    console.log("⚠️ foods.json không tồn tại, sẽ tạo mới khi có món đầu tiên");
+    console.log("⚠️ foods.json không tồn tại.");
   }
 } catch (e) {
   console.error("❌ Lỗi khi đọc foods.json:", e.message);
   foods = [];
 }
 
-// 📤 Cấu hình upload ảnh vào thư mục tạm
 const upload = multer({
   dest: 'temp_uploads/',
   limits: { fileSize: 2 * 1024 * 1024 },
@@ -50,7 +46,7 @@ const upload = multer({
   }
 });
 
-// 📥 Upload ảnh và tự chuyển vào thư mục theo loại
+// Upload ảnh
 app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'Không có ảnh được gửi' });
 
@@ -59,104 +55,80 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
 
   const folderName = type.toUpperCase().trim();
   const destDir = path.join(__dirname, 'public/images', folderName);
-
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
-  }
+  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 
   const fileExt = path.extname(req.file.originalname);
-  const fileName = Date.now() + fileExt;
+  const fileName = req.file.originalname;
   const finalPath = path.join(destDir, fileName);
 
   const newFileBuffer = fs.readFileSync(req.file.path);
   const newFileHash = crypto.createHash('md5').update(newFileBuffer).digest('hex');
 
-  const walkImages = (dir) => {
-    let results = [];
-    const list = fs.readdirSync(dir);
-    list.forEach(file => {
-      const fullPath = path.join(dir, file);
-      const stat = fs.statSync(fullPath);
-      if (stat && stat.isDirectory()) {
-        results = results.concat(walkImages(fullPath));
-      } else {
-        results.push(fullPath);
-      }
-    });
-    return results;
-  };
-
-  const existingImagePaths = walkImages(path.join(__dirname, 'public/images'));
-  for (const filePath of existingImagePaths) {
-    const existingBuffer = fs.readFileSync(filePath);
-    const existingHash = crypto.createHash('md5').update(existingBuffer).digest('hex');
-    if (existingHash === newFileHash) {
-      fs.unlinkSync(req.file.path);
-      return res.status(409).json({ message: 'Ảnh đã tồn tại' });
-    }
-  }
-
   fs.renameSync(req.file.path, finalPath);
-  const imageUrl = `http://localhost:5000/images/${folderName}/${fileName}`;
-  res.json({ imageUrl });
+  const imageUrl = `http://192.168.100.137:5000/images/${folderName}/${fileName}`;
+  return res.json({ imageUrl, hash: newFileHash });
 });
 
-// 📃 Lấy danh sách món ăn
+// Get foods
 app.get('/api/foods', (req, res) => {
   res.json(foods);
 });
 
-// 🆕 Thêm món mới
+// Add food
 let nextId = Date.now();
 app.post('/api/foods', (req, res) => {
-  const { imageUrl, type } = req.body;
+  const { imageUrl, type, hash } = req.body;
+  if (!imageUrl || !type || !hash) return res.status(400).json({ message: 'Thiếu trường' });
 
-  if (!imageUrl || !type) {
-    return res.status(400).json({ message: "Missing imageUrl or type" });
-  }
+  const exists = foods.some(f => f.imageUrl === imageUrl && f.type === type);
+  if (exists) return res.status(409).json({ message: 'Đã tồn tại' });
 
-  const lowerType = type.toLowerCase();
-  let levelAccess = [];
-
-  if (["snack travel", "snack menu", "club menu"].includes(lowerType)) {
-    levelAccess = ["P", "I-I+", "V-One"];
-  } else if (["hotel menu", "hotel menu before 11am", "hotel menu after 11pm"].includes(lowerType)) {
-    levelAccess = ["I-I+", "V-One"];
-  } else {
-    levelAccess = ["V-One"];
-  }
+  const lower = type.toLowerCase();
+  let levelAccess = ["V-One"];
+  if (["snack menu", "snack travel", "club menu"].includes(lower)) levelAccess = ["P", "I-I+", "V-One"];
+  else if (["hotel menu", "hotel menu before 11am", "hotel menu after 11pm"].includes(lower)) levelAccess = ["I-I+", "V-One"];
 
   const newFood = {
     id: nextId++,
-    name: "Món mới",
     imageUrl,
-    type,
+    type: type.trim(),
     status: "Available",
+    hash,
     levelAccess
   };
 
   foods.push(newFood);
   fs.writeFileSync(foodsPath, JSON.stringify(foods, null, 2));
-  io.emit('foodAdded', newFood);
+  io.emit("foodAdded", newFood);
   res.status(201).json({ success: true, food: newFood });
 });
 
-// 🔁 Cập nhật trạng thái món ăn
+// Update status
 app.post('/api/update-status/:id', (req, res) => {
   const foodId = parseInt(req.params.id);
   const { newStatus } = req.body;
 
-  const food = foods.find(f => f.id === foodId);
-  if (!food) return res.status(404).json({ message: "Not found" });
+  const target = foods.find(f => f.id === foodId);
+  if (!target) return res.status(404).json({ message: "Not found" });
 
-  food.status = newStatus;
+  const imageName = extractImageName(target.imageUrl);
+
+  const updatedFoods = [];
+
+  foods.forEach(f => {
+    if (extractImageName(f.imageUrl) === imageName) {
+      f.status = newStatus;
+      updatedFoods.push(f);
+    }
+  });
+
   fs.writeFileSync(foodsPath, JSON.stringify(foods, null, 2));
+  io.emit('foodStatusUpdated', { updatedFoods }); // socket gửi về mảng
 
-  io.emit('foodStatusUpdated', { id: foodId, newStatus });
   res.json({ success: true });
 });
 
-// ❌ Xoá món ăn
+// Delete
 app.delete('/api/foods/:id', (req, res) => {
   const foodId = parseInt(req.params.id);
   const index = foods.findIndex(f => f.id === foodId);
@@ -165,11 +137,13 @@ app.delete('/api/foods/:id', (req, res) => {
   const food = foods[index];
   foods.splice(index, 1);
 
-  const relativePath = food.imageUrl.replace('http://localhost:5000/images/', '');
+  const relativePath = food.imageUrl.replace('http://192.168.100.137:5000/images/', '');
   const imagePath = path.join(__dirname, 'public/images', relativePath);
 
+  // ✅ LUÔN xoá ảnh (không kiểm tra còn dùng hay không)
   if (fs.existsSync(imagePath)) {
     fs.unlinkSync(imagePath);
+    console.log("🗑 Đã xoá ảnh:", imagePath);
   }
 
   fs.writeFileSync(foodsPath, JSON.stringify(foods, null, 2));
@@ -177,7 +151,15 @@ app.delete('/api/foods/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// ▶️ Khởi động server
+
+// Run server
 server.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`✅ Backend running at http://192.168.100.137:${PORT}`);
 });
+function extractImageName(url) {
+  try {
+    return url.split('/').pop().toLowerCase();
+  } catch {
+    return null;
+  }
+}
