@@ -100,7 +100,9 @@ const AdminFoodList = () => {
       </div>
       <div style={{ padding: '20px', background: '#fff8dc', overflowY: 'auto' }}>
         <h2>{selectedType}</h2>
+        {false && (
         <button onClick={handleAddFood}>➕ Thêm món</button>
+        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '20px' }}>
           {foodsByType.map(food => (
             <div key={food.id} style={{
@@ -124,6 +126,7 @@ const AdminFoodList = () => {
                   SOLD OUT
                 </div>
               )}
+              {false && (
               <button onClick={(e) => { e.stopPropagation(); handleDeleteFood(food.id); }}
                 style={{
                   position: 'absolute',
@@ -132,6 +135,7 @@ const AdminFoodList = () => {
                   border: 'none', borderRadius: '50%',
                   width: '25px', height: '25px'
                 }}>×</button>
+                )}
             </div>
           ))}
         </div>
