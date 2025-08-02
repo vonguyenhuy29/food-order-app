@@ -7,16 +7,19 @@ const socket = io(process.env.REACT_APP_API_URL);
 const AdminFoodList = () => {
   const [foods, setFoods] = useState([]);
   const [selectedType, setSelectedType] = useState("SNACK MENU");
+  const [draggedId, setDraggedId] = useState(null);
 
   useEffect(() => {
     fetchFoods();
     socket.on('foodAdded', fetchFoods);
     socket.on('foodStatusUpdated', fetchFoods);
     socket.on('foodDeleted', fetchFoods);
+    socket.on('foodsReordered', fetchFoods);
     return () => {
       socket.off('foodAdded');
       socket.off('foodStatusUpdated');
       socket.off('foodDeleted');
+      socket.off('foodsReordered');
     };
   }, []);
 
@@ -30,53 +33,30 @@ const AdminFoodList = () => {
     await axios.post(`${process.env.REACT_APP_API_URL}/api/update-status/${id}`, { newStatus });
   };
 
-  const handleDeleteFood = async (id) => {
-    if (!window.confirm("Xoá món ăn này?")) return;
-    await axios.delete(`${process.env.REACT_APP_API_URL}/api/foods/${id}`);
+  const handleDragStart = (id) => {
+    setDraggedId(id);
   };
 
-  const handleAddFood = async () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.multiple = true;
-
-    input.onchange = async (e) => {
-      const files = Array.from(e.target.files);
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("image", file);
-        formData.append("type", selectedType);
-        const uploadRes = await axios.post(`${process.env.REACT_APP_API_URL}/api/upload`, formData);
-        const { imageUrl, hash } = uploadRes.data;
-        try {
-  await axios.post(`${process.env.REACT_APP_API_URL}/api/foods`, {
-    imageUrl,
-    type: selectedType,
-    hash
-  });
-  fetchFoods();
-} catch (addErr) {
-  if (addErr.response?.status === 409) {
-    alert("❌ Món ăn đã tồn tại trong menu này!");
-  } else {
-    alert("Lỗi thêm món: " + addErr.message);
-  }
-}
-
-      }
-    };
-
-    input.click();
+  const handleDrop = async (targetId) => {
+    if (draggedId === null || draggedId === targetId) return;
+    const currentIndex = foods.findIndex(f => f.id === draggedId);
+    const targetIndex = foods.findIndex(f => f.id === targetId);
+    const updated = [...foods];
+    const [moved] = updated.splice(currentIndex, 1);
+    updated.splice(targetIndex, 0, moved);
+    setFoods(updated);
+    await axios.post(`${process.env.REACT_APP_API_URL}/api/reorder-foods`, {
+      orderedIds: updated.map(f => f.id)
+    });
   };
 
   const menuTypes = [
-  "SNACK TRAVEL", "SNACK MENU", "CLUB MENU", "HOTEL MENU",
-  "HOTEL MENU BEFORE 11AM", "HOTEL MENU AFTER 11PM",
-  "VIP MENU", "WINE MENU - KOREAN", "WINE MENU - ENGLISH",
-  "WINE MENU - CHINESE", "WINE MENU - JAPANESE",
-  "VIP MENU AFTER 11PM"  // ✅ thêm menu mới vào đây
-];
+    "SNACK TRAVEL", "SNACK MENU", "CLUB MENU", "HOTEL MENU",
+    "HOTEL MENU BEFORE 11AM", "HOTEL MENU AFTER 11PM",
+    "VIP MENU", "WINE MENU - KOREAN", "WINE MENU - ENGLISH",
+    "WINE MENU - CHINESE", "WINE MENU - JAPANESE",
+    "VIP MENU AFTER 11PM"
+  ];
 
   const foodsByType = foods.filter(f => f.type === selectedType);
 
@@ -100,20 +80,23 @@ const AdminFoodList = () => {
       </div>
       <div style={{ padding: '20px', background: '#fff8dc', overflowY: 'auto' }}>
         <h2>{selectedType}</h2>
-        {false && (
-        <button onClick={handleAddFood}>➕ Thêm món</button>
-        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '20px' }}>
           {foodsByType.map(food => (
-            <div key={food.id} style={{
-              position: 'relative',
-              width: '220px',
-              border: '1px solid #ccc',
-              borderRadius: '6px',
-              overflow: 'hidden',
-              background: '#fff'
-            }} onClick={() => handleToggleStatus(food.id, food.status)}>
-              <img src={food.imageUrl} alt="" style={{ width: 'auto',maxHeight: '315px', objectFit: 'contain', display: 'block',backgroundColor: '#fff' }} />
+            <div key={food.id}
+              draggable
+              onDragStart={() => handleDragStart(food.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => handleDrop(food.id)}
+              style={{
+                position: 'relative',
+                width: '220px',
+                border: '1px solid #ccc',
+                borderRadius: '6px',
+                overflow: 'hidden',
+                background: '#fff'
+              }}
+              onClick={() => handleToggleStatus(food.id, food.status)}>
+              <img src={food.imageUrl} alt="" style={{ width: 'auto', maxHeight: '315px', objectFit: 'contain', display: 'block', backgroundColor: '#fff' }} />
               {food.status === "Sold Out" && (
                 <div style={{
                   position: 'absolute', top: 0, left: 0,
@@ -126,16 +109,6 @@ const AdminFoodList = () => {
                   SOLD OUT
                 </div>
               )}
-              {false && (
-              <button onClick={(e) => { e.stopPropagation(); handleDeleteFood(food.id); }}
-                style={{
-                  position: 'absolute',
-                  top: '5px', right: '5px',
-                  background: 'red', color: 'white',
-                  border: 'none', borderRadius: '50%',
-                  width: '25px', height: '25px'
-                }}>×</button>
-                )}
             </div>
           ))}
         </div>

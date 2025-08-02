@@ -70,6 +70,16 @@ try {
   if (fs.existsSync(foodsPath)) {
     const raw = fs.readFileSync(foodsPath, 'utf-8');
     foods = JSON.parse(raw);
+    // Ensure each food has an `order` property.  If missing, set it based on
+    // the current index.  This property determines the display order on
+    // both the admin and user interfaces.  Using the array index here
+    // preserves the existing order until drag-and-drop reordering is
+    // performed by the admin.
+    foods.forEach((f, idx) => {
+      if (f.order === undefined) {
+        f.order = idx;
+      }
+    });
   } else {
     console.log('⚠️ foods.json không tồn tại. Bắt đầu với danh sách rỗng.');
   }
@@ -157,6 +167,9 @@ app.post('/api/foods', (req, res) => {
   if (['snack menu', 'snack travel', 'club menu'].includes(lower)) levelAccess = ['P', 'I-I+', 'V-One'];
   else if (['hotel menu', 'hotel menu before 11am', 'hotel menu after 11pm'].includes(lower)) levelAccess = ['I-I+', 'V-One'];
 
+  // Determine the next order value.  Use the maximum existing order plus one
+  // so the new item appears at the end of the list by default.
+  const maxOrder = foods.reduce((max, f) => (f.order > max ? f.order : max), -1);
   const newFood = {
     id: nextId++,
     imageUrl,
@@ -164,6 +177,7 @@ app.post('/api/foods', (req, res) => {
     status: 'Available',
     hash,
     levelAccess,
+    order: maxOrder + 1,
   };
 
   foods.push(newFood);
@@ -191,6 +205,37 @@ app.post('/api/update-status/:id', (req, res) => {
   saveFoods();
   io.emit('foodStatusUpdated', { updatedFoods });
   res.json({ success: true });
+});
+
+/*
+ * Endpoint: reorder foods.  Accepts a JSON body with an array of food IDs
+ * representing the new order.  Updates the `order` property on each food
+ * and persists the change.  Emits a `foodsReordered` event to connected
+ * clients so that the user interface can update its ordering without
+ * refetching all data.  Example body: { "orderedIds": [5, 2, 9, ...] }
+ */
+app.post('/api/reorder-foods', (req, res) => {
+  const { orderedIds } = req.body;
+  if (!Array.isArray(orderedIds)) {
+    return res.status(400).json({ message: 'orderedIds phải là mảng' });
+  }
+  // Ensure all provided IDs exist
+  const allIdsExist = orderedIds.every((id) => foods.some((f) => f.id === id));
+  if (!allIdsExist) {
+    return res.status(400).json({ message: 'orderedIds chứa ID không tồn tại' });
+  }
+  // Update order values according to their index in orderedIds
+  orderedIds.forEach((id, index) => {
+    const f = foods.find((food) => food.id === id);
+    if (f) {
+      f.order = index;
+    }
+  });
+  // Sort the foods array by new order to maintain consistency
+  foods.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  saveFoods();
+  io.emit('foodsReordered', { orderedIds });
+  return res.json({ success: true });
 });
 
 // Endpoint: delete a food (always deletes the image file)
@@ -264,4 +309,17 @@ server.headersTimeout = 70000;
 // Start the server on all network interfaces
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Backend running at http://192.168.100.137:${PORT}`);
+});
+app.post('/api/reorder-foods', (req, res) => {
+  const { orderedIds } = req.body;
+  if (!Array.isArray(orderedIds)) return res.status(400).json({ message: 'Invalid' });
+
+  orderedIds.forEach((id, idx) => {
+    const f = foods.find(f => f.id === id);
+    if (f) f.order = idx;
+  });
+
+  fs.writeFileSync(foodsPath, JSON.stringify(foods, null, 2));
+  io.emit('foodsReordered', { orderedIds });
+  res.json({ success: true });
 });

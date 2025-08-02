@@ -43,10 +43,26 @@ const UserFoodList = () => {
     socket.on('foodAdded', fetchFoods);
     socket.on('foodStatusUpdated', fetchFoods);
     socket.on('foodDeleted', fetchFoods);
+    // Listen for reorder events.  When the admin reorders foods, the server
+    // emits `foodsReordered` with the orderedIds array.  Update our local
+    // foods state accordingly without requiring a full refetch.  We map
+    // existing foods to the new order and update their `order` property.
+    socket.on('foodsReordered', ({ orderedIds }) => {
+      setFoods((prev) => {
+        // Build a map from ID to its new order index
+        const orderMap = new Map();
+        orderedIds.forEach((id, idx) => orderMap.set(id, idx));
+        return prev.map((f) => {
+          const newOrder = orderMap.has(f.id) ? orderMap.get(f.id) : f.order;
+          return { ...f, order: newOrder };
+        });
+      });
+    });
     return () => {
       socket.off('foodAdded');
       socket.off('foodStatusUpdated');
       socket.off('foodDeleted');
+      socket.off('foodsReordered');
     };
   }, []);
 
@@ -81,8 +97,16 @@ const UserFoodList = () => {
         touchStartXRef.current = startX;
         // determine context: open from left edge or close from menu
         if (!menuOpenRef.current && startX < 50) {
+          // menu is closed: a swipe starting very close to the left edge (within 50px)
+          // will be treated as an attempt to open the menu
           touchStartContextRef.current = 'edge';
-        } else if (menuOpenRef.current && startX < 240) {
+        } else if (menuOpenRef.current) {
+          // menu is open: allow closing gesture to start from **anywhere**.
+          // Some devices (e.g. iPad) may offset coordinates or have margins,
+          // making it unreliable to only detect within a narrow band.  By
+          // setting the context to 'menu' for all touches when the menu is
+          // already open, a leftward swipe will close the menu regardless of
+          // where the swipe starts.
           touchStartContextRef.current = 'menu';
         } else {
           touchStartContextRef.current = null;
@@ -143,7 +167,16 @@ const UserFoodList = () => {
   const soldOutHashes = getSoldOutHashes();
 
   // Filter foods by selected level/type and remove sold-out items
-  const foodsByTypeRaw = foods.filter(
+  // Sort foods by their `order` property before applying filters.  If `order`
+  // is undefined, treat it as 0 so that unsorted items appear first.  This
+  // ensures the client displays foods in the same order as defined on
+  // the server/admin.
+  const sortedFoods = [...foods].sort((a, b) => {
+    const aOrder = a.order ?? 0;
+    const bOrder = b.order ?? 0;
+    return aOrder - bOrder;
+  });
+  const foodsByTypeRaw = sortedFoods.filter(
     (f) =>
       f.hash &&
       !soldOutHashes.has(f.hash) &&
