@@ -28,15 +28,53 @@ const AdminFoodList = () => {
     setFoods(res.data);
   };
 
+  // Toggle Sold Out/Available
   const handleToggleStatus = async (id, status) => {
     const newStatus = status === "Available" ? "Sold Out" : "Available";
     await axios.post(`${process.env.REACT_APP_API_URL}/api/update-status/${id}`, { newStatus });
   };
-const handleDeleteFood = async (id) => {
-  if (!window.confirm('Bạn có chắc muốn xoá món này?')) return;
-  await axios.delete(`${process.env.REACT_APP_API_URL}/api/foods/${id}`);
-};
 
+  // Xóa món ăn
+  const handleDeleteFood = async (id) => {
+    if (!window.confirm('Bạn có chắc muốn xoá món này?')) return;
+    await axios.delete(`${process.env.REACT_APP_API_URL}/api/foods/${id}`);
+  };
+
+  // Thêm món ăn mới
+  const handleAddFood = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+    input.onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("type", selectedType);
+        // Tải ảnh lên server
+        const uploadRes = await axios.post(`${process.env.REACT_APP_API_URL}/api/upload`, formData);
+        const { imageUrl, hash } = uploadRes.data;
+        try {
+          // Thêm món ăn vào danh sách
+          await axios.post(`${process.env.REACT_APP_API_URL}/api/foods`, {
+            imageUrl,
+            type: selectedType,
+            hash
+          });
+        } catch (err) {
+          if (err.response?.status === 409) {
+            alert("❌ Món ăn đã tồn tại trong menu này!");
+          } else {
+            alert("Lỗi thêm món: " + err.message);
+          }
+        }
+      }
+    };
+    input.click();
+  };
+
+  // Kéo để sắp xếp vị trí
   const handleDragStart = (id) => {
     setDraggedId(id);
   };
@@ -54,6 +92,7 @@ const handleDeleteFood = async (id) => {
     });
   };
 
+  // Danh sách menu
   const menuTypes = [
     "SNACK TRAVEL", "SNACK MENU", "CLUB MENU", "HOTEL MENU",
     "HOTEL MENU BEFORE 11AM", "HOTEL MENU AFTER 11PM",
@@ -66,6 +105,7 @@ const handleDeleteFood = async (id) => {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', height: '100vh' }}>
+      {/* Sidebar menu */}
       <div style={{ background: '#111', color: '#fff', padding: '20px', overflowY: 'auto' }}>
         <h3>🍱 Admin Menu</h3>
         {menuTypes.map(type => (
@@ -82,8 +122,27 @@ const handleDeleteFood = async (id) => {
           </div>
         ))}
       </div>
+
+      {/* Danh sách món ăn theo menu đã chọn */}
       <div style={{ padding: '20px', background: '#fff8dc', overflowY: 'auto' }}>
         <h2>{selectedType}</h2>
+        {/* Nút thêm món */}
+        <button
+          onClick={handleAddFood}
+          style={{
+            padding: '8px 12px',
+            background: '#28a745',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            marginBottom: '16px'
+          }}
+        >
+          ➕ Thêm món
+        </button>
+
+        {/* Hiển thị danh sách món */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '20px' }}>
           {foodsByType.map(food => (
             <div key={food.id}
@@ -96,11 +155,24 @@ const handleDeleteFood = async (id) => {
                 width: '220px',
                 border: '1px solid #ccc',
                 borderRadius: '6px',
-                overflow: 'hidden',
-                background: '#fff'
+                overflow: 'visible', // Giữ để nút X hiển thị
+                background: '#fff',
+                marginRight: '12px',     // thêm dòng này
+                marginBottom: '12px'     // và dòng này
               }}
-              onClick={() => handleToggleStatus(food.id, food.status)}>
-              <img src={food.imageUrl} alt="" style={{ width: 'auto', maxHeight: '315px', objectFit: 'contain', display: 'block', backgroundColor: '#fff' }} />
+              onClick={() => handleToggleStatus(food.id, food.status)}
+            >
+              <img
+                src={food.imageUrl}
+                alt=""
+                style={{
+                  width: 'auto',
+                  maxHeight: '315px',
+                  objectFit: 'contain',
+                  display: 'block',
+                  backgroundColor: '#fff'
+                }}
+              />
               {food.status === "Sold Out" && (
                 <div style={{
                   position: 'absolute', top: 0, left: 0,
@@ -112,38 +184,36 @@ const handleDeleteFood = async (id) => {
                 }}>
                   SOLD OUT
                 </div>
-                
               )}
+              {/* Nút xoá món */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteFood(food.id);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '5px',
+                  right: '5px',
+                  background: 'red',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '25px',
+                  height: '25px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  zIndex: 20
+                }}
+              >
+                X
+              </button>
             </div>
-            
           ))}
         </div>
       </div>
     </div>
   );
-  <button
-  onClick={(e) => {
-    e.stopPropagation(); // tránh click ảnh làm toggle sold-out
-    handleDeleteFood(food.id);
-  }}
-  style={{
-    position: 'absolute',
-    top: '5px',
-    right: '5px',
-    background: 'red',
-    color: 'white',
-    border: 'none',
-    borderRadius: '50%',
-    width: '25px',
-    height: '25px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    zIndex: 10
-  }}
->
-  ×
-</button>
-
 };
 
 export default AdminFoodList;
