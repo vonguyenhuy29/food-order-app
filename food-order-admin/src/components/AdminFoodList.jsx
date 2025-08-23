@@ -32,6 +32,10 @@ const AdminFoodList = () => {
     const newStatus = status === "Available" ? "Sold Out" : "Available";
     await axios.post(`${process.env.REACT_APP_API_URL}/api/update-status/${id}`, { newStatus });
   };
+const handleDeleteFood = async (id) => {
+  if (!window.confirm('Bạn có chắc muốn xoá món này?')) return;
+  await axios.delete(`${process.env.REACT_APP_API_URL}/api/foods/${id}`);
+};
 
   const handleDragStart = (id) => {
     setDraggedId(id);
@@ -108,13 +112,38 @@ const AdminFoodList = () => {
                 }}>
                   SOLD OUT
                 </div>
+                
               )}
             </div>
+            
           ))}
         </div>
       </div>
     </div>
   );
+  <button
+  onClick={(e) => {
+    e.stopPropagation(); // tránh click ảnh làm toggle sold-out
+    handleDeleteFood(food.id);
+  }}
+  style={{
+    position: 'absolute',
+    top: '5px',
+    right: '5px',
+    background: 'red',
+    color: 'white',
+    border: 'none',
+    borderRadius: '50%',
+    width: '25px',
+    height: '25px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    zIndex: 10
+  }}
+>
+  ×
+</button>
+
 };
 
 export default AdminFoodList;
