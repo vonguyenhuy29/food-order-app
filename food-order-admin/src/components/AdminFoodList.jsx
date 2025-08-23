@@ -225,7 +225,7 @@ const AdminFoodList = () => {
                   SOLD OUT
                 </div>
               )}
-              {/* Delete button (X) */}
+              {/* Delete button (X) 
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -247,7 +247,7 @@ const AdminFoodList = () => {
                 }}
               >
                 X
-              </button>
+              </button>*/}
             </div>
           ))}
         </div>
