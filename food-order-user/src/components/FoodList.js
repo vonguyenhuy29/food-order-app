@@ -2,10 +2,33 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
-const socket = io(process.env.REACT_APP_API_URL);
+const socket = io(process.env.REACT_APP_API_URL, {
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  transports: ["websocket"],
+});
+
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible") {
+      if (!socket.connected) {
+        console.log("⏳ App resumed, reconnecting socket...");
+        socket.connect();
+      }
+    }
+  };
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+}, []);
+
 
 const UserFoodList = () => {
   const [foods, setFoods] = useState([]);
+  const [connectionError, setConnectionError] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
   // columns determines how many food items are displayed per row (3–6)
@@ -23,6 +46,22 @@ const UserFoodList = () => {
   const menuOpenRef = useRef(menuOpen);
 
   // update menuOpenRef whenever menuOpen changes
+  useEffect(() => {
+  socket.on('disconnect', () => {
+    console.warn("⛔ Mất kết nối tới máy chủ");
+    setConnectionError(true);
+  });
+
+  socket.on('connect', () => {
+    setConnectionError(false);
+  });
+
+  return () => {
+    socket.off('disconnect');
+    socket.off('connect');
+  };
+}, []);
+
   useEffect(() => {
     menuOpenRef.current = menuOpen;
   }, [menuOpen]);
@@ -198,6 +237,7 @@ const UserFoodList = () => {
   }
 
   return (
+    
     <div style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
       <button
         onClick={() => setMenuOpen(!menuOpen)}
@@ -220,7 +260,24 @@ const UserFoodList = () => {
       >
         ☰
       </button>
-
+    {connectionError && (
+      <div style={{
+        position: 'absolute',
+        top: '80px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: '#ffcccc',
+        color: '#a00',
+        padding: '10px',
+        fontWeight: 'bold',
+        borderRadius: '4px',
+        zIndex: 1000,
+        textAlign: 'center',
+        boxShadow: '0 0 10px rgba(0,0,0,0.2)'
+      }}>
+        ⛔ Mất kết nối tới máy chủ. Đang chờ kết nối lại...
+      </div>
+    )}
       {menuOpen && (
         <div
           style={{
