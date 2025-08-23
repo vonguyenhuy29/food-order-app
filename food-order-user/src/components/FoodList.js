@@ -2,93 +2,94 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
+// Initialise the shared socket once.  Reconnection options help keep the
+// connection alive across temporary network issues and device sleep.
 const socket = io(process.env.REACT_APP_API_URL, {
   reconnection: true,
   reconnectionAttempts: 10,
   reconnectionDelay: 1000,
-  transports: ["websocket"],
+  transports: ['websocket'],
 });
 
-useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      if (!socket.connected) {
-        console.log("⏳ App resumed, reconnecting socket...");
-        socket.connect();
-      }
-    }
-  };
-
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-  return () => {
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-  };
-}, []);
-
-
+/**
+ * UserFoodList renders a responsive menu of foods.  It supports real‑time
+ * updates via Socket.IO, swipe gestures for opening/closing the side menu on
+ * touch devices, adjustable grid columns via Ctrl+scroll or a slider, and
+ * displays a fullscreen preview when a food image is tapped.  It also shows
+ * a banner when the socket connection drops and tries to reconnect when
+ * returning from the background.
+ */
 const UserFoodList = () => {
   const [foods, setFoods] = useState([]);
   const [connectionError, setConnectionError] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
-  // columns determines how many food items are displayed per row (3–6)
+  // columns controls how many cards appear per row (between 3 and 6)
   const [columns, setColumns] = useState(4);
   const [menuOpen, setMenuOpen] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
 
-  // refs to track touch gestures
+  // Refs to track touch gestures and menu state across handlers
   const touchStartXRef = useRef(null);
-  // we'll no longer pinch-zoom on touch devices; instead we'll use a slider to control zoom
-  // remove pinchDistanceRef as we no longer track pinch distances
-  const touchStartContextRef = useRef(null); // 'edge' or 'menu'
-
-  // use a ref to track the latest value of menuOpen inside touch handlers
+  const touchStartContextRef = useRef(null);
   const menuOpenRef = useRef(menuOpen);
 
-  // update menuOpenRef whenever menuOpen changes
-  useEffect(() => {
-  socket.on('disconnect', () => {
-    console.warn("⛔ Mất kết nối tới máy chủ");
-    setConnectionError(true);
-  });
-
-  socket.on('connect', () => {
-    setConnectionError(false);
-  });
-
-  return () => {
-    socket.off('disconnect');
-    socket.off('connect');
-  };
-}, []);
-
+  // Keep menuOpenRef in sync with state
   useEffect(() => {
     menuOpenRef.current = menuOpen;
   }, [menuOpen]);
 
+  // Manage socket connection status and update connectionError flag
   useEffect(() => {
-    const socket = new WebSocket(`ws://${window.location.hostname}:5000`);
-    socket.onmessage = (msg) => {
-      const data = JSON.parse(msg.data);
-      if (data.event === 'foodStatusUpdated') {
-        fetchFoods(); // update state when status changes
-      }
+    const handleDisconnect = () => {
+      console.warn('⛔ Mất kết nối tới máy chủ');
+      setConnectionError(true);
     };
-    return () => socket.close();
+    const handleConnect = () => {
+      setConnectionError(false);
+    };
+    socket.on('disconnect', handleDisconnect);
+    socket.on('connect', handleConnect);
+    return () => {
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect', handleConnect);
+    };
   }, []);
 
+  // When returning from background (e.g. iPad resume), reconnect if needed
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !socket.connected) {
+        console.log('⏳ App resumed, reconnecting socket...');
+        socket.connect();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Listen to WebSocket events (via a separate ws connection) for status
+  useEffect(() => {
+    const ws = new WebSocket(`ws://${window.location.hostname}:5000`);
+    ws.onmessage = (msg) => {
+      const data = JSON.parse(msg.data);
+      if (data.event === 'foodStatusUpdated') {
+        fetchFoods();
+      }
+    };
+    return () => ws.close();
+  }, []);
+
+  // Initial fetch and register socket events for CRUD and reorder
   useEffect(() => {
     fetchFoods();
     socket.on('foodAdded', fetchFoods);
     socket.on('foodStatusUpdated', fetchFoods);
     socket.on('foodDeleted', fetchFoods);
-    // Listen for reorder events.  When the admin reorders foods, the server
-    // emits `foodsReordered` with the orderedIds array.  Update our local
-    // foods state accordingly without requiring a full refetch.  We map
-    // existing foods to the new order and update their `order` property.
     socket.on('foodsReordered', ({ orderedIds }) => {
       setFoods((prev) => {
-        // Build a map from ID to its new order index
         const orderMap = new Map();
         orderedIds.forEach((id, idx) => orderMap.set(id, idx));
         return prev.map((f) => {
@@ -105,12 +106,11 @@ const UserFoodList = () => {
     };
   }, []);
 
-  // Enable Ctrl+wheel to adjust number of columns on desktop
+  // Allow Ctrl+scroll to adjust number of columns on desktop
   useEffect(() => {
     const handleWheel = (e) => {
       if (e.ctrlKey) {
         e.preventDefault();
-        // scroll up (deltaY < 0) means zoom in -> fewer columns; scroll down means zoom out -> more columns
         setColumns((prev) => {
           if (e.deltaY < 0) {
             return Math.max(3, prev - 1);
@@ -126,26 +126,15 @@ const UserFoodList = () => {
     return () => window.removeEventListener('wheel', handleWheel);
   }, []);
 
-  // Handle swipe gestures on touch devices (e.g. iPad) to open or close the menu
-  // We no longer handle pinch‑zoom; zoom can be controlled via a slider in the UI
+  // Handle swipe gestures on touch devices to toggle the menu
   useEffect(() => {
     const handleTouchStart = (e) => {
       if (e.touches.length === 1) {
-        // start swipe
         const startX = e.touches[0].clientX;
         touchStartXRef.current = startX;
-        // determine context: open from left edge or close from menu
         if (!menuOpenRef.current && startX < 50) {
-          // menu is closed: a swipe starting very close to the left edge (within 50px)
-          // will be treated as an attempt to open the menu
           touchStartContextRef.current = 'edge';
         } else if (menuOpenRef.current) {
-          // menu is open: allow closing gesture to start from **anywhere**.
-          // Some devices (e.g. iPad) may offset coordinates or have margins,
-          // making it unreliable to only detect within a narrow band.  By
-          // setting the context to 'menu' for all touches when the menu is
-          // already open, a leftward swipe will close the menu regardless of
-          // where the swipe starts.
           touchStartContextRef.current = 'menu';
         } else {
           touchStartContextRef.current = null;
@@ -153,7 +142,6 @@ const UserFoodList = () => {
       }
     };
     const handleTouchEnd = (e) => {
-      // swipe detection only when there is one finger and ended
       if (
         touchStartXRef.current != null &&
         e.changedTouches.length === 1 &&
@@ -161,20 +149,16 @@ const UserFoodList = () => {
       ) {
         const endX = e.changedTouches[0].clientX;
         const deltaX = endX - touchStartXRef.current;
-        // open menu: started from left edge and swipe right
         if (touchStartContextRef.current === 'edge' && deltaX > 50) {
           setMenuOpen(true);
         }
-        // close menu: started within menu and swipe left
         if (touchStartContextRef.current === 'menu' && deltaX < -50) {
           setMenuOpen(false);
         }
       }
-      // reset refs
       touchStartXRef.current = null;
       touchStartContextRef.current = null;
     };
-    // attach listeners
     const opts = { passive: false };
     document.addEventListener('touchstart', handleTouchStart, opts);
     document.addEventListener('touchend', handleTouchEnd, opts);
@@ -184,32 +168,24 @@ const UserFoodList = () => {
     };
   }, []);
 
+  // Fetch the list of foods from the API
   const fetchFoods = async () => {
-    const res = await axios.get(
-      `${process.env.REACT_APP_API_URL}/api/foods`
-    );
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/foods`);
     setFoods(res.data);
   };
 
+  // Compute available menu types for the selected level
   const allTypes = Array.from(new Set(foods.map((f) => f.type))).sort();
-
   const filteredTypes = allTypes.filter((type) =>
     foods.find((f) => f.type === type)?.levelAccess?.includes(selectedLevel)
   );
 
-  const getSoldOutHashes = () => {
-    return new Set(
-      foods.filter((f) => f.status === 'Sold Out').map((f) => f.hash)
-    );
-  };
+  // Build a set of sold‑out hashes for filtering
+  const soldOutHashes = new Set(
+    foods.filter((f) => f.status === 'Sold Out').map((f) => f.hash)
+  );
 
-  const soldOutHashes = getSoldOutHashes();
-
-  // Filter foods by selected level/type and remove sold-out items
-  // Sort foods by their `order` property before applying filters.  If `order`
-  // is undefined, treat it as 0 so that unsorted items appear first.  This
-  // ensures the client displays foods in the same order as defined on
-  // the server/admin.
+  // Sort foods by order and filter by level/type, removing sold‑out items
   const sortedFoods = [...foods].sort((a, b) => {
     const aOrder = a.order ?? 0;
     const bOrder = b.order ?? 0;
@@ -223,11 +199,10 @@ const UserFoodList = () => {
       (selectedType === null || f.type === selectedType)
   );
 
-  // Deduplicate items with the same image filename (images with identical names are considered duplicates)
+  // Deduplicate by image filename to avoid showing the same dish twice across menus
   const foodsByType = [];
   const seenNames = new Set();
   for (const food of foodsByTypeRaw) {
-    // extract filename from imageUrl (after the last slash)
     const urlParts = food.imageUrl ? food.imageUrl.split('/') : [];
     const fileName = urlParts[urlParts.length - 1] || food.imageUrl;
     if (!seenNames.has(fileName)) {
@@ -237,8 +212,8 @@ const UserFoodList = () => {
   }
 
   return (
-    
     <div style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
+      {/* Toggle side menu on desktop/mobile */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
         style={{
@@ -260,24 +235,28 @@ const UserFoodList = () => {
       >
         ☰
       </button>
-    {connectionError && (
-      <div style={{
-        position: 'absolute',
-        top: '80px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        backgroundColor: '#ffcccc',
-        color: '#a00',
-        padding: '10px',
-        fontWeight: 'bold',
-        borderRadius: '4px',
-        zIndex: 1000,
-        textAlign: 'center',
-        boxShadow: '0 0 10px rgba(0,0,0,0.2)'
-      }}>
-        ⛔ Mất kết nối tới máy chủ. Đang chờ kết nối lại...
-      </div>
-    )}
+      {/* Connection error banner */}
+      {connectionError && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#ffcccc',
+            color: '#a00',
+            padding: '10px',
+            fontWeight: 'bold',
+            borderRadius: '4px',
+            zIndex: 1000,
+            textAlign: 'center',
+            boxShadow: '0 0 10px rgba(0,0,0,0.2)',
+          }}
+        >
+          ⛔ Mất kết nối tới máy chủ. Đang chờ kết nối lại...
+        </div>
+      )}
+      {/* Side menu */}
       {menuOpen && (
         <div
           style={{
@@ -326,12 +305,18 @@ const UserFoodList = () => {
           {(selectedLevel || selectedType) && (
             <div style={{ paddingTop: '10px', paddingBottom: '10px' }}>
               {selectedType && (
-                <button onClick={() => setSelectedType(null)} style={backButtonStyle}>
+                <button
+                  onClick={() => setSelectedType(null)}
+                  style={backButtonStyle}
+                >
                   ⬅
                 </button>
               )}
               {!selectedType && selectedLevel && (
-                <button onClick={() => setSelectedLevel(null)} style={backButtonStyle}>
+                <button
+                  onClick={() => setSelectedLevel(null)}
+                  style={backButtonStyle}
+                >
                   ⬅
                 </button>
               )}
@@ -339,7 +324,7 @@ const UserFoodList = () => {
           )}
         </div>
       )}
-
+      {/* Main content area showing foods */}
       <div
         style={{
           height: '100vh',
@@ -362,23 +347,22 @@ const UserFoodList = () => {
               <div
                 key={food.id}
                 style={{
-                  transition: 'all 0.2s ease',
                   borderRadius: '8px',
                   overflow: 'hidden',
                   border: '1px solid #ccc',
                   background: '#fff',
+                  cursor: 'pointer',
                 }}
+                onClick={() => setPreviewImage(food.imageUrl)}
               >
                 <img
                   src={food.imageUrl}
-                  alt=''
-                  onClick={() => setPreviewImage(food.imageUrl)}
+                  alt=""
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
                     display: 'block',
-                    cursor: 'pointer',
                   }}
                 />
               </div>
@@ -387,7 +371,7 @@ const UserFoodList = () => {
           </div>
         )}
       </div>
-
+      {/* Preview overlay */}
       {previewImage && (
         <div
           onClick={() => setPreviewImage(null)}
@@ -407,7 +391,7 @@ const UserFoodList = () => {
         >
           <img
             src={previewImage}
-            alt='Preview'
+            alt="Preview"
             style={{
               maxWidth: '90vw',
               maxHeight: '90vh',
@@ -417,8 +401,7 @@ const UserFoodList = () => {
           />
         </div>
       )}
-
-      {/* Zoom control slider for touch devices and desktops */}
+      {/* Slider to control number of columns */}
       <div
         style={{
           position: 'fixed',
@@ -429,7 +412,7 @@ const UserFoodList = () => {
         }}
       >
         <input
-          type='range'
+          type="range"
           min={3}
           max={6}
           step={1}
@@ -442,6 +425,7 @@ const UserFoodList = () => {
   );
 };
 
+// Styles for the side menu list items
 const sidebarItemStyle = {
   padding: '10px',
   marginBottom: '6px',
@@ -451,6 +435,7 @@ const sidebarItemStyle = {
   textAlign: 'center',
 };
 
+// Styles for back buttons in the side menu
 const backButtonStyle = {
   background: '#444',
   color: 'white',
