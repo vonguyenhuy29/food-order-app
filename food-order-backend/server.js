@@ -264,34 +264,26 @@ app.delete('/api/foods/:id', (req, res) => {
  * terminates a connection unexpectedly. Without this handler the error
  * would bubble up and print a stack trace on the console.
  */
+// 1. Bỏ qua cả ECONNRESET và ERR_HTTP_REQUEST_TIMEOUT cho clientError
 server.on('clientError', (err, socket) => {
-  if (err.code === 'ECONNRESET') {
-    socket.destroy();
-  } else {
-    console.error('Client error:', err);
-    socket.destroy();
+  if (err.code === 'ECONNRESET' || err.code === 'ERR_HTTP_REQUEST_TIMEOUT') {
+    // Đóng kết nối mà không in log
+    return socket.destroy();
   }
-});
-
-// Destroy sockets that exceed the idle timeout. Without this, Node will emit
-// ERR_HTTP_REQUEST_TIMEOUT and log a stack trace when a client keeps a
-// connection open without sending a complete request.
-server.on('timeout', (socket) => {
+  console.error('Client error:', err);
   socket.destroy();
 });
 
-// Catch other server-level errors and suppress ECONNRESET messages. This
-// prevents the process from printing stack traces for connections closed
-// unexpectedly.
+// 2. Bỏ qua ERR_HTTP_REQUEST_TIMEOUT cho error event ở cấp server
 server.on('error', (err) => {
-  if (err.code === 'ECONNRESET') return;
+  if (err.code === 'ECONNRESET' || err.code === 'ERR_HTTP_REQUEST_TIMEOUT') {
+    return;
+  }
   console.error('Server error:', err);
 });
 
-// For each new TCP connection, attach an error handler to suppress
-// unhandled ECONNRESET errors on individual sockets. Without this,
-// Node will throw an exception when a client closes the connection
-// abruptly (e.g. aborts an HTTP request or drops a WebSocket).
+
+
 server.on('connection', (socket) => {
   socket.on('error', (err) => {
     if (err.code === 'ECONNRESET') {
