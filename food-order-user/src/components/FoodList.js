@@ -167,17 +167,56 @@ const UserFoodList = () => {
     }
   }
 
-  // --- Funnel fill math (right before return) ---
+  // --- Funnel fill math ---
   const minCols = 3;
   const maxCols = 6;
   const pct = (columns - minCols) / (maxCols - minCols); // 0..1
-
-  // Funnel inner bounds in SVG (y: 6 -> 154)
   const innerTop = 6;
   const innerBottom = 154;
   const innerHeight = innerBottom - innerTop; // 148
-  const fillH = Math.max(0, innerHeight * pct); // green fill height
-  const fillY = innerBottom - fillH;            // start Y from bottom up
+  const fillH = Math.max(0, innerHeight * pct);
+  const fillY = innerBottom - fillH;
+
+  // ======= Custom pointer-based slider (mobile-friendly) =======
+  const sliderRef = useRef(null);
+  const draggingRef = useRef(false);
+
+  const setColsFromPointer = (clientY) => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const rel = (clientY - rect.top) / rect.height; // 0 (top) -> 1 (bottom)
+    const ratio = 1 - Math.max(0, Math.min(1, rel)); // invert: kéo lên tăng
+    const raw = minCols + ratio * (maxCols - minCols);
+    const stepped = Math.round(raw); // bước nguyên 3..6
+    const clamped = Math.max(minCols, Math.min(maxCols, stepped));
+    setColumns(clamped);
+  };
+
+  const onPointerDown = (e) => {
+    draggingRef.current = true;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setColsFromPointer(e.clientY);
+  };
+
+  const onPointerMove = (e) => {
+    if (!draggingRef.current) return;
+    setColsFromPointer(e.clientY);
+  };
+
+  const onPointerUp = (e) => {
+    draggingRef.current = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+      setColumns((c) => Math.min(maxCols, c + 1));
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+      setColumns((c) => Math.max(minCols, c - 1));
+    }
+  };
+  // ============================================================
 
   return (
     <div style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
@@ -365,8 +404,19 @@ const UserFoodList = () => {
         </div>
       )}
 
-      {/* Funnel zoom slider: transparent frame (stroke only) + green fill */}
+      {/* Funnel slider (custom, pointer-based) */}
       <div
+        ref={sliderRef}
+        role="slider"
+        aria-valuemin={minCols}
+        aria-valuemax={maxCols}
+        aria-valuenow={columns}
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onContextMenu={(e) => e.preventDefault()}
         style={{
           position: 'fixed',
           right: 10,
@@ -375,17 +425,21 @@ const UserFoodList = () => {
           width: 28,
           height: 160,
           zIndex: 1000,
+          touchAction: 'none',          // chặn scroll mặc định trên mobile
+          overscrollBehavior: 'contain',
+          WebkitUserSelect: 'none',
+          userSelect: 'none',
+          cursor: 'pointer',
         }}
       >
         <svg width="28" height="160" viewBox="0 0 28 160" style={{ display: 'block' }}>
           <defs>
             <clipPath id="funnel-clip">
-              {/* Khung phễu (đỉnh rộng, đáy hẹp) — chỉnh 4 điểm để thay đổi độ “loe” */}
               <path d="M6 6 L22 6 L18 154 L10 154 Z" />
             </clipPath>
           </defs>
 
-          {/* Viền khung (fill trong suốt, chỉ stroke) */}
+          {/* Viền khung (fill trong suốt, chỉ viền) */}
           <path
             d="M6 6 L22 6 L18 154 L10 154 Z"
             fill="transparent"
@@ -404,27 +458,6 @@ const UserFoodList = () => {
             clipPath="url(#funnel-clip)"
           />
         </svg>
-
-        {/* Input range trong suốt xoay dọc để nhận thao tác kéo */}
-        <input
-          type="range"
-          min={3}
-          max={6}
-          step={1}
-          value={columns}
-          onChange={(e) => setColumns(parseInt(e.target.value, 10))}
-          aria-label="Zoom columns"
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%) rotate(-90deg)',
-            width: '160px',  // chiều dài trượt
-            height: '28px',  // bề dày vùng bắt thao tác
-            opacity: 0,
-            cursor: 'pointer',
-          }}
-        />
       </div>
     </div>
   );
