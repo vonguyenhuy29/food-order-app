@@ -16,7 +16,7 @@
     "id": 1755907399111,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/sim_000016__0.jpg",
     "type": "SNACK MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "334c426082ad56936c5a17628e133b00",
     "levelAccess": [
       "P",
@@ -68,7 +68,7 @@
     "id": 1753713777675,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/sim_000032__0.jpg",
     "type": "SNACK MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "6fde2c412bb914d096aa0a3dd02283af",
     "levelAccess": [
       "P",
@@ -133,7 +133,7 @@
     "id": 1753713777681,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/sim_000052__0.jpg",
     "type": "SNACK MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1a63508d547266288402f06122c23577",
     "levelAccess": [
       "P",
@@ -185,7 +185,7 @@
     "id": 1753713777688,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/sim_000074__0.jpg",
     "type": "SNACK MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "9d6a6d92c00aa9f3037c1e2424daf8a8",
     "levelAccess": [
       "P",
@@ -289,7 +289,7 @@
     "id": 1753713777695,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK TRAVEL/sim_000074__0.jpg",
     "type": "SNACK TRAVEL",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "2d2dd02aa131c40e8d32220e3739e143",
     "levelAccess": [
       "P",
@@ -354,7 +354,7 @@
     "id": 1753713777696,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000016__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "3cee030147dbbe5b4a6e1829175bbb7c",
     "levelAccess": [
       "P",
@@ -367,7 +367,7 @@
     "id": 1753713777707,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000027__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "ab2d193ab7b55ac5690c5bc9a2790b1f",
     "levelAccess": [
       "P",
@@ -393,7 +393,7 @@
     "id": 1753713777722,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000042__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1c1136053dbc00396cb7e15941089381",
     "levelAccess": [
       "P",
@@ -419,7 +419,7 @@
     "id": 1753713777720,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000040__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "51566db3af0fcdbe08f550b3420a53c8",
     "levelAccess": [
       "P",
@@ -432,7 +432,7 @@
     "id": 1753713777705,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000025__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "893d4b73fb82cf4e42b6145e7463ed15",
     "levelAccess": [
       "P",
@@ -445,7 +445,7 @@
     "id": 1753713777700,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000020__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "44bc3cc07eb7b5399affa7d9b6f24bde",
     "levelAccess": [
       "P",
@@ -562,7 +562,7 @@
     "id": 1753713777716,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000036__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "P",
@@ -588,7 +588,7 @@
     "id": 1753713777729,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000049__0.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "bf3f00616797d35ce847f8967b5445b4",
     "levelAccess": [
       "P",
@@ -757,7 +757,7 @@
     "id": 1753713777712,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000032__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "6fde2c412bb914d096aa0a3dd02283af",
     "levelAccess": [
       "P",
@@ -835,7 +835,7 @@
     "id": 1753713777732,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000052__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1a63508d547266288402f06122c23577",
     "levelAccess": [
       "P",
@@ -898,7 +898,7 @@
     "id": 1755907399110,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000016__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "3cee030147dbbe5b4a6e1829175bbb7c",
     "levelAccess": [
       "I-I+",
@@ -910,7 +910,7 @@
     "id": 1753713777749,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000027__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "ab2d193ab7b55ac5690c5bc9a2790b1f",
     "levelAccess": [
       "I-I+",
@@ -934,7 +934,7 @@
     "id": 1753713777764,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000042__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1c1136053dbc00396cb7e15941089381",
     "levelAccess": [
       "I-I+",
@@ -958,7 +958,7 @@
     "id": 1753713777762,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000040__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "51566db3af0fcdbe08f550b3420a53c8",
     "levelAccess": [
       "I-I+",
@@ -970,7 +970,7 @@
     "id": 1753713777747,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000025__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "893d4b73fb82cf4e42b6145e7463ed15",
     "levelAccess": [
       "I-I+",
@@ -982,7 +982,7 @@
     "id": 1753713777742,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000020__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "44bc3cc07eb7b5399affa7d9b6f24bde",
     "levelAccess": [
       "I-I+",
@@ -1090,7 +1090,7 @@
     "id": 1753713777758,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000036__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "I-I+",
@@ -1114,7 +1114,7 @@
     "id": 1753713777771,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000049__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "a6bf398f2821ae59db5d9b3d545c8b51",
     "levelAccess": [
       "I-I+",
@@ -1270,7 +1270,7 @@
     "id": 1753713777754,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000032__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "22984b864b472307c0fb668cc5b0bd97",
     "levelAccess": [
       "I-I+",
@@ -1330,7 +1330,7 @@
     "id": 1753713777774,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000052__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "af9b96977c413e318050d4c1aff8d386",
     "levelAccess": [
       "I-I+",
@@ -1498,7 +1498,7 @@
     "id": 1753713777788,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU BEFORE 11AM/sim_000016__0.jpg",
     "type": "HOTEL MENU BEFORE 11AM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "21873a928a14a85b218cb0b6e34b4677",
     "levelAccess": [
       "I-I+",
@@ -1510,7 +1510,7 @@
     "id": 1753713777807,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU BEFORE 11AM/sim_000042__0.jpg",
     "type": "HOTEL MENU BEFORE 11AM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1c1136053dbc00396cb7e15941089381",
     "levelAccess": [
       "I-I+",
@@ -1630,7 +1630,7 @@
     "id": 1753713777803,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU BEFORE 11AM/sim_000036__0.jpg",
     "type": "HOTEL MENU BEFORE 11AM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "I-I+",
@@ -1654,7 +1654,7 @@
     "id": 1753713777812,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU BEFORE 11AM/sim_000049__0.jpg",
     "type": "HOTEL MENU BEFORE 11AM",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "bf3f00616797d35ce847f8967b5445b4",
     "levelAccess": [
       "I-I+",
@@ -1822,7 +1822,7 @@
     "id": 1753713777799,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU BEFORE 11AM/sim_000032__0.jpg",
     "type": "HOTEL MENU BEFORE 11AM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "22984b864b472307c0fb668cc5b0bd97",
     "levelAccess": [
       "I-I+",
@@ -1834,7 +1834,7 @@
     "id": 1753713777815,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU BEFORE 11AM/sim_000052__0.jpg",
     "type": "HOTEL MENU BEFORE 11AM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "af9b96977c413e318050d4c1aff8d386",
     "levelAccess": [
       "I-I+",
@@ -1942,7 +1942,7 @@
     "id": 1753713777827,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU AFTER 11PM/sim_000016__0.jpg",
     "type": "HOTEL MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "cc637dc6742d351c9f533e61e73a4f07",
     "levelAccess": [
       "I-I+",
@@ -2026,7 +2026,7 @@
     "id": 1753713777834,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU AFTER 11PM/sim_000052__0.jpg",
     "type": "HOTEL MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "b6b60dd2cfddc3087abd340a5e390577",
     "levelAccess": [
       "I-I+",
@@ -2096,7 +2096,7 @@
     "id": 1753713777839,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000016__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "21873a928a14a85b218cb0b6e34b4677",
     "levelAccess": [
       "V-One"
@@ -2107,7 +2107,7 @@
     "id": 1753713777850,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000027__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "ab2d193ab7b55ac5690c5bc9a2790b1f",
     "levelAccess": [
       "V-One"
@@ -2129,7 +2129,7 @@
     "id": 1753713777865,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000042__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "82eac03e733081c9566f35899f216436",
     "levelAccess": [
       "V-One"
@@ -2151,7 +2151,7 @@
     "id": 1753713777863,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000040__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "51566db3af0fcdbe08f550b3420a53c8",
     "levelAccess": [
       "V-One"
@@ -2162,7 +2162,7 @@
     "id": 1753713777848,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000025__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "7e7e5c9b73a4069e304e0d2f5d26f4f4",
     "levelAccess": [
       "V-One"
@@ -2173,7 +2173,7 @@
     "id": 1753713777843,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000020__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "44bc3cc07eb7b5399affa7d9b6f24bde",
     "levelAccess": [
       "V-One"
@@ -2272,7 +2272,7 @@
     "id": 1753713777859,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000036__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "V-One"
@@ -2294,7 +2294,7 @@
     "id": 1753713777872,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000049__0.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "bf3f00616797d35ce847f8967b5445b4",
     "levelAccess": [
       "V-One"
@@ -2437,7 +2437,7 @@
     "id": 1753713777855,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000032__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "22984b864b472307c0fb668cc5b0bd97",
     "levelAccess": [
       "V-One"
@@ -2514,7 +2514,7 @@
     "id": 1753713777875,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000052__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1a63508d547266288402f06122c23577",
     "levelAccess": [
       "V-One"
@@ -3537,7 +3537,7 @@
     "id": 1753713778002,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000016__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "cc637dc6742d351c9f533e61e73a4f07",
     "levelAccess": [
       "V-One"
@@ -3548,7 +3548,7 @@
     "id": 1753713778012,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000027__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "cf13ff0cdc9ebf31ebe0eea6c7a255ee",
     "levelAccess": [
       "V-One"
@@ -3570,7 +3570,7 @@
     "id": 1753713778027,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000042__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "636ab1817100b80e411e05085b03122c",
     "levelAccess": [
       "V-One"
@@ -3592,7 +3592,7 @@
     "id": 1753713778025,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000040__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "8108bd2d2b2994f4ca742a9cf685d4ee",
     "levelAccess": [
       "V-One"
@@ -3603,7 +3603,7 @@
     "id": 1753713778010,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000025__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "38047b6f29ddbc8570ea6303569502db",
     "levelAccess": [
       "V-One"
@@ -3614,7 +3614,7 @@
     "id": 1753713778006,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000020__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1931eacf742605c93b0f82851536daa1",
     "levelAccess": [
       "V-One"
@@ -3713,7 +3713,7 @@
     "id": 1753713778021,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000036__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "dbe868f716168ba6f18f193323c7d228",
     "levelAccess": [
       "V-One"
@@ -3735,7 +3735,7 @@
     "id": 1753713778033,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000049__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "7e7fe844be91fa6e05882153abba30d1",
     "levelAccess": [
       "V-One"
@@ -3856,7 +3856,7 @@
     "id": 1753713778017,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000032__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "4a7f013215dbc5408fd8f5a5a42e3d8e",
     "levelAccess": [
       "V-One"
@@ -3922,7 +3922,7 @@
     "id": 1753713778036,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000052__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "b6b60dd2cfddc3087abd340a5e390577",
     "levelAccess": [
       "V-One"
