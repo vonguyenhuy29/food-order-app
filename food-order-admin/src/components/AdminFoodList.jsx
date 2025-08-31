@@ -124,49 +124,52 @@ const AdminFoodList = () => {
     'WINE MENU - JAPANESE',
     'VIP MENU AFTER 11PM',
   ];
-  
+  const menuOptions = [...menuTypes, SOLD_OUT_MENU];
   // Filter foods to those belonging to the currently selected menu type
   // Xác định xem có đang ở trang Sold out không
 const isSoldOutPage = selectedType === SOLD_OUT_KEY;
-
-// Tạo danh sách ban đầu: nếu ở trang Sold out thì lấy tất cả món Sold Out,
-// ngược lại lấy món thuộc type đã chọn
 const listRaw = isSoldOutPage
   ? foods.filter((f) => f.status === 'Sold Out')
   : foods.filter((f) => f.type === selectedType);
-
-// Loại bỏ trùng lặp theo hash hoặc imageUrl
+// Loại bỏ trùng lặp theo tên file ảnh
 const foodsByType = [];
-const seen = new Set();
+const seenNames = new Set();
 for (const f of listRaw) {
-  const key = f.hash || f.imageUrl;
-  if (!seen.has(key)) {
-    seen.add(key);
+  // Trích xuất tên file từ imageUrl
+  const parts = f.imageUrl ? f.imageUrl.split('/') : [];
+  const fileName = parts[parts.length - 1] || f.imageUrl;
+  if (!seenNames.has(fileName)) {
+    seenNames.add(fileName);
     foodsByType.push(f);
   }
 }
-
-
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', height: '100vh' }}>
       {/* Sidebar listing menu types */}
       <div style={{ background: '#111', color: '#fff', padding: '20px', overflowY: 'auto' }}>
         <h3>🍱 Admin Menu</h3>
-        {menuTypes.map((type) => (
-          <div
-            key={type}
-            onClick={() => setSelectedType(type)}
-            style={{
-              padding: '10px',
-              background: selectedType === type ? '#555' : '#222',
-              borderRadius: '5px',
-              marginBottom: '6px',
-              cursor: 'pointer',
-            }}
-          >
-            {type}
-          </div>
-        ))}
+      {menuOptions.map((type) => (
+        <div
+          key={type}
+          onClick={() =>
+            setSelectedType(type === SOLD_OUT_MENU ? SOLD_OUT_KEY : type)
+          }
+          style={{
+            padding: '10px',
+            background:
+              (type === SOLD_OUT_MENU && selectedType === SOLD_OUT_KEY) ||
+              (type !== SOLD_OUT_MENU && selectedType === type)
+                ? '#555'
+                : '#222',
+            borderRadius: '5px',
+            marginBottom: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          {type}
+        </div>
+      ))}
+
       </div>
       {/* Main panel showing foods for the selected type */}
       <div style={{ padding: '20px', background: '#fff8dc', overflowY: 'auto' }}>
