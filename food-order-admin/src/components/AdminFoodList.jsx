@@ -6,6 +6,8 @@ import io from 'socket.io-client';
 // CRUD events as well as reorder notifications to keep the list in
 // sync with other clients.
 const socket = io(process.env.REACT_APP_API_URL);
+const SOLD_OUT_MENU = 'Sold out';
+const SOLD_OUT_KEY = '__SOLD_OUT__';
 
 /**
  * AdminFoodList renders the administrative interface for managing
@@ -122,9 +124,28 @@ const AdminFoodList = () => {
     'WINE MENU - JAPANESE',
     'VIP MENU AFTER 11PM',
   ];
-
+  
   // Filter foods to those belonging to the currently selected menu type
-  const foodsByType = foods.filter((f) => f.type === selectedType);
+  // Xác định xem có đang ở trang Sold out không
+const isSoldOutPage = selectedType === SOLD_OUT_KEY;
+
+// Tạo danh sách ban đầu: nếu ở trang Sold out thì lấy tất cả món Sold Out,
+// ngược lại lấy món thuộc type đã chọn
+const listRaw = isSoldOutPage
+  ? foods.filter((f) => f.status === 'Sold Out')
+  : foods.filter((f) => f.type === selectedType);
+
+// Loại bỏ trùng lặp theo hash hoặc imageUrl
+const foodsByType = [];
+const seen = new Set();
+for (const f of listRaw) {
+  const key = f.hash || f.imageUrl;
+  if (!seen.has(key)) {
+    seen.add(key);
+    foodsByType.push(f);
+  }
+}
+
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', height: '100vh' }}>

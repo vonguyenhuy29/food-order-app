@@ -510,7 +510,7 @@
     "id": 1753713777708,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000028__0.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "ade05c0d07835d4d3e43170af79104f3",
     "levelAccess": [
       "P",
@@ -1042,7 +1042,7 @@
     "id": 1753713777750,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/sim_000028__0.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "a16aeaf43cc4df55b0fa22809c9304e4",
     "levelAccess": [
       "I-I+",
@@ -1582,7 +1582,7 @@
     "id": 1753713777795,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU BEFORE 11AM/sim_000028__0.jpg",
     "type": "HOTEL MENU BEFORE 11AM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "a16aeaf43cc4df55b0fa22809c9304e4",
     "levelAccess": [
       "I-I+",
@@ -2228,7 +2228,7 @@
     "id": 1753713777851,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/sim_000028__0.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "ade05c0d07835d4d3e43170af79104f3",
     "levelAccess": [
       "V-One"
@@ -3669,7 +3669,7 @@
     "id": 1753713778013,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU AFTER 11PM/sim_000028__0.jpg",
     "type": "VIP MENU AFTER 11PM",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "e71cdbf3738a00fb60023ad0c517f030",
     "levelAccess": [
       "V-One"
