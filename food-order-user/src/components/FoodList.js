@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
-
 const socket = io(process.env.REACT_APP_API_URL, {
   reconnection: true,
   reconnectionAttempts: 10,
@@ -18,30 +17,20 @@ const UserFoodList = () => {
   const [connectionError, setConnectionError] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
-  // columns controls how many cards appear per row (between 3 and 6)
-  const [columns, setColumns] = useState(4);
+  const [columns, setColumns] = useState(4); // 3..6
   const [menuOpen, setMenuOpen] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
 
-  // Refs to track touch gestures and menu state across handlers
+  // Touch & menu state
   const touchStartXRef = useRef(null);
   const touchStartContextRef = useRef(null);
   const menuOpenRef = useRef(menuOpen);
+  useEffect(() => { menuOpenRef.current = menuOpen; }, [menuOpen]);
 
-  // Keep menuOpenRef in sync with state
+  // Socket status banner
   useEffect(() => {
-    menuOpenRef.current = menuOpen;
-  }, [menuOpen]);
-
-  // Manage socket connection status and update connectionError flag
-  useEffect(() => {
-    const handleDisconnect = () => {
-      console.warn('⛔ Mất kết nối tới máy chủ');
-      setConnectionError(true);
-    };
-    const handleConnect = () => {
-      setConnectionError(false);
-    };
+    const handleDisconnect = () => { console.warn('⛔ Mất kết nối tới máy chủ'); setConnectionError(true); };
+    const handleConnect = () => setConnectionError(false);
     socket.on('disconnect', handleDisconnect);
     socket.on('connect', handleConnect);
     return () => {
@@ -50,7 +39,7 @@ const UserFoodList = () => {
     };
   }, []);
 
-  // When returning from background (e.g. iPad resume), reconnect if needed
+  // Reconnect when resuming app
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && !socket.connected) {
@@ -59,24 +48,20 @@ const UserFoodList = () => {
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // Listen to WebSocket events (via a separate ws connection) for status
+  // Listen WS for status changes
   useEffect(() => {
     const ws = new WebSocket(`ws://${window.location.hostname}:5000`);
     ws.onmessage = (msg) => {
       const data = JSON.parse(msg.data);
-      if (data.event === 'foodStatusUpdated') {
-        fetchFoods();
-      }
+      if (data.event === 'foodStatusUpdated') fetchFoods();
     };
     return () => ws.close();
   }, []);
 
-  // Initial fetch and register socket events for CRUD and reorder
+  // Initial fetch & socket events
   useEffect(() => {
     fetchFoods();
     socket.on('foodAdded', fetchFoods);
@@ -86,10 +71,7 @@ const UserFoodList = () => {
       setFoods((prev) => {
         const orderMap = new Map();
         orderedIds.forEach((id, idx) => orderMap.set(id, idx));
-        return prev.map((f) => {
-          const newOrder = orderMap.has(f.id) ? orderMap.get(f.id) : f.order;
-          return { ...f, order: newOrder };
-        });
+        return prev.map((f) => ({ ...f, order: orderMap.has(f.id) ? orderMap.get(f.id) : f.order }));
       });
     });
     return () => {
@@ -100,18 +82,14 @@ const UserFoodList = () => {
     };
   }, []);
 
-  // Allow Ctrl+scroll to adjust number of columns on desktop
+  // Ctrl + wheel to change columns
   useEffect(() => {
     const handleWheel = (e) => {
       if (e.ctrlKey) {
         e.preventDefault();
         setColumns((prev) => {
-          if (e.deltaY < 0) {
-            return Math.max(3, prev - 1);
-          }
-          if (e.deltaY > 0) {
-            return Math.min(6, prev + 1);
-          }
+          if (e.deltaY < 0) return Math.max(3, prev - 1);
+          if (e.deltaY > 0) return Math.min(6, prev + 1);
           return prev;
         });
       }
@@ -120,35 +98,23 @@ const UserFoodList = () => {
     return () => window.removeEventListener('wheel', handleWheel);
   }, []);
 
-  // Handle swipe gestures on touch devices to toggle the menu
+  // Swipe to toggle menu
   useEffect(() => {
     const handleTouchStart = (e) => {
       if (e.touches.length === 1) {
         const startX = e.touches[0].clientX;
         touchStartXRef.current = startX;
-        if (!menuOpenRef.current && startX < 50) {
-          touchStartContextRef.current = 'edge';
-        } else if (menuOpenRef.current) {
-          touchStartContextRef.current = 'menu';
-        } else {
-          touchStartContextRef.current = null;
-        }
+        if (!menuOpenRef.current && startX < 50) touchStartContextRef.current = 'edge';
+        else if (menuOpenRef.current) touchStartContextRef.current = 'menu';
+        else touchStartContextRef.current = null;
       }
     };
     const handleTouchEnd = (e) => {
-      if (
-        touchStartXRef.current != null &&
-        e.changedTouches.length === 1 &&
-        touchStartContextRef.current
-      ) {
+      if (touchStartXRef.current != null && e.changedTouches.length === 1 && touchStartContextRef.current) {
         const endX = e.changedTouches[0].clientX;
         const deltaX = endX - touchStartXRef.current;
-        if (touchStartContextRef.current === 'edge' && deltaX > 50) {
-          setMenuOpen(true);
-        }
-        if (touchStartContextRef.current === 'menu' && deltaX < -50) {
-          setMenuOpen(false);
-        }
+        if (touchStartContextRef.current === 'edge' && deltaX > 50) setMenuOpen(true);
+        if (touchStartContextRef.current === 'menu' && deltaX < -50) setMenuOpen(false);
       }
       touchStartXRef.current = null;
       touchStartContextRef.current = null;
@@ -162,32 +128,22 @@ const UserFoodList = () => {
     };
   }, []);
 
-  // Fetch the list of foods from the API
+  // API
   const fetchFoods = async () => {
     const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/foods`);
     setFoods(res.data);
   };
 
-  // Compute available menu types for the selected level
+  // Types per level + Sold out menu option
   const allTypes = Array.from(new Set(foods.map((f) => f.type))).sort();
   const filteredTypes = allTypes.filter((type) =>
     foods.find((f) => f.type === type)?.levelAccess?.includes(selectedLevel)
   );
   const menuOptions = [...filteredTypes, SOLD_OUT_MENU];
-
   const isSoldOutPage = selectedType === SOLD_OUT_KEY;
 
-  // Build a set of sold‑out hashes for filtering
-  const soldOutHashes = new Set(
-    foods.filter((f) => f.status === 'Sold Out').map((f) => f.hash)
-  );
-
-  // Sort foods by order and filter by level/type, removing sold‑out items
-  const sortedFoods = [...foods].sort((a, b) => {
-    const aOrder = a.order ?? 0;
-    const bOrder = b.order ?? 0;
-    return aOrder - bOrder;
-  });
+  // Sort & filter
+  const sortedFoods = [...foods].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const foodsByTypeRaw = sortedFoods.filter((f) => {
     if (isSoldOutPage) {
       return f.status === 'Sold Out' && f.levelAccess?.includes(selectedLevel);
@@ -199,22 +155,33 @@ const UserFoodList = () => {
     );
   });
 
-
-  // Deduplicate by image filename to avoid showing the same dish twice across menus
+  // Deduplicate by image file name
   const foodsByType = [];
   const seenNames = new Set();
   for (const food of foodsByTypeRaw) {
-    const urlParts = food.imageUrl ? food.imageUrl.split('/') : [];
-    const fileName = urlParts[urlParts.length - 1] || food.imageUrl;
+    const parts = food.imageUrl ? food.imageUrl.split('/') : [];
+    const fileName = parts[parts.length - 1] || food.imageUrl;
     if (!seenNames.has(fileName)) {
       seenNames.add(fileName);
       foodsByType.push(food);
     }
   }
 
+  // --- Funnel fill math (right before return) ---
+  const minCols = 3;
+  const maxCols = 6;
+  const pct = (columns - minCols) / (maxCols - minCols); // 0..1
+
+  // Funnel inner bounds in SVG (y: 6 -> 154)
+  const innerTop = 6;
+  const innerBottom = 154;
+  const innerHeight = innerBottom - innerTop; // 148
+  const fillH = Math.max(0, innerHeight * pct); // green fill height
+  const fillY = innerBottom - fillH;            // start Y from bottom up
+
   return (
     <div style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
-      {/* Toggle side menu on desktop/mobile */}
+      {/* Toggle side menu */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
         style={{
@@ -233,10 +200,12 @@ const UserFoodList = () => {
           backdropFilter: 'blur(6px)',
           transition: 'background 0.2s ease',
         }}
+        aria-label="Toggle menu"
       >
         ☰
       </button>
-      {/* Connection error banner */}
+
+      {/* Connection banner */}
       {connectionError && (
         <div
           style={{
@@ -257,77 +226,72 @@ const UserFoodList = () => {
           ⛔ Mất kết nối tới máy chủ. Đang chờ kết nối lại...
         </div>
       )}
+
       {/* Side menu */}
       {menuOpen && (
         <div
           style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          height: '100vh',
-          width: '240px',
-          background: '#222',
-          color: '#fff',
-          display: 'flex',
-          flexDirection: 'column',
-          overflowY: 'auto',
-          zIndex: 1000,
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            height: '100vh',
+            width: '240px',
+            background: '#222',
+            color: '#fff',
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'auto',
+            zIndex: 1000,
           }}
         >
-          {/* Render các mục menu ở đây */}
-
           <div style={{ flexGrow: 1, overflowY: 'auto' }}>
             {!selectedLevel &&
               ['P', 'I-I+', 'V-One'].map((level) => (
                 <div
                   key={level}
-                  onClick={() => {
-                    setSelectedLevel(level);
-                    setSelectedType(null);
-                  }}
+                  onClick={() => { setSelectedLevel(level); setSelectedType(null); }}
                   style={sidebarItemStyle}
                 >
                   Level {level}
                 </div>
               ))}
+
             {selectedLevel &&
-              menuOptions.map((type) => (
-                <div
-                  key={type}
-                  onClick={() => setSelectedType(type === SOLD_OUT_MENU ? SOLD_OUT_KEY : type)}
-                  style={{
-                    ...sidebarItemStyle,
-                    background: type === selectedType ? '#555' : '#333',
-                    fontWeight: type === selectedType ? 'bold' : 'normal',
-                  }}
-                >
-                  {type}
-                </div>
-              ))}
+              menuOptions.map((type) => {
+                const isActive =
+                  (type === SOLD_OUT_MENU && selectedType === SOLD_OUT_KEY) ||
+                  (type !== SOLD_OUT_MENU && selectedType === type);
+
+                return (
+                  <div
+                    key={type}
+                    onClick={() => setSelectedType(type === SOLD_OUT_MENU ? SOLD_OUT_KEY : type)}
+                    style={{
+                      ...sidebarItemStyle,
+                      background: isActive ? '#555' : '#333',
+                      fontWeight: isActive ? 'bold' : 'normal',
+                    }}
+                  >
+                    {type}
+                  </div>
+                );
+              })}
           </div>
+
           {(selectedLevel || selectedType) && (
             <div style={{ paddingTop: '10px', paddingBottom: '10px' }}>
               {selectedType && (
-                <button
-                  onClick={() => setSelectedType(null)}
-                  style={backButtonStyle}
-                >
-                  ⬅
-                </button>
+                <button onClick={() => setSelectedType(null)} style={backButtonStyle}>⬅</button>
               )}
               {!selectedType && selectedLevel && (
-                <button
-                  onClick={() => setSelectedLevel(null)}
-                  style={backButtonStyle}
-                >
-                  ⬅
-                </button>
+                <button onClick={() => setSelectedLevel(null)} style={backButtonStyle}>⬅</button>
               )}
             </div>
           )}
         </div>
       )}
-      {/* Main content area showing foods */}
+
+      {/* Main grid */}
       <div
         style={{
           height: '100vh',
@@ -361,12 +325,7 @@ const UserFoodList = () => {
                 <img
                   src={food.imageUrl}
                   alt=""
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
               </div>
             ))}
@@ -374,6 +333,7 @@ const UserFoodList = () => {
           </div>
         )}
       </div>
+
       {/* Preview overlay */}
       {previewImage && (
         <div
@@ -404,16 +364,48 @@ const UserFoodList = () => {
           />
         </div>
       )}
-      {/* Slider to control number of columns */}
+
+      {/* Funnel zoom slider: transparent frame (stroke only) + green fill */}
       <div
         style={{
           position: 'fixed',
+          right: 10,
           top: '50%',
-          right: '10px',
-          transform: 'translateY(-50%) rotate(270deg)',
+          transform: 'translateY(-50%)',
+          width: 28,
+          height: 160,
           zIndex: 1000,
         }}
       >
+        <svg width="28" height="160" viewBox="0 0 28 160" style={{ display: 'block' }}>
+          <defs>
+            <clipPath id="funnel-clip">
+              {/* Khung phễu (đỉnh rộng, đáy hẹp) — chỉnh 4 điểm để thay đổi độ “loe” */}
+              <path d="M6 6 L22 6 L18 154 L10 154 Z" />
+            </clipPath>
+          </defs>
+
+          {/* Viền khung (fill trong suốt, chỉ stroke) */}
+          <path
+            d="M6 6 L22 6 L18 154 L10 154 Z"
+            fill="transparent"
+            stroke="#8a8a8a"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+
+          {/* Lớp fill xanh tăng/giảm theo giá trị */}
+          <rect
+            x="0"
+            y={fillY}
+            width="28"
+            height={fillH}
+            fill="#22c55e"
+            clipPath="url(#funnel-clip)"
+          />
+        </svg>
+
+        {/* Input range trong suốt xoay dọc để nhận thao tác kéo */}
         <input
           type="range"
           min={3}
@@ -421,14 +413,24 @@ const UserFoodList = () => {
           step={1}
           value={columns}
           onChange={(e) => setColumns(parseInt(e.target.value, 10))}
-          style={{ width: '200px' }}
+          aria-label="Zoom columns"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%) rotate(-90deg)',
+            width: '160px',  // chiều dài trượt
+            height: '28px',  // bề dày vùng bắt thao tác
+            opacity: 0,
+            cursor: 'pointer',
+          }}
         />
       </div>
     </div>
   );
 };
 
-// Styles for the side menu list items
+// Sidebar item style
 const sidebarItemStyle = {
   padding: '10px',
   marginBottom: '6px',
@@ -438,7 +440,7 @@ const sidebarItemStyle = {
   textAlign: 'center',
 };
 
-// Styles for back buttons in the side menu
+// Back button style
 const backButtonStyle = {
   background: '#444',
   color: 'white',
