@@ -2,8 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
-// Initialise the shared socket once.  Reconnection options help keep the
-// connection alive across temporary network issues and device sleep.
+
 const socket = io(process.env.REACT_APP_API_URL, {
   reconnection: true,
   reconnectionAttempts: 10,
@@ -11,14 +10,9 @@ const socket = io(process.env.REACT_APP_API_URL, {
   transports: ['websocket'],
 });
 
-/**
- * UserFoodList renders a responsive menu of foods.  It supports real‑time
- * updates via Socket.IO, swipe gestures for opening/closing the side menu on
- * touch devices, adjustable grid columns via Ctrl+scroll or a slider, and
- * displays a fullscreen preview when a food image is tapped.  It also shows
- * a banner when the socket connection drops and tries to reconnect when
- * returning from the background.
- */
+const SOLD_OUT_MENU = 'Sold out';
+const SOLD_OUT_KEY = '__SOLD_OUT__';
+
 const UserFoodList = () => {
   const [foods, setFoods] = useState([]);
   const [connectionError, setConnectionError] = useState(false);
@@ -179,6 +173,9 @@ const UserFoodList = () => {
   const filteredTypes = allTypes.filter((type) =>
     foods.find((f) => f.type === type)?.levelAccess?.includes(selectedLevel)
   );
+  const menuOptions = [...filteredTypes, SOLD_OUT_MENU];
+
+  const isSoldOutPage = selectedType === SOLD_OUT_KEY;
 
   // Build a set of sold‑out hashes for filtering
   const soldOutHashes = new Set(
@@ -191,13 +188,17 @@ const UserFoodList = () => {
     const bOrder = b.order ?? 0;
     return aOrder - bOrder;
   });
-  const foodsByTypeRaw = sortedFoods.filter(
-    (f) =>
-      f.hash &&
-      !soldOutHashes.has(f.hash) &&
+  const foodsByTypeRaw = sortedFoods.filter((f) => {
+    if (isSoldOutPage) {
+      return f.status === 'Sold Out' && f.levelAccess?.includes(selectedLevel);
+    }
+    return (
+      f.status !== 'Sold Out' &&
       f.levelAccess?.includes(selectedLevel) &&
       (selectedType === null || f.type === selectedType)
-  );
+    );
+  });
+
 
   // Deduplicate by image filename to avoid showing the same dish twice across menus
   const foodsByType = [];
@@ -260,19 +261,21 @@ const UserFoodList = () => {
       {menuOpen && (
         <div
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            bottom: 0,
-            width: '240px',
-            background: '#222',
-            color: 'white',
-            padding: '20px 10px',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 998,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '100vh',
+          width: '240px',
+          background: '#222',
+          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
+          zIndex: 1000,
           }}
         >
+          {/* Render các mục menu ở đây */}
+
           <div style={{ flexGrow: 1, overflowY: 'auto' }}>
             {!selectedLevel &&
               ['P', 'I-I+', 'V-One'].map((level) => (
@@ -288,10 +291,10 @@ const UserFoodList = () => {
                 </div>
               ))}
             {selectedLevel &&
-              filteredTypes.map((type) => (
+              menuOptions.map((type) => (
                 <div
                   key={type}
-                  onClick={() => setSelectedType(type)}
+                  onClick={() => setSelectedType(type === SOLD_OUT_MENU ? SOLD_OUT_KEY : type)}
                   style={{
                     ...sidebarItemStyle,
                     background: type === selectedType ? '#555' : '#333',
