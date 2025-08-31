@@ -150,7 +150,7 @@ const AdminFoodList = () => {
       {/* Main panel showing foods for the selected type */}
       <div style={{ padding: '20px', background: '#fff8dc', overflowY: 'auto' }}>
         <h2>{selectedType}</h2>
-        {/* Add Food button */}
+        {/* Add Food button 
         <button
           onClick={handleAddFood}
           style={{
@@ -164,7 +164,7 @@ const AdminFoodList = () => {
           }}
         >
           ➕ Thêm món
-        </button>
+        </button> */}
         {/* List of food cards.  Flex with wrap; margins ensure spacing */}
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
           {foodsByType.map((food) => (
