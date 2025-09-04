@@ -1,0 +1,12 @@
+[
+  {
+    "username": "admin",
+    "passwordHash": "$2b$10$ukwmMx2cjkCbSJ3cRbr3O.8JiUG8jou/sR8jD4jvEQPsyA5/UQ45.",
+    "role": "admin"
+  },
+  {
+    "username": "kitchen",
+    "passwordHash": "$2b$10$.UMRsvg5hngy9cyAzUugb.ZQ6.O9PcCCeMIOFirQkNVDNsj6bI94q",
+    "role": "kitchen"
+  }
+]
