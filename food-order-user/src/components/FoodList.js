@@ -1,20 +1,48 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
-const socket = io(process.env.REACT_APP_API_URL, {
-  reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 1000,
-  transports: ['websocket'],
-});
+// ==== API & Socket fallback ====
+const API =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_API_BASE ||
+  ''; // '' => same-origin (relative /api)
+const socket = API
+  ? io(API, {
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      transports: ['websocket'],
+    })
+  : io({
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      transports: ['websocket'],
+    });
+
+const apiUrl = (path) => `${API || ''}${path}`;
 
 const SOLD_OUT_MENU = 'Sold out';
 const SOLD_OUT_KEY = '__SOLD_OUT__';
+const LEVELS = ['P', 'I-I+', 'V-One'];
+
+// ===== Cấu hình gesture menu =====
+const MENU_WIDTH = 240;      // px (khớp width sidebar)
+const EDGE_ZONE = 30;        // px từ mép trái cho "edge swipe"
+const SWIPE_THRESH = 50;     // px tối thiểu để coi là vuốt mở/đóng
+const ANGLE_GUARD = 1.5;     // |dx| phải > ANGLE_GUARD * |dy|
 
 const UserFoodList = () => {
   const [foods, setFoods] = useState([]);
   const [connectionError, setConnectionError] = useState(false);
+  const [apiError, setApiError] = useState(null);
+
+  // Trạng thái kết nối: 'connecting' | 'connected' | 'offline'
+  const [connState, setConnState] = useState('connecting');
+  // Lưu thời điểm đồng bộ gần nhất (để hiển thị)
+  const [lastSyncAt, setLastSyncAt] = useState(null);
+
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
   const [columns, setColumns] = useState(4); // 3..6
@@ -23,45 +51,107 @@ const UserFoodList = () => {
 
   // Touch & menu state
   const touchStartXRef = useRef(null);
-  const touchStartContextRef = useRef(null);
+  const touchStartYRef = useRef(null);
+  const touchStartContextRef = useRef(null); // 'edge' | 'menu' | 'content'
+  const swipingRef = useRef(false);
   const menuOpenRef = useRef(menuOpen);
+  const versionRef = useRef(null);
+
+  // Slider refs
+  const sliderRef = useRef(null);
+  const draggingRef = useRef(false);
+
   useEffect(() => { menuOpenRef.current = menuOpen; }, [menuOpen]);
 
-  // Socket status banner
+  // API
+  const fetchFoods = useCallback(async () => {
+    try {
+      const res = await axios.get(apiUrl('/api/foods'));
+      setFoods(res.data || []);
+      setApiError(null);
+      setConnState('connected');     // trạng thái xanh
+      setLastSyncAt(new Date());     // thời gian sync
+    } catch (e) {
+      console.error('GET /api/foods failed:', e?.message);
+      setApiError(e?.message || 'API error');
+      setFoods([]);
+      setConnState('offline');
+    }
+  }, []);
+
+  // Socket status banner + vòng đời reconnect (tất cả trong useEffect)
   useEffect(() => {
-    const handleDisconnect = () => { console.warn('⛔ Mất kết nối tới máy chủ'); setConnectionError(true); };
-    const handleConnect = () => setConnectionError(false);
+    const handleDisconnect = () => {
+      console.warn('⛔ Mất kết nối');
+      setConnectionError(true);
+      setConnState('offline');
+    };
+    const handleConnect = () => {
+      setConnectionError(false);
+      setConnState('connecting'); // vào lại coi như đang sync
+      fetchFoods();
+    };
+    const handleReconnectAttempt = () => setConnState('connecting');
+    const handleReconnectError = () => setConnState('offline');
+    const handleReconnect = () => { setConnState('connecting'); fetchFoods(); };
+
     socket.on('disconnect', handleDisconnect);
     socket.on('connect', handleConnect);
+    socket.on('reconnect_attempt', handleReconnectAttempt);
+    socket.on('reconnect_error', handleReconnectError);
+    socket.on('reconnect', handleReconnect);
+
     return () => {
       socket.off('disconnect', handleDisconnect);
       socket.off('connect', handleConnect);
+      socket.off('reconnect_attempt', handleReconnectAttempt);
+      socket.off('reconnect_error', handleReconnectError);
+      socket.off('reconnect', handleReconnect);
     };
+  }, [fetchFoods]);
+
+  // Auto reload when backend announces a new app version
+  useEffect(() => {
+    const onVersion = (ver) => {
+      if (versionRef.current && versionRef.current !== ver) {
+        window.location.reload();
+      } else {
+        versionRef.current = ver;
+      }
+    };
+    socket.on('appVersion', onVersion);
+    return () => socket.off('appVersion', onVersion);
   }, []);
 
-  // Reconnect when resuming app
+  // Reconnect & refresh when resuming app (iOS/Safari friendly)
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !socket.connected) {
+    const wakeAndSync = () => {
+      if (document.visibilityState !== 'visible') return;
+      setConnState('connecting');
+
+      if (!socket.connected) {
         console.log('⏳ App resumed, reconnecting socket...');
         socket.connect();
       }
+      // Dù còn "connected" vẫn fetch để lấy snapshot mới nhất
+      fetchFoods();
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
 
-  // Listen WS for status changes
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:5000`);
-    ws.onmessage = (msg) => {
-      const data = JSON.parse(msg.data);
-      if (data.event === 'foodStatusUpdated') fetchFoods();
+    // iOS/Safari: nghe nhiều event để chắc ăn
+    document.addEventListener('visibilitychange', wakeAndSync);
+    window.addEventListener('focus', wakeAndSync);
+    window.addEventListener('pageshow', wakeAndSync);
+    window.addEventListener('online', wakeAndSync);
+
+    return () => {
+      document.removeEventListener('visibilitychange', wakeAndSync);
+      window.removeEventListener('focus', wakeAndSync);
+      window.removeEventListener('pageshow', wakeAndSync);
+      window.removeEventListener('online', wakeAndSync);
     };
-    return () => ws.close();
-  }, []);
+  }, [fetchFoods]);
 
-  // Initial fetch & socket events
+  // Initial fetch & socket data events
   useEffect(() => {
     fetchFoods();
     socket.on('foodAdded', fetchFoods);
@@ -74,77 +164,30 @@ const UserFoodList = () => {
         return prev.map((f) => ({ ...f, order: orderMap.has(f.id) ? orderMap.get(f.id) : f.order }));
       });
     });
+    // ⭐ realtime khi Admin bấm "Áp dụng" level
+    socket.on('foodLevelsUpdated', fetchFoods);
+
     return () => {
-      socket.off('foodAdded');
-      socket.off('foodStatusUpdated');
-      socket.off('foodDeleted');
+      socket.off('foodAdded', fetchFoods);
+      socket.off('foodStatusUpdated', fetchFoods);
+      socket.off('foodDeleted', fetchFoods);
       socket.off('foodsReordered');
+      socket.off('foodLevelsUpdated', fetchFoods);
     };
-  }, []);
-
-  // Ctrl + wheel to change columns
-  useEffect(() => {
-    const handleWheel = (e) => {
-      if (e.ctrlKey) {
-        e.preventDefault();
-        setColumns((prev) => {
-          if (e.deltaY < 0) return Math.max(3, prev - 1);
-          if (e.deltaY > 0) return Math.min(6, prev + 1);
-          return prev;
-        });
-      }
-    };
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
-  }, []);
-
-  // Swipe to toggle menu
-  useEffect(() => {
-    const handleTouchStart = (e) => {
-      if (e.touches.length === 1) {
-        const startX = e.touches[0].clientX;
-        touchStartXRef.current = startX;
-        if (!menuOpenRef.current && startX < 50) touchStartContextRef.current = 'edge';
-        else if (menuOpenRef.current) touchStartContextRef.current = 'menu';
-        else touchStartContextRef.current = null;
-      }
-    };
-    const handleTouchEnd = (e) => {
-      if (touchStartXRef.current != null && e.changedTouches.length === 1 && touchStartContextRef.current) {
-        const endX = e.changedTouches[0].clientX;
-        const deltaX = endX - touchStartXRef.current;
-        if (touchStartContextRef.current === 'edge' && deltaX > 50) setMenuOpen(true);
-        if (touchStartContextRef.current === 'menu' && deltaX < -50) setMenuOpen(false);
-      }
-      touchStartXRef.current = null;
-      touchStartContextRef.current = null;
-    };
-    const opts = { passive: false };
-    document.addEventListener('touchstart', handleTouchStart, opts);
-    document.addEventListener('touchend', handleTouchEnd, opts);
-    return () => {
-      document.removeEventListener('touchstart', handleTouchStart, opts);
-      document.removeEventListener('touchend', handleTouchEnd, opts);
-    };
-  }, []);
-
-  // API
-  const fetchFoods = async () => {
-    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/foods`);
-    setFoods(res.data);
-  };
+  }, [fetchFoods]);
 
   // Types per level + Sold out menu option
   const allTypes = Array.from(new Set(foods.map((f) => f.type))).sort();
-  const filteredTypes = allTypes.filter((type) =>
-    foods.find((f) => f.type === type)?.levelAccess?.includes(selectedLevel)
-  );
+  const filteredTypes = selectedLevel
+    ? allTypes.filter((type) => foods.some((f) => f.type === type && f.levelAccess?.includes(selectedLevel)))
+    : [];
   const menuOptions = [...filteredTypes, SOLD_OUT_MENU];
   const isSoldOutPage = selectedType === SOLD_OUT_KEY;
 
   // Sort & filter
   const sortedFoods = [...foods].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const foodsByTypeRaw = sortedFoods.filter((f) => {
+    if (!selectedLevel) return false; // chưa chọn level thì chưa hiển thị grid
     if (isSoldOutPage) {
       return f.status === 'Sold Out' && f.levelAccess?.includes(selectedLevel);
     }
@@ -176,10 +219,6 @@ const UserFoodList = () => {
   const innerHeight = innerBottom - innerTop; // 148
   const fillH = Math.max(0, innerHeight * pct);
   const fillY = innerBottom - fillH;
-
-  // ======= Custom pointer-based slider (mobile-friendly) =======
-  const sliderRef = useRef(null);
-  const draggingRef = useRef(false);
 
   const setColsFromPointer = (clientY) => {
     const el = sliderRef.current;
@@ -216,10 +255,72 @@ const UserFoodList = () => {
       setColumns((c) => Math.max(minCols, c - 1));
     }
   };
+
+  // ======= Touch swipe để mở/đóng sidebar =======
+  const handleTouchStart = (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touchStartXRef.current = t.clientX;
+    touchStartYRef.current = t.clientY;
+
+    // Xác định context bắt đầu
+    if (!menuOpenRef.current && t.clientX <= EDGE_ZONE) {
+      touchStartContextRef.current = 'edge'; // edge-swipe mở menu
+    } else if (menuOpenRef.current && t.clientX <= MENU_WIDTH) {
+      touchStartContextRef.current = 'menu'; // vuốt trong vùng menu để đóng
+    } else {
+      touchStartContextRef.current = 'content';
+    }
+    swipingRef.current = false;
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - (touchStartXRef.current ?? t.clientX);
+    const dy = t.clientY - (touchStartYRef.current ?? t.clientY);
+
+    // Kích hoạt chế độ swipe nếu ưu thế ngang rõ rệt
+    if (!swipingRef.current && Math.abs(dx) > 12 && Math.abs(dx) > ANGLE_GUARD * Math.abs(dy)) {
+      swipingRef.current = true;
+    }
+
+    if (swipingRef.current) {
+      // Ngăn cuộn dọc khi đang swipe ngang
+      e.preventDefault();
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!swipingRef.current) return;
+
+    const changedTouch = e.changedTouches && e.changedTouches[0];
+    const endX = changedTouch ? changedTouch.clientX : null;
+    const startX = touchStartXRef.current ?? endX;
+    const dx = endX !== null ? (endX - startX) : 0;
+    const ctx = touchStartContextRef.current;
+
+    if (ctx === 'edge') {
+      // Vuốt phải để mở
+      if (dx > SWIPE_THRESH) setMenuOpen(true);
+    } else if (ctx === 'menu') {
+      // Vuốt trái để đóng
+      if (dx < -SWIPE_THRESH) setMenuOpen(false);
+    } else {
+      // Khi menu đang mở, cho phép vuốt trái ở nội dung để đóng nhanh
+      if (menuOpenRef.current && dx < -SWIPE_THRESH) setMenuOpen(false);
+      // (Không auto-open từ content khi đang đóng; chỉ edge-swipe mới mở)
+    }
+  };
   // ============================================================
 
   return (
-    <div style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
+    <div
+      style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Toggle side menu */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
@@ -244,27 +345,49 @@ const UserFoodList = () => {
         ☰
       </button>
 
-      {/* Connection banner */}
-      {connectionError && (
-        <div
+      {/* Connection status pill (dịu, không gây hoang mang) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 20,
+          right: 20,
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 10px',
+          borderRadius: 999,
+          background: (
+            connState === 'connected' ? 'rgba(34,197,94,0.15)' :   // xanh: #22c55e
+            connState === 'connecting' ? 'rgba(59,130,246,0.15)' : // xanh dương: #3b82f6
+            'rgba(115,115,115,0.15)'                               // xám: #737373
+          ),
+          color: (
+            connState === 'connected' ? '#166534' :
+            connState === 'connecting' ? '#1e3a8a' :
+            '#374151'
+          ),
+          border: '1px solid rgba(0,0,0,0.08)',
+          backdropFilter: 'blur(6px)',
+          fontWeight: 600,
+        }}
+      >
+        <span
           style={{
-            position: 'absolute',
-            top: '80px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: '#ffcccc',
-            color: '#a00',
-            padding: '10px',
-            fontWeight: 'bold',
-            borderRadius: '4px',
-            zIndex: 1000,
-            textAlign: 'center',
-            boxShadow: '0 0 10px rgba(0,0,0,0.2)',
+            width: 8, height: 8, borderRadius: '50%',
+            background: (
+              connState === 'connected' ? '#22c55e' :
+              connState === 'connecting' ? '#3b82f6' :
+              '#9ca3af'
+            )
           }}
-        >
-          ⛔ Mất kết nối tới máy chủ. Đang chờ kết nối lại...
-        </div>
-      )}
+        />
+        <span>
+          {connState === 'connected' && <>✓ Connected{lastSyncAt ? ` • ${lastSyncAt.toLocaleTimeString()}` : ''}</>}
+          {connState === 'connecting' && 'Connecting…'}
+          {connState === 'offline' && 'Trying to reconnect…'}
+        </span>
+      </div>
 
       {/* Side menu */}
       {menuOpen && (
@@ -274,18 +397,19 @@ const UserFoodList = () => {
             top: 0,
             left: 0,
             height: '100vh',
-            width: '240px',
+            width: `${MENU_WIDTH}px`,
             background: '#222',
             color: '#fff',
             display: 'flex',
             flexDirection: 'column',
             overflowY: 'auto',
             zIndex: 1000,
+            willChange: 'transform',
           }}
         >
           <div style={{ flexGrow: 1, overflowY: 'auto' }}>
             {!selectedLevel &&
-              ['P', 'I-I+', 'V-One'].map((level) => (
+              LEVELS.map((level) => (
                 <div
                   key={level}
                   onClick={() => { setSelectedLevel(level); setSelectedType(null); }}
@@ -337,7 +461,7 @@ const UserFoodList = () => {
           overflowY: 'auto',
           background: '#fff8dc',
           padding: '20px',
-          marginLeft: menuOpen ? '240px' : '0',
+          marginLeft: menuOpen ? `${MENU_WIDTH}px` : '0',
           transition: 'margin-left 0.3s ease',
         }}
       >
@@ -425,7 +549,7 @@ const UserFoodList = () => {
           width: 28,
           height: 160,
           zIndex: 1000,
-          touchAction: 'none',          // chặn scroll mặc định trên mobile
+          touchAction: 'none',
           overscrollBehavior: 'contain',
           WebkitUserSelect: 'none',
           userSelect: 'none',
@@ -439,7 +563,7 @@ const UserFoodList = () => {
             </clipPath>
           </defs>
 
-          {/* Viền khung (fill trong suốt, chỉ viền) */}
+        {/* Khung viền */}
           <path
             d="M6 6 L22 6 L18 154 L10 154 Z"
             fill="transparent"
@@ -448,7 +572,7 @@ const UserFoodList = () => {
             strokeLinejoin="round"
           />
 
-          {/* Lớp fill xanh tăng/giảm theo giá trị */}
+          {/* Fill theo giá trị */}
           <rect
             x="0"
             y={fillY}
