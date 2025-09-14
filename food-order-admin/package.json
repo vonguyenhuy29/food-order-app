@@ -1,9 +1,7 @@
 {
   "name": "food-order-admin",
   "version": "0.1.0",
-
   "private": true,
-  
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
@@ -42,6 +40,6 @@
     ]
   },
   "devDependencies": {
-    "serve": "^14.2.4"
+    "serve": "^14.2.5"
   }
 }
