@@ -15326,5 +15326,58 @@
       1753713777762,
       1753713777863
     ]
+  },
+  {
+    "id": 1757856965412.5266,
+    "at": "2025-09-14T13:36:05.412Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "sim_000023__0.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/sim_000023__0.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777703,
+      1753713777745,
+      1753713777846
+    ]
+  },
+  {
+    "id": 1757860692876.4316,
+    "at": "2025-09-14T14:38:12.876Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "sim_000019__0.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/sim_000019__0.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 4,
+    "affectedIds": [
+      1755907399113,
+      1753713777699,
+      1755907399112,
+      1753713777842
+    ]
+  },
+  {
+    "id": 1757860693523.9214,
+    "at": "2025-09-14T14:38:13.523Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "sim_000019__0.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/sim_000019__0.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 4,
+    "affectedIds": [
+      1755907399113,
+      1753713777699,
+      1755907399112,
+      1753713777842
+    ]
   }
 ]
