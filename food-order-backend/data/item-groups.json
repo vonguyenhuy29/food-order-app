@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Beverage",
+    "order": 2
+  },
+  {
+    "name": "Chinese",
+    "order": 3
+  },
+  {
+    "name": "Dessert & Savoury",
+    "order": 4
+  },
+  {
+    "name": "HOTEL",
+    "order": 5
+  },
+  {
+    "name": "Japanese",
+    "order": 6
+  },
+  {
+    "name": "Korea",
+    "order": 7
+  },
+  {
+    "name": "Snack Menu",
+    "order": 8
+  },
+  {
+    "name": "Test",
+    "order": 9
+  }
+]

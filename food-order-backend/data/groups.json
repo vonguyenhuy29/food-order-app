@@ -1,0 +1,42 @@
+[
+  {
+    "name": "SNACK TRAVEL",
+    "order": 1
+  },
+  {
+    "name": "SNACK MENU",
+    "order": 2
+  },
+  {
+    "name": "CLUB MENU",
+    "order": 3
+  },
+  {
+    "name": "HOTEL MENU",
+    "order": 4
+  },
+  {
+    "name": "VIP MENU",
+    "order": 5
+  },
+  {
+    "name": "WINE MENU - KOREAN",
+    "order": 6
+  },
+  {
+    "name": "WINE MENU - ENGLISH",
+    "order": 7
+  },
+  {
+    "name": "WINE MENU - CHINESE",
+    "order": 8
+  },
+  {
+    "name": "WINE MENU - JAPANESE",
+    "order": 9
+  },
+  {
+    "name": "test",
+    "order": 10
+  }
+]

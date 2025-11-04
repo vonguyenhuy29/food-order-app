@@ -1,0 +1,1776 @@
+[
+  {
+    "id": "C1.DIMSUM.jpg",
+    "productCode": "C01",
+    "name": "DIMSUM",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "C1.DIMSUM.jpg",
+    "imageUrl": "/images/CLUB MENU/C1.DIMSUM.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072251,
+    "updatedAt": 1761618125704,
+    "itemGroup": "Chinese"
+  },
+  {
+    "id": "C2.WONTON-NOODLES.jpg",
+    "productCode": "C02",
+    "name": "WONTON NOODLES",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "C2.WONTON-NOODLES.jpg",
+    "imageUrl": "/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072253,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Chinese"
+  },
+  {
+    "id": "C3.FRIED-BEEF-NOODLES.jpg",
+    "productCode": "C03",
+    "name": "FRIED BEEF NOODLES",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "C3.FRIED-BEEF-NOODLES.jpg",
+    "imageUrl": "/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072255,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Chinese"
+  },
+  {
+    "id": "C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "productCode": "C04",
+    "name": "FRIED SEAFOOD NOODLES",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "imageUrl": "/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072257,
+    "updatedAt": 1761633122410,
+    "itemGroup": "Chinese"
+  },
+  {
+    "id": "C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "productCode": "C05",
+    "name": "PAN RRIED MINCED PORK DUMPLING 'GUOTIE'",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "imageUrl": "/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072259,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Chinese"
+  },
+  {
+    "id": "C6.BAKED-EGG-TART.jpg",
+    "productCode": "C06",
+    "name": "BAKED EGG TART",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "C6.BAKED-EGG-TART.jpg",
+    "imageUrl": "/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072261,
+    "updatedAt": 1761633115246,
+    "menus": [],
+    "itemGroup": "Chinese"
+  },
+  {
+    "id": "C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
+    "productCode": "C07",
+    "name": "STEAMED BBQ NOEY GLAZED PORL BUN",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
+    "imageUrl": "/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072263,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Chinese"
+  },
+  {
+    "id": "CHAPAGETTI.jpg",
+    "productCode": "S08",
+    "name": "CHAPAGETTI",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "CHAPAGETTI.jpg",
+    "imageUrl": "/images/CLUB MENU/CHAPAGETTI.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072265,
+    "updatedAt": 1761633117164,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "DDOK.jpg",
+    "productCode": "",
+    "name": "DDOK",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "DDOK.jpg",
+    "imageUrl": "/images/CLUB MENU/DDOK.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072267,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "FISH-CAKE.jpg",
+    "productCode": "",
+    "name": "FISH CAKE",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "FISH-CAKE.jpg",
+    "imageUrl": "/images/CLUB MENU/FISH-CAKE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072269,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "FRIED-TOFU.jpg",
+    "productCode": "S13",
+    "name": "FRIED TOFU",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "FRIED-TOFU.jpg",
+    "imageUrl": "/images/CLUB MENU/FRIED-TOFU.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072271,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "HOPANG.jpg",
+    "productCode": "S03",
+    "name": "HO PANG",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "HOPANG.jpg",
+    "imageUrl": "/images/CLUB MENU/HOPANG.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072273,
+    "updatedAt": 1761634043926,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "J1.SOBA-NOODLES.jpg",
+    "productCode": "J01",
+    "name": "SOBA NOODLES",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "J1.SOBA-NOODLES.jpg",
+    "imageUrl": "/images/CLUB MENU/J1.SOBA-NOODLES.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072275,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Japanese"
+  },
+  {
+    "id": "J2.UDON-NOODLES.jpg",
+    "productCode": "J02",
+    "name": "UDON NOODLES",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "J2.UDON-NOODLES.jpg",
+    "imageUrl": "/images/CLUB MENU/J2.UDON-NOODLES.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072276,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Japanese"
+  },
+  {
+    "id": "J3.JAPANESE-CURRY.jpg",
+    "productCode": "J03",
+    "name": "JAPANESE CURRY",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "J3.JAPANESE-CURRY.jpg",
+    "imageUrl": "/images/CLUB MENU/J3.JAPANESE-CURRY.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072278,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Japanese"
+  },
+  {
+    "id": "K1.GALBI-TANG.jpg",
+    "productCode": "K01",
+    "name": "GALBI TANG",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K1.GALBI-TANG.jpg",
+    "imageUrl": "/images/CLUB MENU/K1.GALBI-TANG.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072280,
+    "updatedAt": 1761633139974,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K10.JJAJANGMYOEN.jpg",
+    "productCode": "k10",
+    "name": "JJAJANGMYOEN",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K10.JJAJANGMYOEN.jpg",
+    "imageUrl": "/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072283,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K11.JJAMPPONG.jpg",
+    "productCode": "K11",
+    "name": "JJAMPPONG",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K11.JJAMPPONG.jpg",
+    "imageUrl": "/images/CLUB MENU/K11.JJAMPPONG.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072285,
+    "updatedAt": 1761634054891,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K12.TANGSUYUK.jpg",
+    "productCode": "K12",
+    "name": "TANGSUYUK",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K12.TANGSUYUK.jpg",
+    "imageUrl": "/images/CLUB MENU/K12.TANGSUYUK.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072287,
+    "updatedAt": 1761634121987,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K13.KIMCHI-DUMPING.jpg",
+    "productCode": "K13",
+    "name": "KIMCHI DUMPING",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K13.KIMCHI-DUMPING.jpg",
+    "imageUrl": "/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072288,
+    "updatedAt": 1761634065844,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K14.TONG-SAMGYUPSAL.jpg",
+    "productCode": "K14",
+    "name": "TONG SAMGYUPSAL",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K14.TONG-SAMGYUPSAL.jpg",
+    "imageUrl": "/images/CLUB MENU/K14.TONG-SAMGYUPSAL.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072290,
+    "updatedAt": 1761634128651,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K15.DOGANI-TANG.jpg",
+    "productCode": "K15",
+    "name": "DOGANI TANG",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K15.DOGANI-TANG.jpg",
+    "imageUrl": "/images/CLUB MENU/K15.DOGANI-TANG.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072292,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K16.SOGOGI-GUKBAP.jpg",
+    "productCode": "K16",
+    "name": "SOGOGI GUKBAP",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K16.SOGOGI-GUKBAP.jpg",
+    "imageUrl": "/images/CLUB MENU/K16.SOGOGI-GUKBAP.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072294,
+    "updatedAt": 1761634107873,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K17.DWAEJI-GUKBAP.jpg",
+    "productCode": "K17",
+    "name": "DWAEJI GUKBAP",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K17.DWAEJI-GUKBAP.jpg",
+    "imageUrl": "/images/CLUB MENU/K17.DWAEJI-GUKBAP.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072296,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K18.HWANG-TAE-HAE-JANG-GUK.jpg",
+    "productCode": "K18",
+    "name": "HWANG TAE HAE JANG GUK",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K18.HWANG-TAE-HAE-JANG-GUK.jpg",
+    "imageUrl": "/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072298,
+    "updatedAt": 1761634049003,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K19.JOK-BAL.jpg",
+    "productCode": "K19",
+    "name": "JOK BAL",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K19.JOK-BAL.jpg",
+    "imageUrl": "/images/CLUB MENU/K19.JOK-BAL.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072299,
+    "updatedAt": 1761634058939,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K2.BIBIMBAP.jpg",
+    "productCode": "K02",
+    "name": "BIBIMBAP",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K2.BIBIMBAP.jpg",
+    "imageUrl": "/images/CLUB MENU/K2.BIBIMBAP.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072301,
+    "updatedAt": 1761633692260,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K20.SEAOK-SAE-BULGOGI.jpg",
+    "productCode": "K20",
+    "name": "SEAOK SAE BULGOGI",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K20.SEAOK-SAE-BULGOGI.jpg",
+    "imageUrl": "/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072303,
+    "updatedAt": 1761634081415,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K3.JEYUK-BOKKEUM.jpg",
+    "productCode": "K03",
+    "name": "JEYUK BOKKEUM",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K3.JEYUK-BOKKEUM.jpg",
+    "imageUrl": "/images/CLUB MENU/K3.JEYUK-BOKKEUM.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072305,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K4.SO-BULGOGI-JJIGAE.jpg",
+    "productCode": "K04",
+    "name": "SO BULGOGI JJIGAE",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K4.SO-BULGOGI-JJIGAE.jpg",
+    "imageUrl": "/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072306,
+    "updatedAt": 1761634103087,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K5.GGORI-GOM-TANG.jpg",
+    "productCode": "K05",
+    "name": "GGORI GOM TANG",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K5.GGORI-GOM-TANG.jpg",
+    "imageUrl": "/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072308,
+    "updatedAt": 1761634038149,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K6.SOGOGI-MIYUKGUK.jpg",
+    "productCode": "K06",
+    "name": "SOGOGI MIYUKGUK",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K6.SOGOGI-MIYUKGUK.jpg",
+    "imageUrl": "/images/CLUB MENU/K6.SOGOGI-MIYUKGUK.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072309,
+    "updatedAt": 1761634116978,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K7.KIMCHI-JJIKAE.jpg",
+    "productCode": "K07",
+    "name": "KIMCHI JJIKAE",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K7.KIMCHI-JJIKAE.jpg",
+    "imageUrl": "/images/CLUB MENU/K7.KIMCHI-JJIKAE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072311,
+    "updatedAt": 1761634069597,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K8.NAKJU-BOKKUM.jpg",
+    "productCode": "K08",
+    "name": "NAKJU BOKKUM",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K8.NAKJU-BOKKUM.jpg",
+    "imageUrl": "/images/CLUB MENU/K8.NAKJU-BOKKUM.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072313,
+    "updatedAt": 1761634073503,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K9.YANG-PYUNG-HAEJANGKUK.jpg",
+    "productCode": "K09",
+    "name": "YANG PYUNG HAEJANGKUK",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "K9.YANG-PYUNG-HAEJANGKUK.jpg",
+    "imageUrl": "/images/CLUB MENU/K9.YANG-PYUNG-HAEJANGKUK.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072316,
+    "updatedAt": 1761634135277,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "KIMBAP.jpg",
+    "productCode": "S01",
+    "name": "KIMBAP",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "KIMBAP.jpg",
+    "imageUrl": "/images/CLUB MENU/KIMBAP.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072317,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "SEAFOOD-SPICY-NOODLE.jpg",
+    "productCode": "S21",
+    "name": "SEAFOOD SPICY NOODLE",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "SEAFOOD-SPICY-NOODLE.jpg",
+    "imageUrl": "/images/CLUB MENU/SEAFOOD-SPICY-NOODLE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072319,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "SINRAMYUN.jpg",
+    "productCode": "S09",
+    "name": "SINRAMYUN",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "SINRAMYUN.jpg",
+    "imageUrl": "/images/CLUB MENU/SINRAMYUN.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072320,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "SUNDAE.jpg",
+    "productCode": "S19",
+    "name": "SUNDAE",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "SUNDAE.jpg",
+    "imageUrl": "/images/CLUB MENU/SUNDAE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072322,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "SWEET-&-SPICY-COLD-NOODLE.jpg",
+    "productCode": "",
+    "name": "SWEET & SPICY COLD NOODLE",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "SWEET-&-SPICY-COLD-NOODLE.jpg",
+    "imageUrl": "/images/CLUB MENU/SWEET-&-SPICY-COLD-NOODLE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072323,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "TEA.jpg",
+    "productCode": "",
+    "name": "TEA",
+    "menuType": "đồ uống",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "TEA.jpg",
+    "imageUrl": "/images/CLUB MENU/TEA.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072325,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "TOKOYAKI.jpg",
+    "productCode": "",
+    "name": "TOKOYAKI",
+    "menuType": "đồ ăn",
+    "group": "CLUB MENU",
+    "price": 0,
+    "imageName": "TOKOYAKI.jpg",
+    "imageUrl": "/images/CLUB MENU/TOKOYAKI.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072326,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "AVOCADO-SMOOTHIE.png",
+    "productCode": "B74",
+    "name": "AVOCADO SMOOTHIE",
+    "menuType": "đồ uống",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "AVOCADO-SMOOTHIE.png",
+    "imageUrl": "/images/HOTEL MENU/AVOCADO-SMOOTHIE.png",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072328,
+    "updatedAt": 1761633690434,
+    "groups": [
+      "HOTEL MENU"
+    ],
+    "itemGroup": "Beverage",
+    "menus": [
+      "DRINKS VIP"
+    ]
+  },
+  {
+    "id": "BANH-MI-BBQ-PORK-CHAR-SIU.jpg",
+    "productCode": "H68",
+    "name": "BANH MI BBQ PORK CHAR SIU",
+    "menuType": "đồ ăn",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "BANH-MI-BBQ-PORK-CHAR-SIU.jpg",
+    "imageUrl": "/images/HOTEL MENU/BANH-MI-BBQ-PORK-CHAR-SIU.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072330,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "BEEF-PHO.jpg",
+    "productCode": "H22",
+    "name": "BEEF PHO",
+    "menuType": "đồ ăn",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "BEEF-PHO.jpg",
+    "imageUrl": "/images/HOTEL MENU/BEEF-PHO.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072331,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "CHICKEN-PHO.jpg",
+    "productCode": "H21",
+    "name": "CHICKEN PHO",
+    "menuType": "đồ ăn",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "CHICKEN-PHO.jpg",
+    "imageUrl": "/images/HOTEL MENU/CHICKEN-PHO.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072333,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "DOUBLE-BOILED-NUTRITIOUS-SOUP.jpg",
+    "productCode": "",
+    "name": "DOUBLE BOILED NUTRITIOUS SOUP",
+    "menuType": "đồ ăn",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "DOUBLE-BOILED-NUTRITIOUS-SOUP.jpg",
+    "imageUrl": "/images/HOTEL MENU/DOUBLE-BOILED-NUTRITIOUS-SOUP.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072334,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "FRIED-CHICKEN-SOFT-BONES.jpg",
+    "productCode": "H64",
+    "name": "FRIED CHICKEN SOFT BONES",
+    "menuType": "đồ ăn",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "FRIED-CHICKEN-SOFT-BONES.jpg",
+    "imageUrl": "/images/HOTEL MENU/FRIED-CHICKEN-SOFT-BONES.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072336,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "KIMCHI-BEEF-FRIED-RICE.jpg",
+    "productCode": "H61",
+    "name": "KIMCHI BEEF FRIED RICE",
+    "menuType": "đồ ăn",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "KIMCHI-BEEF-FRIED-RICE.jpg",
+    "imageUrl": "/images/HOTEL MENU/KIMCHI-BEEF-FRIED-RICE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072338,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "MANGO-SMOOTHIE.png",
+    "productCode": "B17",
+    "name": "MANGO SMOOTHIE",
+    "menuType": "đồ uống",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "MANGO-SMOOTHIE.png",
+    "imageUrl": "/images/HOTEL MENU/MANGO-SMOOTHIE.png",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072340,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage",
+    "menus": [
+      "DRINKS VIP"
+    ]
+  },
+  {
+    "id": "STRAWBERRY-SMOOTHIE.png",
+    "productCode": "B72",
+    "name": "STRAWBERRY SMOOTHIE",
+    "menuType": "đồ uống",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "STRAWBERRY-SMOOTHIE.png",
+    "imageUrl": "/images/HOTEL MENU/STRAWBERRY-SMOOTHIE.png",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072341,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage",
+    "menus": [
+      "DRINKS VIP"
+    ]
+  },
+  {
+    "id": "VIETNAMSE-CHAO-TOM.jpg",
+    "productCode": "H66",
+    "name": "VIETNAMESE CHAO TOM",
+    "menuType": "đồ ăn",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "VIETNAMSE-CHAO-TOM.jpg",
+    "imageUrl": "/images/HOTEL MENU/VIETNAMSE-CHAO-TOM.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072343,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "XO.-FRIED-RICE.jpg",
+    "productCode": "",
+    "name": "XO. FRIED RICE",
+    "menuType": "đồ ăn",
+    "group": "HOTEL MENU",
+    "price": 0,
+    "imageName": "XO.-FRIED-RICE.jpg",
+    "imageUrl": "/images/HOTEL MENU/XO.-FRIED-RICE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072344,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "AVOCADO-CROISSANT.jpg",
+    "productCode": "D04",
+    "name": "AVOCADO CROISSANT",
+    "menuType": "đồ ăn",
+    "group": "SNACK MENU",
+    "price": 0,
+    "imageName": "AVOCADO-CROISSANT.jpg",
+    "imageUrl": "/images/SNACK MENU/AVOCADO-CROISSANT.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072346,
+    "updatedAt": 1761633877806,
+    "menus": [
+      "SNACK MENU"
+    ],
+    "groups": [
+      "SNACK MENU"
+    ],
+    "itemGroup": "Dessert & Savoury"
+  },
+  {
+    "id": "CREAM-CROISSANT.jpg",
+    "productCode": "D06",
+    "name": "CREAM CROISSANT",
+    "menuType": "đồ ăn",
+    "group": "SNACK MENU",
+    "price": 0,
+    "imageName": "CREAM-CROISSANT.jpg",
+    "imageUrl": "/images/SNACK MENU/CREAM-CROISSANT.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072347,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Dessert & Savoury"
+  },
+  {
+    "id": "CROFFLE.jpg",
+    "productCode": "D08",
+    "name": "CROFFLE",
+    "menuType": "đồ ăn",
+    "group": "SNACK MENU",
+    "price": 0,
+    "imageName": "CROFFLE.jpg",
+    "imageUrl": "/images/SNACK MENU/CROFFLE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072349,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Dessert & Savoury"
+  },
+  {
+    "id": "CROISS-ANT-HAM-CHEESE.jpg",
+    "productCode": "D05",
+    "name": "CROISSANT HAM CHEESE",
+    "menuType": "đồ ăn",
+    "group": "SNACK MENU",
+    "price": 0,
+    "imageName": "CROISS-ANT-HAM-CHEESE.jpg",
+    "imageUrl": "/images/SNACK MENU/CROISS-ANT-HAM-CHEESE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072351,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Dessert & Savoury"
+  },
+  {
+    "id": "PAIN-AU-CHOCOLATE-1.jpg",
+    "productCode": "D07",
+    "name": "PAIN AU CHOCOLATE",
+    "menuType": "đồ ăn",
+    "group": "SNACK MENU",
+    "price": 0,
+    "imageName": "PAIN-AU-CHOCOLATE-1.jpg",
+    "imageUrl": "/images/SNACK MENU/PAIN-AU-CHOCOLATE-1.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072354,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Dessert & Savoury"
+  },
+  {
+    "id": "RED-VELVET-CROISSANT.jpg",
+    "productCode": "D03",
+    "name": "RED VELVET CROISSANT",
+    "menuType": "đồ ăn",
+    "group": "SNACK MENU",
+    "price": 0,
+    "imageName": "RED-VELVET-CROISSANT.jpg",
+    "imageUrl": "/images/SNACK MENU/RED-VELVET-CROISSANT.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072355,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Dessert & Savoury"
+  },
+  {
+    "id": "SALTED-EGG-CROISSANT.jpg",
+    "productCode": "D02",
+    "name": "SALTED EGG CROISSANT",
+    "menuType": "đồ ăn",
+    "group": "SNACK MENU",
+    "price": 0,
+    "imageName": "SALTED-EGG-CROISSANT.jpg",
+    "imageUrl": "/images/SNACK MENU/SALTED-EGG-CROISSANT.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072357,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Dessert & Savoury"
+  },
+  {
+    "id": "UDON.jpg",
+    "productCode": "",
+    "name": "UDON",
+    "menuType": "đồ ăn",
+    "group": "SNACK MENU",
+    "price": 0,
+    "imageName": "UDON.jpg",
+    "imageUrl": "/images/SNACK MENU/UDON.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072360,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Snack Menu"
+  },
+  {
+    "id": "BAKED-LOBSTER.jpg",
+    "productCode": "H74",
+    "name": "BAKED LOBSTER",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "BAKED-LOBSTER.jpg",
+    "imageUrl": "/images/VIP MENU/BAKED-LOBSTER.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072362,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "BLACK-GARLIC-SESAME-TOOTHFISH.jpg",
+    "productCode": "H73",
+    "name": "BLACK GARLIC SESAME TOOTH FISH",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "BLACK-GARLIC-SESAME-TOOTHFISH.jpg",
+    "imageUrl": "/images/VIP MENU/BLACK-GARLIC-SESAME-TOOTHFISH.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072364,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "CLUB-SANDWICH.jpg",
+    "productCode": "H2",
+    "name": "CLUB SANDWICH",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "CLUB-SANDWICH.jpg",
+    "imageUrl": "/images/VIP MENU/CLUB-SANDWICH.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072366,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "FRENCH-FRIED.jpg",
+    "productCode": "H12",
+    "name": "FRENCH FRIED",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "FRENCH-FRIED.jpg",
+    "imageUrl": "/images/VIP MENU/FRENCH-FRIED.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072367,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "GRILLED-CHIKEN-SATAY.jpg",
+    "productCode": "",
+    "name": "GRILLED CHIKEN SATAY",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "GRILLED-CHIKEN-SATAY.jpg",
+    "imageUrl": "/images/VIP MENU/GRILLED-CHIKEN-SATAY.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072369,
+    "updatedAt": 1761633131043,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "HONG-KONG-SWEET-&-SOUR-GROUPER-FISH.jpg",
+    "productCode": "H77",
+    "name": "HONGKONG SWEET & SOUR GROUPER FISH",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "HONG-KONG-SWEET-&-SOUR-GROUPER-FISH.jpg",
+    "imageUrl": "/images/VIP MENU/HONG-KONG-SWEET-&-SOUR-GROUPER-FISH.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072370,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "IBERICO-PORK-SKEWER.jpg",
+    "productCode": "H67",
+    "name": "IBERICO PORK SKEWER",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "IBERICO-PORK-SKEWER.jpg",
+    "imageUrl": "/images/VIP MENU/IBERICO-PORK-SKEWER.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072372,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "K21.BOTTOM-SIRLOIN-TRIANGLE.jpg",
+    "productCode": "K21",
+    "name": "BOTTOM SIRLOIN TRIANGLE",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "K21.BOTTOM-SIRLOIN-TRIANGLE.jpg",
+    "imageUrl": "/images/VIP MENU/K21.BOTTOM-SIRLOIN-TRIANGLE.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072373,
+    "updatedAt": 1761634018390,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "K22.YANGGYEOM-KKOTSAL.jpg",
+    "productCode": "K22",
+    "name": "YANGGYEOM KKOTSAL",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "K22.YANGGYEOM-KKOTSAL.jpg",
+    "imageUrl": "/images/VIP MENU/K22.YANGGYEOM-KKOTSAL.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072375,
+    "updatedAt": 1761634139093,
+    "itemGroup": "Korea"
+  },
+  {
+    "id": "KAGOSHIMA-JAPANESE-WAGYU.jpg",
+    "productCode": "H71",
+    "name": "KAGOSHIMA JAPANESE WAGYU",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "KAGOSHIMA-JAPANESE-WAGYU.jpg",
+    "imageUrl": "/images/VIP MENU/KAGOSHIMA-JAPANESE-WAGYU.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072377,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "NASI-GORENG-WITH-SEAFOOD.jpg",
+    "productCode": "H75",
+    "name": "NASI GORENG WITH SEAFOOD",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "NASI-GORENG-WITH-SEAFOOD.jpg",
+    "imageUrl": "/images/VIP MENU/NASI-GORENG-WITH-SEAFOOD.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072378,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "SEARED-HOOKAIDO-SCALLOP-&-FOIE-GRAS.jpg",
+    "productCode": "H69",
+    "name": "SEARED HOOKAIDO SCALLOP & FOIE GRAS",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "SEARED-HOOKAIDO-SCALLOP-&-FOIE-GRAS.jpg",
+    "imageUrl": "/images/VIP MENU/SEARED-HOOKAIDO-SCALLOP-&-FOIE-GRAS.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072380,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "SPICY-LINGUINE-PASTA-WITH-TIGER-PRAWN.jpg",
+    "productCode": "",
+    "name": "SPICY LINGUINE PASTA WITH TIGER PRAWN",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "SPICY-LINGUINE-PASTA-WITH-TIGER-PRAWN.jpg",
+    "imageUrl": "/images/VIP MENU/SPICY-LINGUINE-PASTA-WITH-TIGER-PRAWN.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072382,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "TENDERLOIN-&-TIGER-PRAWN.jpg",
+    "productCode": "",
+    "name": "TENDERLOIN & TIGER PRAWN",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "TENDERLOIN-&-TIGER-PRAWN.jpg",
+    "imageUrl": "/images/VIP MENU/TENDERLOIN-&-TIGER-PRAWN.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072384,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "WAGYU-BURGER.jpg",
+    "productCode": "H16",
+    "name": "WAGYU BURGER",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "WAGYU-BURGER.jpg",
+    "imageUrl": "/images/VIP MENU/WAGYU-BURGER.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072385,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "WOK-FRIED-EGG-NOODLES-WITH-SEAFOOD.jpg",
+    "productCode": "H79",
+    "name": "WOK FRIED EGG NOODLES WITH SEAFOOD",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "WOK-FRIED-EGG-NOODLES-WITH-SEAFOOD.jpg",
+    "imageUrl": "/images/VIP MENU/WOK-FRIED-EGG-NOODLES-WITH-SEAFOOD.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072386,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "XO.-WOK-FRIED-HOKKAIDO-SCALLOP.jpg",
+    "productCode": "H78",
+    "name": "XO. WOK FRIED HOKKAIDO SCALLOP",
+    "menuType": "đồ ăn",
+    "group": "VIP MENU",
+    "price": 0,
+    "imageName": "XO.-WOK-FRIED-HOKKAIDO-SCALLOP.jpg",
+    "imageUrl": "/images/VIP MENU/XO.-WOK-FRIED-HOKKAIDO-SCALLOP.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072388,
+    "updatedAt": 1761616610638,
+    "itemGroup": "HOTEL"
+  },
+  {
+    "id": "sim_000000__0.jpg",
+    "productCode": "",
+    "name": "sim 000000 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000000__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000000__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072390,
+    "updatedAt": 1761928716636,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000001__0.jpg",
+    "productCode": "",
+    "name": "sim 000001 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000001__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000001__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072391,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000002__0.jpg",
+    "productCode": "",
+    "name": "sim 000002 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000002__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000002__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072393,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000003__0.jpg",
+    "productCode": "",
+    "name": "sim 000003 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000003__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000003__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072394,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000004__0.jpg",
+    "productCode": "",
+    "name": "sim 000004 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000004__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000004__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072396,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000005__0.jpg",
+    "productCode": "",
+    "name": "sim 000005 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000005__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000005__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072397,
+    "updatedAt": 1761616632501,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000006__0.jpg",
+    "productCode": "",
+    "name": "sim 000006 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000006__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000006__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072399,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000007__0.jpg",
+    "productCode": "",
+    "name": "sim 000007 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000007__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000007__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072401,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000008__0.jpg",
+    "productCode": "",
+    "name": "sim 000008 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000008__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000008__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072403,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000009__0.jpg",
+    "productCode": "",
+    "name": "sim 000009 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000009__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000009__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072404,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000010__0.jpg",
+    "productCode": "",
+    "name": "sim 000010 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000010__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000010__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072406,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000011__0.jpg",
+    "productCode": "",
+    "name": "sim 000011 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000011__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000011__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072408,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000012__0.jpg",
+    "productCode": "",
+    "name": "sim 000012 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000012__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000012__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072409,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000013__0.jpg",
+    "productCode": "",
+    "name": "sim 000013 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000013__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000013__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072411,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000014__0.jpg",
+    "productCode": "",
+    "name": "sim 000014 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000014__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000014__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072412,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "id": "sim_000015__0.jpg",
+    "productCode": "",
+    "name": "sim 000015 0",
+    "menuType": "đồ uống",
+    "group": "WINE MENU - CHINESE",
+    "price": 0,
+    "imageName": "sim_000015__0.jpg",
+    "imageUrl": "/images/WINE MENU - CHINESE/sim_000015__0.jpg",
+    "levelAccess": [
+      "P",
+      "I-I+",
+      "V-One"
+    ],
+    "createdAt": 1760892072414,
+    "updatedAt": 1761616610638,
+    "itemGroup": "Beverage"
+  },
+  {
+    "name": "Plain Crossaint",
+    "productCode": "D01",
+    "menuType": "đồ ăn",
+    "itemGroup": "Dessert & Savoury",
+    "price": 1,
+    "imageName": "e75e22755482dedc87933.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/SOURCE/e75e22755482dedc87933.jpg",
+    "id": "e75e22755482dedc87933.jpg",
+    "createdAt": 1761497957920,
+    "updatedAt": 1761616610638,
+    "menus": [
+      "SNACK MENU"
+    ]
+  },
+  {
+    "name": "test",
+    "productCode": "test",
+    "menuType": "khác",
+    "itemGroup": "Test",
+    "price": 1,
+    "imageName": "dbc38ddf50174fa38931dabfef7ef0f1-1761803350124.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/SOURCE/dbc38ddf50174fa38931dabfef7ef0f1-1761803350124.jpg",
+    "id": "dbc38ddf50174fa38931dabfef7ef0f1-1761803350124.jpg",
+    "createdAt": 1761803350929,
+    "updatedAt": 1762178908514,
+    "menus": [
+      "TEST1",
+      "TEST",
+      "TEST02",
+      "TEST2"
+    ]
+  },
+  {
+    "name": "orange juice",
+    "productCode": "B01",
+    "menuType": "đồ uống",
+    "itemGroup": "Beverage",
+    "price": 1,
+    "imageName": "orange juice.png",
+    "imageUrl": "http://192.168.100.137:5000/images/SOURCE/orange juice.png",
+    "id": "orange juice.png",
+    "createdAt": 1761928270627,
+    "updatedAt": 1761928270627,
+    "menus": [
+      "DRINKS VIP"
+    ]
+  },
+  {
+    "name": "test1",
+    "productCode": "test1",
+    "menuType": "khác",
+    "itemGroup": "Test",
+    "price": 1,
+    "imageName": "1707195753888_KakaoTalk_Image_2024-02-06-12-01-57.png",
+    "imageUrl": "http://192.168.100.137:5000/images/SOURCE/1707195753888_KakaoTalk_Image_2024-02-06-12-01-57.png",
+    "id": "1707195753888_KakaoTalk_Image_2024-02-06-12-01-57.png",
+    "createdAt": 1762009973049,
+    "updatedAt": 1762168554363,
+    "menus": [
+      "TEST"
+    ]
+  }
+]
