@@ -429,9 +429,19 @@ try {
   members = {};
 }
 function saveMembers() {
-  const tmp = MEMBERS_JSON + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(members, null, 2), 'utf-8');
-  fs.renameSync(tmp, MEMBERS_JSON);
+  try {
+    const tmp = MEMBERS_JSON + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(members, null, 2), 'utf8');
+    fs.renameSync(tmp, MEMBERS_JSON);
+  } catch (err) {
+    console.error('saveMembers error:', err);
+    try {
+      // fallback: ghi thẳng vào file chính
+      fs.writeFileSync(MEMBERS_JSON, JSON.stringify(members, null, 2), 'utf8');
+    } catch (e2) {
+      console.error('saveMembers fallback write failed:', e2);
+    }
+  }
 }
 
 // ====== Auth helpers ======
@@ -638,7 +648,7 @@ function pushMemberHistory(code, entry) {
   rec.history = h;
   rec.updatedAt = now;
   members[code] = rec;
-  saveMembers();
+  // không gọi saveMembers() ở đây; để hàm gọi tự lưu
 }
 const MemberApi = {
   list(req, res) {
@@ -685,20 +695,25 @@ const MemberApi = {
     req.app.locals.io.emit('memberCreated', { code, member: members[code] });
     res.status(201).json({ ok: true, member: memberToRow(code, members[code]) });
   },
-  update(req, res) {
+update(req, res) {
+  try {
+    // Lấy mã khách cũ và bản ghi hiện tại
     const oldCode = String(req.params.code || '').trim();
     const cur = members[oldCode];
     if (!cur) return res.status(404).json({ error: 'Not found' });
 
-    const body = req.body || {};
+    // Lấy dữ liệu gửi lên – nếu không gửi thì giữ nguyên giá trị cũ
+    const body   = req.body || {};
     const newCode = (body.newCode != null ? String(body.newCode).trim() : oldCode);
-    const name = (body.name != null ? String(body.name).trim() : cur.name || cur.customerName || '');
-    const level = (body.level != null ? String(body.level).trim() : (cur.level || null));
+    const name   = (body.name   != null ? String(body.name).trim()   : cur.name || cur.customerName || '');
+    const level  = (body.level  != null ? String(body.level).trim()  : (cur.level || null));
 
+    // Kiểm tra hợp lệ mã mới
     if (!newCode) return res.status(400).json({ error: 'newCode không hợp lệ' });
     if (newCode !== oldCode && members[newCode]) return res.status(409).json({ error: 'Mã mới đã tồn tại' });
 
-    const now = new Date().toISOString();
+    // Tạo bản ghi cập nhật
+    const now     = new Date().toISOString();
     const updated = {
       ...cur,
       code: newCode,
@@ -707,18 +722,48 @@ const MemberApi = {
       level,
       updatedAt: now,
     };
-    // đổi key nếu cần
+
+    // Nếu thay đổi mã, xoá key cũ và gán vào key mới
     if (newCode !== oldCode) {
       delete members[oldCode];
       members[newCode] = updated;
     } else {
       members[oldCode] = updated;
     }
+
+    // Ghi file members.json một lần
     saveMembers();
-    pushMemberHistory(newCode, { type: 'UPDATE', by: req.user?.sub || 'admin', data: { name, level } });
+
+// Tạo biến changes để lưu chi tiết các trường thay đổi
+const changes = {};
+if (name !== cur.name) changes.name = { from: cur.name, to: name };
+if (level !== cur.level) changes.level = { from: cur.level, to: level };
+if (newCode !== oldCode) changes.code = { from: oldCode, to: newCode };
+
+// Tạo mô tả dễ đọc
+const detail = Object.entries(changes)
+  .map(([key, value]) => `${key}: '${value.from}' → '${value.to}'`)
+  .join('; ');
+
+// Gọi history với detail
+pushMemberHistory(newCode, {
+  type: 'UPDATE',
+  by: req.user?.sub || 'admin',
+  data: changes,
+  detail,
+});
+
+
+    // Phát sự kiện realtime và trả về JSON
     req.app.locals.io.emit('memberUpdated', { code: newCode, member: members[newCode] });
     res.json({ ok: true, member: memberToRow(newCode, members[newCode]) });
-  },
+
+  } catch (err) {
+    console.error('Update member error:', err);
+    // Nếu có lỗi, trả về HTTP 500 với thông báo rõ ràng
+    res.status(500).json({ error: 'Cập nhật khách hàng thất bại' });
+  }
+},
   remove(req, res) {
     const code = String(req.params.code || '').trim();
     if (!members[code]) return res.status(404).json({ error: 'Not found' });
@@ -1055,19 +1100,36 @@ if (card) {
   const now = new Date().toISOString();
   const orderItems = Array.from(grouped.entries()).map(([imageName, qty]) => ({ imageName, qty }));
 
-  members[card] = {
-    ...prev,
-    code: prev.code || card,
-    customerName: customerName || prev.customerName || prev.name || null,
-    name: prev.name || customerName || prev.customerName || null,
-    level: prev.level || prev.memberLevel || null,
-    lastSeenAt: now,
-    ordersCount: (prev.ordersCount || 0) + 1,
-    history: Array.isArray(prev.history)
-      ? [...prev.history, { at: now, type: 'ORDER', items: orderItems, note: note || '' }]
-      : [{ at: now, type: 'ORDER', items: orderItems, note: note || '' }],
-    updatedAt: now,
-  };
+members[card] = {
+  ...prev,
+  code: prev.code || card,
+  customerName: customerName || prev.customerName || prev.name || null,
+  name: prev.name || customerName || prev.customerName || null,
+  level: prev.level || prev.memberLevel || null,
+  lastSeenAt: now,
+  ordersCount: (prev.ordersCount || 0) + 1,
+  history: Array.isArray(prev.history)
+    ? [...prev.history, {
+        at: now,
+        type: 'ORDER',
+        orderId: order.id,  // <– thêm orderId
+        area,
+        tableNo,
+        items: orderItems,
+        note: note || ''
+      }]
+    : [{
+        at: now,
+        type: 'ORDER',
+        orderId: order.id,
+        area,
+        tableNo,
+        items: orderItems,
+        note: note || ''
+      }],
+  updatedAt: now,
+};
+
   saveMembers();
   io.emit('memberUpdated', { code: card, member: members[card] });
 }
@@ -1084,9 +1146,14 @@ if (card) {
 
 app.get('/api/orders', maybeAuth, (req, res) => {
   try {
-    const { status, area, tableNo, includeClosed, from, to } = req.query || {};
+    
     let list = [...orders];
-
+    const { customerId, status, area, tableNo, includeClosed, from, to } = req.query || {};
+// Thêm đoạn sau:
+if (customerId) {
+  const card = String(customerId).trim();
+  list = list.filter(o => String(o.memberCard || '') === card);
+}
     if (area && tableNo) {
       list = list.filter(o => String(o.area) === String(area) && String(o.tableNo) === String(tableNo));
       if (String(includeClosed || '').toLowerCase() !== 'true') {

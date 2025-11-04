@@ -1,12 +1,12 @@
 {
   "1": {
-    "customerName": "TECH1",
+    "customerName": "TECH",
     "lastSeenAt": "2025-10-19T11:50:53.922Z",
     "ordersCount": 99,
     "code": "1",
-    "name": "TECH1",
+    "name": "TECH",
     "level": "P",
-    "updatedAt": "2025-11-04T06:42:47.313Z",
+    "updatedAt": "2025-11-04T07:17:18.021Z",
     "history": [
       {
         "at": "2025-11-04T06:42:31.231Z",
@@ -149,6 +149,429 @@
         "by": "admin",
         "data": {
           "name": "TECH1",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:02:00.875Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH1",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:02:01.031Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH1",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:05.059Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:06.920Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:14.770Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:40.229Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:40.378Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:40.527Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:40.724Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:40.843Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:41.002Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:41.162Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:41.313Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:41.473Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:41.617Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:41.769Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:41.938Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:42.089Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:42.266Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:42.442Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:42.613Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:42.773Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:42.913Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:43.073Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:43.241Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:43.393Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:43.562Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:43.721Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:43.897Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:44.043Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:46.036Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:46.193Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:46.378Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:46.527Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:46.689Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:46.841Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:46.995Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:47.162Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:47.330Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:47.481Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:47.633Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:53.420Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH123123",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:54.066Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH123123",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:54.218Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH123123",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:54.371Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH123123",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:16:54.546Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH123123",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:17:18.021Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": "TECH",
           "level": "P"
         }
       }
@@ -308,72 +731,9 @@
     "lastSeenAt": "2025-10-22T15:25:01.834Z",
     "ordersCount": 1
   },
-  "9999999": {
-    "code": "9999999",
-    "name": "test",
-    "customerName": "test",
-    "level": "P",
-    "ordersCount": 0,
-    "createdAt": "2025-11-04T03:19:07.978Z",
-    "updatedAt": "2025-11-04T03:19:07.978Z",
-    "lastSeenAt": null,
-    "history": [
-      {
-        "at": "2025-11-04T03:19:07.978Z",
-        "type": "CREATE",
-        "by": "admin",
-        "data": {
-          "name": "test",
-          "level": "P"
-        }
-      }
-    ]
-  },
   "Wu cai song": {
     "customerName": null,
     "lastSeenAt": "2025-10-22T08:51:17.535Z",
     "ordersCount": 1
-  },
-  "99999999999": {
-    "code": "99999999999",
-    "name": "test",
-    "customerName": "test",
-    "level": "P",
-    "ordersCount": 0,
-    "createdAt": "2025-11-04T03:19:18.945Z",
-    "updatedAt": "2025-11-04T03:19:18.945Z",
-    "lastSeenAt": null,
-    "history": [
-      {
-        "at": "2025-11-04T03:19:18.945Z",
-        "type": "CREATE",
-        "by": "admin",
-        "data": {
-          "name": "test",
-          "level": "P"
-        }
-      }
-    ]
-  },
-  "8888888888": {
-    "code": "8888888888",
-    "name": "test111",
-    "customerName": "test111",
-    "level": "P",
-    "ordersCount": 0,
-    "createdAt": "2025-11-04T03:19:55.394Z",
-    "updatedAt": "2025-11-04T03:19:55.394Z",
-    "lastSeenAt": null,
-    "history": [
-      {
-        "at": "2025-11-04T03:19:55.394Z",
-        "type": "CREATE",
-        "by": "admin",
-        "data": {
-          "name": "test111",
-          "level": "P"
-        }
-      }
-    ]
   }
 }

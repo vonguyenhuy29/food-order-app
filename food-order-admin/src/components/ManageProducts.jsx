@@ -1419,12 +1419,25 @@ const fetchMenuLevels = React.useCallback(async () => {
           catch { return null; }
         }
         // 1) History chuẩn
-        const h1 = await safeGet(`/api/customers/${customer.id}/history`);
-        if (Array.isArray(h1)) out.push(...h1.map(x => ({ kind:'edit', time:x.time||x.createdAt||x.updatedAt, detail:x.detail||x.note||JSON.stringify(x) })));
+const h1 = await safeGet(`/api/customers/${customer.id}/history`);
+if (Array.isArray(h1)) {
+  out.push(...h1.map(x => ({
+    kind: x.type?.toLowerCase() === 'create' ? 'create' : 'edit',
+    time: x.at || x.time || x.createdAt || x.updatedAt,
+    detail: x.detail || JSON.stringify(x) // fallback nếu chưa có detail
+  })));
+}
+
         // 2) Orders theo customerId
         const h2 = await safeGet('/api/orders', { customerId: customer.id, limit: 200 });
-        const rows2 = Array.isArray(h2?.rows) ? h2.rows : (Array.isArray(h2) ? h2 : []);
-        out.push(...rows2.map(o => ({ kind:'order', time:o.createdAt||o.time, detail:`Order #${o.code || o.id || ''} — ${o.items?.length||0} mặt hàng, tổng ${o.total ?? ''}` })));
+const rows2 = Array.isArray(h2?.rows) ? h2.rows : (Array.isArray(h2) ? h2 : []);
+out.push(...rows2.map(o => ({
+  kind: 'order',
+  time: o.createdAt || o.time,
+  detail: `Order #${o.id} — bàn ${o.area}-${o.tableNo} — ` +
+          (o.items || []).map(it => `${it.imageName} x${it.qty}`).join(', ')
+})));
+
         // 3) Logs chung
         const h3 = await safeGet('/api/customer-logs', { customerId: customer.id, limit: 200 });
         const rows3 = Array.isArray(h3?.rows) ? h3.rows : (Array.isArray(h3) ? h3 : []);
