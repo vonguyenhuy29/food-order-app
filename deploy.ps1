@@ -1,25 +1,16 @@
 param(
-  [string]$ApiUrl = "http://192.168.100.137:5000"   
+  [string]$ApiUrl = "http://192.168.100.137:5000"
 )
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "== Pull/Copy code mới vào C:\Apps\food-order-app (nếu dùng Git, tự làm trước) =="
 
-# Trước khi build, dừng các tiến trình serve để tránh khóa thư mục build
-Write-Host "== Stopping running frontend apps (food-admin, food-user) to free build folders =="
-try { pm2 stop food-admin | Out-Null } catch { }
-try { pm2 stop food-user  | Out-Null } catch { }
-
 # ==== Backend ====
 Write-Host "== Backend: install deps =="
 cd C:\Apps\food-order-app\food-order-backend
 if (Test-Path package-lock.json) {
-  try { npm ci }
-  catch {
-    Write-Host "npm ci failed, falling back to npm install"
-    npm install
-  }
+  try { npm ci } catch { npm install }
 } else {
   npm install
 }
@@ -28,40 +19,36 @@ if (Test-Path package-lock.json) {
 Write-Host "== Admin: build =="
 cd C:\Apps\food-order-app\food-order-admin
 $env:REACT_APP_API_URL = $ApiUrl
-# Xóa thư mục build cũ để tránh lỗi ENOTEMPTY khi build
-if (Test-Path build) {
-  Write-Host "Removing old admin build folder"
-  Remove-Item -Recurse -Force build
-}
 if (Test-Path package-lock.json) {
-  try { npm ci }
-  catch {
-    Write-Host "npm ci failed, falling back to npm install"
-    npm install
-  }
+  try { npm ci } catch { npm install }
 } else {
   npm install
 }
+
+# Dừng tiến trình admin để giải phóng thư mục build (nếu có)
+try { pm2 stop food-admin } catch {}
+
+# Xoá thư mục build cũ để tránh lỗi ENOTEMPTY
+if (Test-Path .\build) { Remove-Item -Recurse -Force .\build }
+
 npm run build
 
 # ==== User ====
 Write-Host "== User: build =="
 cd C:\Apps\food-order-app\food-order-user
 $env:REACT_APP_API_URL = $ApiUrl
-# Xóa thư mục build cũ để tránh lỗi ENOTEMPTY khi build
-if (Test-Path build) {
-  Write-Host "Removing old user build folder"
-  Remove-Item -Recurse -Force build
-}
 if (Test-Path package-lock.json) {
-  try { npm ci }
-  catch {
-    Write-Host "npm ci failed, falling back to npm install"
-    npm install
-  }
+  try { npm ci } catch { npm install }
 } else {
   npm install
 }
+
+# Dừng tiến trình user để giải phóng thư mục build (nếu có)
+try { pm2 stop food-user } catch {}
+
+# Xoá thư mục build cũ để tránh lỗi ENOTEMPTY
+if (Test-Path .\build) { Remove-Item -Recurse -Force .\build }
+
 npm run build
 
 # ==== PM2 restart ====

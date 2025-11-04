@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+// src/components/FoodList.js
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
@@ -7,6 +8,7 @@ const API =
   process.env.REACT_APP_API_URL ||
   process.env.REACT_APP_API_BASE ||
   ''; // '' => same-origin (relative /api)
+
 const socket = API
   ? io(API, {
       reconnection: true,
@@ -22,34 +24,153 @@ const socket = API
     });
 
 const apiUrl = (path) => `${API || ''}${path}`;
+// Trả về URL ảnh có host API nếu đang chạy khác origin
+const withBase = (url) => {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;  // đã là absolute URL
+  return `${API || ''}${url}`;                 // gắn host API (nếu có)
+};
 
 const SOLD_OUT_MENU = 'Sold out';
 const SOLD_OUT_KEY = '__SOLD_OUT__';
 const LEVELS = ['P', 'I-I+', 'V-One'];
 
-// ===== Cấu hình gesture menu =====
-const MENU_WIDTH = 240;      // px (khớp width sidebar)
-const EDGE_ZONE = 30;        // px từ mép trái cho "edge swipe"
-const SWIPE_THRESH = 50;     // px tối thiểu để coi là vuốt mở/đóng
-const ANGLE_GUARD = 1.5;     // |dx| phải > ANGLE_GUARD * |dy|
+// Khu vực và dải số bàn
+const AREA_DEFS = [
+  { name: 'Roulette 1', ranges: [[101, 120]] },
+  { name: 'Roulette 2', ranges: [[201, 240]] },
+  { name: 'Roulette 3', ranges: [[301, 320]] },
+  { name: 'Multi', ranges: [[501, 508]] },
+  { name: 'Non - Smoking', ranges: [[1001, 1008]] },
+  { name: 'Reception 2', ranges: [[1009, 1024]] },
+  { name: 'Center', ranges: [[1025, 1040], [5001, 5008], [3001, 3030]] },
+  { name: 'Table', ranges: [[11, 15], [21, 25]] },
+  { name: '2 Floor', ranges: [[2001, 2030]] },
+];
+const genTables = (ranges) => { const out=[]; ranges.forEach(([a,b])=>{ for(let i=a;i<=b;i++) out.push(i);}); return out; };
+const tableKeyOf = (area, tableNo) => (area && tableNo) ? `${area}#${tableNo}` : '';
+
+function playBeep() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AC();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = 880;
+    o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+    o.start(); o.stop(ctx.currentTime + 0.5);
+  } catch {}
+}
+
+// ===== Gesture menu =====
+const MENU_WIDTH = 240;
+const EDGE_ZONE = 30;
+const SWIPE_THRESH = 50;
+const ANGLE_GUARD = 1.5;
+const TOP_BAR_H = 52;
+const BOTTOM_BAR_H = 48;
+
+const getImageName = (url) => (url || '').split('/').pop()?.toLowerCase() || '';
+const normalize = (s) => String(s || '')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[_\-./]+/g, ' ')
+  .replace(/\s{2,}/g,' ')
+  .trim()
+  .toUpperCase();
 
 const UserFoodList = () => {
   const [foods, setFoods] = useState([]);
-  const [connectionError, setConnectionError] = useState(false);
-  const [apiError, setApiError] = useState(null);
+  const [menuLevels, setMenuLevels] = useState({}); // <— NEW: default levels per menu/type
+  const [, setConnectionError] = useState(null);
+  const [, setApiError] = useState(null);
 
-  // Trạng thái kết nối: 'connecting' | 'connected' | 'offline'
+  // Socket/Sync state
   const [connState, setConnState] = useState('connecting');
-  // Lưu thời điểm đồng bộ gần nhất (để hiển thị)
   const [lastSyncAt, setLastSyncAt] = useState(null);
 
-  const [selectedLevel, setSelectedLevel] = useState(null);
-  const [selectedType, setSelectedType] = useState(null);
-  const [columns, setColumns] = useState(4); // 3..6
+  // Menu state
+  const [selectedLevel, setSelectedLevel] = useState(() => localStorage.getItem('ui.selectedLevel') || null);
+  const [selectedType, setSelectedType]   = useState(() => localStorage.getItem('ui.selectedType') || null);
+  const [columns, setColumns] = useState(4);
   const [menuOpen, setMenuOpen] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
 
-  // Touch & menu state
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const isSearching = searchQuery.trim().length > 0;
+
+  // Chế độ hiển thị & bàn
+  const [mode, setMode] = useState('menu'); // 'menu' | 'tables'
+  const [activeArea, setActiveArea] = useState(AREA_DEFS[0].name);
+  const [tableSearch, setTableSearch] = useState('');
+  const [selectedTable, setSelectedTable] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('selectedTable')) || null; } catch { return null; }
+  });
+
+  const currentTableKey = useMemo(
+    () => (selectedTable ? tableKeyOf(selectedTable.area, selectedTable.tableNo) : ''),
+    [selectedTable]
+  );
+
+  // Giỏ theo bàn
+  const [carts, setCarts] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tableCarts')) || {}; } catch { return {}; }
+  });
+
+  // Orders theo bàn
+  const [ordersByTable, setOrdersByTable] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ordersByTable')) || {}; } catch { return {}; }
+  });
+  useEffect(() => { localStorage.setItem('ordersByTable', JSON.stringify(ordersByTable)); }, [ordersByTable]);
+
+  // Tables hiển thị ở sidebar
+  const visibleTables = useMemo(() => {
+    const q = tableSearch.trim();
+    if (q) {
+      const results = [];
+      AREA_DEFS.forEach(a => {
+        genTables(a.ranges).forEach(n => {
+          if (String(n).includes(q)) results.push({ area: a.name, tableNo: n });
+        });
+      });
+      return results;
+    }
+    const area = AREA_DEFS.find(a => a.name === activeArea) || AREA_DEFS[0];
+    return genTables(area.ranges).map(n => ({ area: area.name, tableNo: n }));
+  }, [tableSearch, activeArea]);
+
+  // Badge đếm orders mở + màu theo trạng thái mới nhất
+  const openOrderBadgeFor = useCallback((areaName, tableNo) => {
+    const key = tableKeyOf(areaName, tableNo);
+    const list = (ordersByTable[key] || []).filter(o => !o.tableClosed);
+    const count = list.length;
+    if (count === 0) return { count: 0, color: null, status: null };
+    const latest = [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    const colorMap = {
+      PENDING: '#ef4444',
+      IN_PROGRESS: '#f59e0b',
+      DONE: '#16a34a',
+      CANCELLED: '#9ca3af',
+    };
+    return { count, status: latest.status, color: colorMap[latest.status] || '#9ca3af' };
+  }, [ordersByTable]);
+
+  const tableOrders = useMemo(() => currentTableKey ? (ordersByTable[currentTableKey] || []) : [], [ordersByTable, currentTableKey]);
+
+  // Order form
+  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [orderForm, setOrderForm] = useState(() => {
+    try {
+      const last = JSON.parse(localStorage.getItem('lastOrderInfo') || '{}');
+      return { staff: last.staff || '', memberCard: '', customerName: '', note: '' };
+    } catch { return { staff: '', memberCard: '', customerName: '', note: '' }; }
+  });
+  const [toast, setToast] = useState('');
+
+  // Refs
   const touchStartXRef = useRef(null);
   const touchStartYRef = useRef(null);
   const touchStartContextRef = useRef(null); // 'edge' | 'menu' | 'content'
@@ -57,11 +178,15 @@ const UserFoodList = () => {
   const menuOpenRef = useRef(menuOpen);
   const versionRef = useRef(null);
 
-  // Slider refs
   const sliderRef = useRef(null);
   const draggingRef = useRef(false);
 
-  useEffect(() => { menuOpenRef.current = menuOpen; }, [menuOpen]);
+    useEffect(() => { menuOpenRef.current = menuOpen; }, [menuOpen]);
+  useEffect(() => { if (selectedLevel) localStorage.setItem('ui.selectedLevel', selectedLevel); }, [selectedLevel]);
+  useEffect(() => { localStorage.setItem('ui.selectedType', selectedType ?? ''); }, [selectedType]);
+  useEffect(() => { localStorage.setItem('tableCarts', JSON.stringify(carts)); }, [carts]);
+  useEffect(() => { localStorage.setItem('selectedTable', JSON.stringify(selectedTable)); }, [selectedTable]);
+  useEffect(() => { if (!toast) return; const t = setTimeout(()=>setToast(''),1300); return ()=>clearTimeout(t); }, [toast]);
 
   // API
   const fetchFoods = useCallback(async () => {
@@ -69,48 +194,90 @@ const UserFoodList = () => {
       const res = await axios.get(apiUrl('/api/foods'));
       setFoods(res.data || []);
       setApiError(null);
-      setConnState('connected');     // trạng thái xanh
-      setLastSyncAt(new Date());     // thời gian sync
+      setConnState('connected');
+      setLastSyncAt(new Date());
     } catch (e) {
-      console.error('GET /api/foods failed:', e?.message);
       setApiError(e?.message || 'API error');
       setFoods([]);
       setConnState('offline');
     }
   }, []);
+  // NEW: load menu-levels (default levels per type)
+  const loadMenuLevels = useCallback(async () => {
+    try {
+      const r = await axios.get(apiUrl('/api/products/menu-levels'));
+      setMenuLevels(r.data || {});
+    } catch {
+      try {
+        const r2 = await axios.get(apiUrl('/api/menu-levels'));
+        setMenuLevels(r2.data || {});
+      } catch {}
+    }
+  }, []);
+  const fetchOrdersOfTable = useCallback(async (area, tableNo) => {
+    try {
+      const res = await axios.get(apiUrl('/api/orders'), { params: { area, tableNo } });
+      const normalizeOrder = (o = {}) => ({
+        ...o,
+        cancelReason: o.cancelReason ?? o.reason ?? o?.meta?.cancelReason ?? o?.statusReason ?? null,
+      });
+      const list = Array.isArray(res.data) ? res.data.map(normalizeOrder) : [];
+      const key = tableKeyOf(area, tableNo);
+      setOrdersByTable(prev => ({ ...prev, [key]: list }));
+    } catch {}
+  }, []);
 
-  // Socket status banner + vòng đời reconnect (tất cả trong useEffect)
+  // Preload orders cho các bàn đang hiển thị
+  const fetchedTablesRef = useRef(new Set());
+  useEffect(() => {
+    const toFetch = visibleTables
+      .map(t => tableKeyOf(t.area, t.tableNo))
+      .filter(k => !fetchedTablesRef.current.has(k));
+    toFetch.forEach((key, idx) => {
+      const [area, tableStr] = key.split('#');
+      const tableNo = Number(tableStr);
+      setTimeout(() => {
+        fetchOrdersOfTable(area, tableNo);
+        fetchedTablesRef.current.add(key);
+      }, idx * 60);
+    });
+  }, [visibleTables, fetchOrdersOfTable]);
+
+  const fetchRef = useRef(null);
+  const debounceFetch = useCallback(() => {
+    clearTimeout(fetchRef.current);
+    fetchRef.current = setTimeout(() => { fetchFoods(); }, 220);
+  }, [fetchFoods]);
+  useEffect(() => () => clearTimeout(fetchRef.current), []);
+
+  // Socket lifecycle
   useEffect(() => {
     const handleDisconnect = () => {
-      console.warn('⛔ Mất kết nối');
       setConnectionError(true);
       setConnState('offline');
     };
     const handleConnect = () => {
       setConnectionError(false);
-      setConnState('connecting'); // vào lại coi như đang sync
+      setConnState('connecting');
       fetchFoods();
     };
-    const handleReconnectAttempt = () => setConnState('connecting');
-    const handleReconnectError = () => setConnState('offline');
-    const handleReconnect = () => { setConnState('connecting'); fetchFoods(); };
 
     socket.on('disconnect', handleDisconnect);
     socket.on('connect', handleConnect);
-    socket.on('reconnect_attempt', handleReconnectAttempt);
-    socket.on('reconnect_error', handleReconnectError);
-    socket.on('reconnect', handleReconnect);
+    socket.on('reconnect_attempt', () => setConnState('connecting'));
+    socket.on('reconnect_error', () => setConnState('offline'));
+    socket.on('reconnect', () => { setConnState('connecting'); fetchFoods(); });
 
     return () => {
       socket.off('disconnect', handleDisconnect);
       socket.off('connect', handleConnect);
-      socket.off('reconnect_attempt', handleReconnectAttempt);
-      socket.off('reconnect_error', handleReconnectError);
-      socket.off('reconnect', handleReconnect);
+      socket.off('reconnect_attempt');
+      socket.off('reconnect_error');
+      socket.off('reconnect');
     };
   }, [fetchFoods]);
 
-  // Auto reload when backend announces a new app version
+  // Auto reload khi backend phát version mới
   useEffect(() => {
     const onVersion = (ver) => {
       if (versionRef.current && versionRef.current !== ver) {
@@ -123,197 +290,436 @@ const UserFoodList = () => {
     return () => socket.off('appVersion', onVersion);
   }, []);
 
-  // Reconnect & refresh when resuming app (iOS/Safari friendly)
+  // Wake & sync khi app quay lại foreground
   useEffect(() => {
     const wakeAndSync = () => {
       if (document.visibilityState !== 'visible') return;
       setConnState('connecting');
-
-      if (!socket.connected) {
-        console.log('⏳ App resumed, reconnecting socket...');
-        socket.connect();
-      }
-      // Dù còn "connected" vẫn fetch để lấy snapshot mới nhất
+      if (!socket.connected) socket.connect();
       fetchFoods();
+      if (selectedTable) fetchOrdersOfTable(selectedTable.area, selectedTable.tableNo);
     };
-
-    // iOS/Safari: nghe nhiều event để chắc ăn
     document.addEventListener('visibilitychange', wakeAndSync);
     window.addEventListener('focus', wakeAndSync);
     window.addEventListener('pageshow', wakeAndSync);
     window.addEventListener('online', wakeAndSync);
-
     return () => {
       document.removeEventListener('visibilitychange', wakeAndSync);
       window.removeEventListener('focus', wakeAndSync);
       window.removeEventListener('pageshow', wakeAndSync);
       window.removeEventListener('online', wakeAndSync);
     };
-  }, [fetchFoods]);
+  }, [fetchFoods, selectedTable, fetchOrdersOfTable]);
 
-  // Initial fetch & socket data events
+  useEffect(() => {
+    if (!selectedTable) return;
+    fetchOrdersOfTable(selectedTable.area, selectedTable.tableNo);
+  }, [selectedTable, fetchOrdersOfTable]);
+
+  // Initial fetch & realtime events
   useEffect(() => {
     fetchFoods();
-    socket.on('foodAdded', fetchFoods);
-    socket.on('foodStatusUpdated', fetchFoods);
-    socket.on('foodDeleted', fetchFoods);
+    loadMenuLevels();
+    socket.on('foodAdded', debounceFetch);
+    socket.on('foodStatusUpdated', debounceFetch);
+    socket.on('foodDeleted', debounceFetch);
     socket.on('foodsReordered', ({ orderedIds }) => {
-      setFoods((prev) => {
+      setFoods(prev => {
         const orderMap = new Map();
         orderedIds.forEach((id, idx) => orderMap.set(id, idx));
-        return prev.map((f) => ({ ...f, order: orderMap.has(f.id) ? orderMap.get(f.id) : f.order }));
+        return prev.map(f => ({ ...f, order: orderMap.has(f.id) ? orderMap.get(f.id) : f.order }));
       });
     });
-    // ⭐ realtime khi Admin bấm "Áp dụng" level
-    socket.on('foodLevelsUpdated', fetchFoods);
+    socket.on('foodLevelsUpdated', debounceFetch);
+    socket.on('foodRenamed', debounceFetch);
+    // Khi server cập nhật default levels của menu → tải lại map levels (không cần refetch foods)
+    socket.on('menuLevelsUpdated', loadMenuLevels); 
+    const onOrderPlacedUser = ({ order }) => {
+      const key = tableKeyOf(order.area, order.tableNo);
+      setOrdersByTable(prev => {
+        const cur = prev[key] || [];
+        const next = [order, ...cur].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return { ...prev, [key]: next };
+      });
+      if (currentTableKey && key === currentTableKey) {
+        setToast(`Đã nhận order mới: ${order.items.map(i => `x${i.qty} ${i.imageName}`).join(', ')}`);
+        playBeep();
+      }
+    };
+
+    const onOrderUpdatedUser = (payload = {}) => {
+      const { orderId, status, order, reason, cancelReason, area: areaHint, tableNo: tableHint } = payload;
+      const area = order?.area ?? areaHint;
+      const tableNo = order?.tableNo ?? tableHint;
+      if (!area || !tableNo) return;
+      const key = tableKeyOf(area, tableNo);
+      const reasonFinal = cancelReason ?? reason ?? order?.cancelReason ?? order?.reason ?? null;
+
+      setOrdersByTable(prev => {
+        const list = (prev[key] || []).map(o =>
+          o.id === orderId ? { ...o, ...(order || {}), status, ...(reasonFinal ? { cancelReason: reasonFinal } : {}) } : o
+        );
+        return { ...prev, [key]: list };
+      });
+
+      if (status === 'DONE' && currentTableKey && key === currentTableKey && !(order?.tableClosed)) {
+        const itemsText = Array.isArray(order?.items) ? order.items.map(i => `x${i.qty} ${i.imageName}`).join(', ') : '';
+        setToast(`Order đã hoàn thành: ${itemsText}`);
+        playBeep();
+      }
+    };
+
+    const onQty = ({ imageName, quantity }) => {
+      const key = String(imageName || '').toLowerCase();
+      if (!key) return;
+      setFoods(prev =>
+        prev.map(f =>
+          getImageName(f.imageUrl) === key ? { ...f, quantity, status: quantity <= 0 ? 'Sold Out' : 'Available' } : f
+        )
+      );
+    };
+
+    socket.on('orderPlaced', onOrderPlacedUser);
+    socket.on('orderUpdated', onOrderUpdatedUser);
+    socket.on('foodQuantityUpdated', onQty);
 
     return () => {
-      socket.off('foodAdded', fetchFoods);
-      socket.off('foodStatusUpdated', fetchFoods);
-      socket.off('foodDeleted', fetchFoods);
+      socket.off('foodAdded', debounceFetch);
+      socket.off('foodStatusUpdated', debounceFetch);
+      socket.off('foodDeleted', debounceFetch);
+      socket.off('foodRenamed', debounceFetch);
       socket.off('foodsReordered');
-      socket.off('foodLevelsUpdated', fetchFoods);
+      socket.off('foodLevelsUpdated', debounceFetch);
+      socket.off('orderPlaced', onOrderPlacedUser);
+      socket.off('orderUpdated', onOrderUpdatedUser);
+      socket.off('foodQuantityUpdated', onQty);
+      socket.off('menuLevelsUpdated', loadMenuLevels);
     };
-  }, [fetchFoods]);
+  }, [fetchFoods, debounceFetch, selectedTable, currentTableKey, loadMenuLevels]);
 
-  // Types per level + Sold out menu option
-  const allTypes = Array.from(new Set(foods.map((f) => f.type))).sort();
-  const filteredTypes = selectedLevel
-    ? allTypes.filter((type) => foods.some((f) => f.type === type && f.levelAccess?.includes(selectedLevel)))
-    : [];
-  const menuOptions = [...filteredTypes, SOLD_OUT_MENU];
+  // ====== Groups / types cho sidebar ======
+  const [productGroups, setProductGroups] = useState([]);
+const fetchGroups = useCallback(async () => {
+    try {
+      const r = await fetch(apiUrl('/api/products/groups'));
+      if (r.ok) {
+        const data = await r.json();
+        return setProductGroups((data || []).map(g => g.name));
+      }
+      throw new Error('fallback');
+} catch {
+  try {
+    const r2 = await fetch(apiUrl('/api/products/item-groups'));
+    if (r2.ok) {
+      const data2 = await r2.json();
+      setProductGroups((data2 || []).map(g => g.name));
+    }
+  } catch {}
+}
+  }, []);
+  useEffect(() => { fetchGroups(); }, [fetchGroups]);
+  useEffect(() => {
+    const onUpd = () => fetchGroups();
+    socket.on('productGroupsUpdated', onUpd);
+    return () => socket.off('productGroupsUpdated', onUpd);
+  }, [fetchGroups]);
+
+const allTypesFromFoods = useMemo(
+  () => Array.from(new Set(foods.map(f => f.type))).sort(),
+  [foods]
+);
+
+// Ưu tiên theo thứ tự productGroups (nếu backend trả về), phần còn lại giữ nguyên
+const preferredTypes = useMemo(() => {
+  if (!Array.isArray(productGroups) || productGroups.length === 0) {
+    return allTypesFromFoods;
+  }
+  const set = new Set(allTypesFromFoods);
+  const ordered = productGroups.filter(g => set.has(g));
+  const leftovers = allTypesFromFoods.filter(t => !productGroups.includes(t));
+  return [...ordered, ...leftovers];
+}, [allTypesFromFoods, productGroups]);
+
+
+
+
+ // Ưu tiên default levels của menu nếu đã thiết lập; nếu chưa có default thì fallback về item-level
+ const typeAllowedForLevel = useCallback(
+   (type, level) => {
+     if (!level) return false;
+     const arr = menuLevels?.[type];
+     if (Array.isArray(arr)) return arr.includes(level); // ưu tiên menu-levels
+     // fallback: có ít nhất một item thuộc type này có level đó
+     return foods.some(f => f.type === type && Array.isArray(f.levelAccess) && f.levelAccess.includes(level));
+   },
+   [menuLevels, foods]
+ );
+ const filteredTypes = useMemo(() => {
+   if (!selectedLevel) return [];
+   return preferredTypes.filter((type) => typeAllowedForLevel(type, selectedLevel));
+ }, [selectedLevel, preferredTypes, typeAllowedForLevel]);
+
+  const hasSoldOutThisLevel = useMemo(
+    () => foods.some(f => f.status === 'Sold Out' && typeAllowedForLevel(f.type, selectedLevel)),
+    [foods, selectedLevel, typeAllowedForLevel]
+  );
+  const menuOptions = [...filteredTypes, ...(hasSoldOutThisLevel ? [SOLD_OUT_MENU] : [])];
+
+  // Giữ hành vi: chọn level => selectedType = null; nếu type hiện không còn hợp lệ => null
+  useEffect(() => {
+    if (!selectedLevel) return;
+    if (selectedType === SOLD_OUT_KEY) return;
+    if (selectedType != null && !filteredTypes.includes(selectedType)) {
+      setSelectedType(null);
+    }
+  }, [filteredTypes, selectedLevel, selectedType]);
+
   const isSoldOutPage = selectedType === SOLD_OUT_KEY;
 
-  // Sort & filter
-  const sortedFoods = [...foods].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  // Sort chuẩn
+  const sortedFoods = useMemo(
+    () => [...foods].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [foods]
+  );
+
+  // (ĐÃ SỬA) Filter foods theo level + (type|group). Khi đang search => bỏ filter theo type/group
   const foodsByTypeRaw = sortedFoods.filter((f) => {
-    if (!selectedLevel) return false; // chưa chọn level thì chưa hiển thị grid
-    if (isSoldOutPage) {
-      return f.status === 'Sold Out' && f.levelAccess?.includes(selectedLevel);
-    }
-    return (
-      f.status !== 'Sold Out' &&
-      f.levelAccess?.includes(selectedLevel) &&
-      (selectedType === null || f.type === selectedType)
-    );
+    const typeFilter = isSearching ? null : selectedType;
+    const inSelectedType =
+      (typeFilter === null) ||
+      (typeFilter === SOLD_OUT_KEY && f.status === 'Sold Out') ||
+      (f.type === typeFilter);
+
+    if (!inSelectedType) return false;
+    if (!selectedLevel) return false;
+
+    // Trang Sold-out: chỉ hiện món hết + menu/type đó được phép cho level đang chọn
+    if (isSoldOutPage) return f.status === 'Sold Out' && typeAllowedForLevel(f.type, selectedLevel);
+
+    // Trang thường: chỉ hiện món chưa sold out + menu/type đó được phép cho level đang chọn
+    if (f.status === 'Sold Out') return false;
+    return typeAllowedForLevel(f.type, selectedLevel);
   });
 
-  // Deduplicate by image file name
+  // Deduplicate theo file ảnh
   const foodsByType = [];
   const seenNames = new Set();
   for (const food of foodsByTypeRaw) {
-    const parts = food.imageUrl ? food.imageUrl.split('/') : [];
-    const fileName = parts[parts.length - 1] || food.imageUrl;
+    const fileName = getImageName(food.imageUrl);
     if (!seenNames.has(fileName)) {
       seenNames.add(fileName);
       foodsByType.push(food);
     }
   }
 
-  // --- Funnel fill math ---
-  const minCols = 3;
-  const maxCols = 6;
-  const pct = (columns - minCols) / (maxCols - minCols); // 0..1
-  const innerTop = 6;
-  const innerBottom = 154;
-  const innerHeight = innerBottom - innerTop; // 148
+  // Search
+const normQ = normalize(searchQuery);
+const tokens = normQ ? normQ.split(' ') : [];
+
+const foodsForDisplay = normQ
+  ? foodsByType.filter((f) => {
+      const type = normalize(f.type);
+      const img  = normalize(getImageName(f.imageUrl));
+      const code = normalize(f.productCode || f.code || '');
+      const name = normalize(f.productName || f.name || '');
+      const hay = [type, img, code, name].filter(Boolean).join(' ');
+      return tokens.every(t => hay.includes(t));
+    })
+  : foodsByType;
+
+
+  // ===== Preview gallery =====
+  const [previewIndex, setPreviewIndex] = useState(-1);
+  const galleryList = foodsForDisplay.length ? foodsForDisplay : foodsByType;
+
+  const openPreviewAt = (url) => {
+    const idx = Math.max(0, galleryList.findIndex(f => f.imageUrl === url));
+    setPreviewIndex(idx);
+    setPreviewImage(galleryList[idx]?.imageUrl || url);
+  };
+  const closePreview = () => { setPreviewImage(null); setPreviewIndex(-1); };
+  const goPrev = useCallback(() => {
+    if (!galleryList.length) return;
+    const next = (previewIndex - 1 + galleryList.length) % galleryList.length;
+    setPreviewIndex(next);
+    setPreviewImage(galleryList[next].imageUrl);
+  }, [galleryList, previewIndex]);
+  const goNext = useCallback(() => {
+    if (!galleryList.length) return;
+    const next = (previewIndex + 1) % galleryList.length;
+    setPreviewIndex(next);
+    setPreviewImage(galleryList[next].imageUrl);
+  }, [galleryList, previewIndex]);
+
+  useEffect(() => {
+    if (!previewImage) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') return closePreview();
+      if (e.key === 'ArrowLeft') { e.preventDefault(); return goPrev(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); return goNext(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [previewImage, previewIndex, galleryList, goPrev, goNext]);
+
+  // ===== Funnel slider (điều chỉnh số cột) =====
+  const minCols = 3, maxCols = 6;
+  const pct = (columns - minCols) / (maxCols - minCols);
+  const innerTop = 6, innerBottom = 154, innerHeight = innerBottom - innerTop;
   const fillH = Math.max(0, innerHeight * pct);
   const fillY = innerBottom - fillH;
 
   const setColsFromPointer = (clientY) => {
-    const el = sliderRef.current;
-    if (!el) return;
+    const el = sliderRef.current; if (!el) return;
     const rect = el.getBoundingClientRect();
-    const rel = (clientY - rect.top) / rect.height; // 0 (top) -> 1 (bottom)
-    const ratio = 1 - Math.max(0, Math.min(1, rel)); // invert: kéo lên tăng
+    const rel = (clientY - rect.top) / rect.height;
+    const ratio = 1 - Math.max(0, Math.min(1, rel));
     const raw = minCols + ratio * (maxCols - minCols);
-    const stepped = Math.round(raw); // bước nguyên 3..6
+    const stepped = Math.round(raw);
     const clamped = Math.max(minCols, Math.min(maxCols, stepped));
     setColumns(clamped);
   };
-
-  const onPointerDown = (e) => {
-    draggingRef.current = true;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    setColsFromPointer(e.clientY);
-  };
-
-  const onPointerMove = (e) => {
-    if (!draggingRef.current) return;
-    setColsFromPointer(e.clientY);
-  };
-
-  const onPointerUp = (e) => {
-    draggingRef.current = false;
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-  };
-
+  const onPointerDown = (e) => { draggingRef.current = true; e.currentTarget.setPointerCapture?.(e.pointerId); setColsFromPointer(e.clientY); };
+  const onPointerMove = (e) => { if (!draggingRef.current) return; setColsFromPointer(e.clientY); };
+  const onPointerUp   = (e) => { draggingRef.current = false; e.currentTarget.releasePointerCapture?.(e.pointerId); };
   const onKeyDown = (e) => {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
-      setColumns((c) => Math.min(maxCols, c + 1));
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
-      setColumns((c) => Math.max(minCols, c - 1));
-    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') setColumns((c) => Math.min(maxCols, c + 1));
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') setColumns((c) => Math.max(minCols, c - 1));
   };
 
-  // ======= Touch swipe để mở/đóng sidebar =======
+  // ===== Touch swipe sidebar =====
   const handleTouchStart = (e) => {
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
     touchStartXRef.current = t.clientX;
     touchStartYRef.current = t.clientY;
-
-    // Xác định context bắt đầu
-    if (!menuOpenRef.current && t.clientX <= EDGE_ZONE) {
-      touchStartContextRef.current = 'edge'; // edge-swipe mở menu
-    } else if (menuOpenRef.current && t.clientX <= MENU_WIDTH) {
-      touchStartContextRef.current = 'menu'; // vuốt trong vùng menu để đóng
-    } else {
-      touchStartContextRef.current = 'content';
-    }
+    if (!menuOpenRef.current && t.clientX <= EDGE_ZONE) touchStartContextRef.current = 'edge';
+    else if (menuOpenRef.current && t.clientX <= MENU_WIDTH) touchStartContextRef.current = 'menu';
+    else touchStartContextRef.current = 'content';
     swipingRef.current = false;
   };
-
   const handleTouchMove = (e) => {
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
     const dx = t.clientX - (touchStartXRef.current ?? t.clientX);
     const dy = t.clientY - (touchStartYRef.current ?? t.clientY);
-
-    // Kích hoạt chế độ swipe nếu ưu thế ngang rõ rệt
-    if (!swipingRef.current && Math.abs(dx) > 12 && Math.abs(dx) > ANGLE_GUARD * Math.abs(dy)) {
-      swipingRef.current = true;
-    }
-
-    if (swipingRef.current) {
-      // Ngăn cuộn dọc khi đang swipe ngang
-      e.preventDefault();
-    }
+    if (!swipingRef.current && Math.abs(dx) > 12 && Math.abs(dx) > ANGLE_GUARD * Math.abs(dy)) swipingRef.current = true;
+    if (swipingRef.current) e.preventDefault();
   };
-
   const handleTouchEnd = (e) => {
     if (!swipingRef.current) return;
-
     const changedTouch = e.changedTouches && e.changedTouches[0];
     const endX = changedTouch ? changedTouch.clientX : null;
     const startX = touchStartXRef.current ?? endX;
     const dx = endX !== null ? (endX - startX) : 0;
     const ctx = touchStartContextRef.current;
+    if (ctx === 'edge') { if (dx > SWIPE_THRESH) setMenuOpen(true); }
+    else if (ctx === 'menu') { if (dx < -SWIPE_THRESH) setMenuOpen(false); }
+    else { if (menuOpenRef.current && dx < -SWIPE_THRESH) setMenuOpen(false); }
+  };
 
-    if (ctx === 'edge') {
-      // Vuốt phải để mở
-      if (dx > SWIPE_THRESH) setMenuOpen(true);
-    } else if (ctx === 'menu') {
-      // Vuốt trái để đóng
-      if (dx < -SWIPE_THRESH) setMenuOpen(false);
-    } else {
-      // Khi menu đang mở, cho phép vuốt trái ở nội dung để đóng nhanh
-      if (menuOpenRef.current && dx < -SWIPE_THRESH) setMenuOpen(false);
-      // (Không auto-open từ content khi đang đóng; chỉ edge-swipe mới mở)
+  // ==== Cart helpers
+  const currentCart = useMemo(() => (currentTableKey ? (carts[currentTableKey] || {}) : {}), [carts, currentTableKey]);
+  const cartQtyOf = (imageName) => currentCart[imageName] || 0;
+  const setCartQty = (imageName, qty) => {
+    if (!currentTableKey) return;
+    setCarts(prev => {
+      const cart = { ...(prev[currentTableKey] || {}) };
+      if (qty <= 0) delete cart[imageName];
+      else cart[imageName] = qty;
+      return { ...prev, [currentTableKey]: cart };
+    });
+  };
+  const incItem = (food) => {
+    if (!selectedTable) return setToast('Hãy chọn bàn');
+    const imageName = getImageName(food.imageUrl);
+    // guard sold-out / tồn kho
+    if (food.status === 'Sold Out') { setToast('Món đã hết'); playBeep(); return; }
+    const max = Number.isFinite(food.quantity) ? food.quantity : Infinity;
+    const now = cartQtyOf(imageName);
+    if (now >= max) { setToast('Đã đạt tồn tối đa'); playBeep(); return; }
+    setCartQty(imageName, now + 1);
+  };
+  const decItem = (food) => {
+    if (!selectedTable) return setToast('Hãy chọn bàn');
+    const imageName = getImageName(food.imageUrl);
+    const now = cartQtyOf(imageName);
+    setCartQty(imageName, Math.max(0, now - 1));
+  };
+  const totalItems = useMemo(() => Object.values(currentCart).reduce((s, n) => s + n, 0), [currentCart]);
+
+  const tableCartCount = useCallback((areaName, tableNo) => {
+    const key = tableKeyOf(areaName, tableNo);
+    const cart = (carts && carts[key]) || {};
+    return Object.values(cart).reduce((sum, n) => sum + Number(n || 0), 0);
+  }, [carts]);
+
+  // Member lookup
+  const lookupMember = useCallback(async (memberCard) => {
+    try {
+      if (!memberCard) return;
+      const res = await axios.get(apiUrl('/api/member-lookup'), { params: { memberCard } });
+      const name = res?.data?.customerName || '';
+      if (name) setOrderForm((f) => ({ ...f, customerName: name }));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    const card = (orderForm.memberCard || '').trim();
+    if (!card) return;
+    const t = setTimeout(() => lookupMember(card), 300);
+    return () => clearTimeout(t);
+  }, [orderForm.memberCard, lookupMember]);
+
+  // Submit order
+  const placeOrder = async () => {
+    if (!selectedTable) return setToast('Hãy chọn bàn');
+    if (totalItems <= 0) return setToast('Giỏ trống');
+    if (!orderForm.staff?.trim() || !orderForm.memberCard?.trim()) {
+      setToast('Nhập Nhân viên & Member'); return;
+    }
+    const items = Object.entries(currentCart).map(([imageName, qty]) => ({ imageName, qty }));
+    try {
+      const body = {
+        area: selectedTable.area,
+        tableNo: selectedTable.tableNo,
+        staff: orderForm.staff.trim(),
+        memberCard: orderForm.memberCard.trim(),
+        customerName: orderForm.customerName?.trim() || null,
+        note: orderForm.note || '',
+        items,
+        consumeStock: false,
+      };
+      const res = await axios.post(apiUrl('/api/orders'), body);
+      if (res?.data?.ok) {
+        localStorage.setItem('lastOrderInfo', JSON.stringify({ staff: orderForm.staff.trim() }));
+        setCarts(prev => ({ ...prev, [currentTableKey]: {} }));
+        setShowOrderForm(false);
+        setToast('Đã gửi Order');
+      }
+    } catch (e) {
+      if (e?.response?.status === 409 && Array.isArray(e.response.data?.missing)) {
+        const miss = e.response.data.missing;
+        setCarts(prev => {
+          const cart = { ...(prev[currentTableKey] || {}) };
+          miss.forEach(m => {
+            const key = String(m.imageName).toLowerCase();
+            if (cart[key] > m.available) cart[key] = m.available;
+            if (cart[key] <= 0) delete cart[key];
+          });
+          return { ...prev, [currentTableKey]: cart };
+        });
+        alert('Một số món không đủ số lượng. Giỏ đã được điều chỉnh theo tồn kho.');
+      } else {
+        alert('Order thất bại: ' + (e?.response?.data?.error || e?.message || ''));
+      }
     }
   };
-  // ============================================================
 
+  // Helper map imageName -> food
+  const findFoodByImageName = (imgName) =>
+    foods.find(f => getImageName(f.imageUrl) === String(imgName || '').toLowerCase());
+
+  // ===== RENDER =====
   return (
     <div
       style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}
@@ -335,8 +741,8 @@ const UserFoodList = () => {
           border: '1px solid rgba(255,255,255,0.3)',
           cursor: 'pointer',
           borderRadius: '50%',
-          width: '40px',
-          height: '40px',
+          width: 40,
+          height: 40,
           backdropFilter: 'blur(6px)',
           transition: 'background 0.2s ease',
         }}
@@ -344,50 +750,6 @@ const UserFoodList = () => {
       >
         ☰
       </button>
-
-      {/* Connection status pill (dịu, không gây hoang mang) */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 20,
-          right: 20,
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '6px 10px',
-          borderRadius: 999,
-          background: (
-            connState === 'connected' ? 'rgba(34,197,94,0.15)' :   // xanh: #22c55e
-            connState === 'connecting' ? 'rgba(59,130,246,0.15)' : // xanh dương: #3b82f6
-            'rgba(115,115,115,0.15)'                               // xám: #737373
-          ),
-          color: (
-            connState === 'connected' ? '#166534' :
-            connState === 'connecting' ? '#1e3a8a' :
-            '#374151'
-          ),
-          border: '1px solid rgba(0,0,0,0.08)',
-          backdropFilter: 'blur(6px)',
-          fontWeight: 600,
-        }}
-      >
-        <span
-          style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: (
-              connState === 'connected' ? '#22c55e' :
-              connState === 'connecting' ? '#3b82f6' :
-              '#9ca3af'
-            )
-          }}
-        />
-        <span>
-          {connState === 'connected' && <>✓ Connected{lastSyncAt ? ` • ${lastSyncAt.toLocaleTimeString()}` : ''}</>}
-          {connState === 'connecting' && 'Connecting…'}
-          {connState === 'offline' && 'Trying to reconnect…'}
-        </span>
-      </div>
 
       {/* Side menu */}
       {menuOpen && (
@@ -407,42 +769,172 @@ const UserFoodList = () => {
             willChange: 'transform',
           }}
         >
-          <div style={{ flexGrow: 1, overflowY: 'auto' }}>
-            {!selectedLevel &&
-              LEVELS.map((level) => (
-                <div
-                  key={level}
-                  onClick={() => { setSelectedLevel(level); setSelectedType(null); }}
-                  style={sidebarItemStyle}
-                >
-                  Level {level}
-                </div>
-              ))}
-
-            {selectedLevel &&
-              menuOptions.map((type) => {
-                const isActive =
-                  (type === SOLD_OUT_MENU && selectedType === SOLD_OUT_KEY) ||
-                  (type !== SOLD_OUT_MENU && selectedType === type);
-
-                return (
-                  <div
-                    key={type}
-                    onClick={() => setSelectedType(type === SOLD_OUT_MENU ? SOLD_OUT_KEY : type)}
-                    style={{
-                      ...sidebarItemStyle,
-                      background: isActive ? '#555' : '#333',
-                      fontWeight: isActive ? 'bold' : 'normal',
-                    }}
-                  >
-                    {type}
-                  </div>
-                );
-              })}
+          {/* Tabs: Bàn | MENU */}
+          <div style={{ display: 'flex', gap: 8, padding: 8 }}>
+            <button
+              onClick={() => setMode('tables')}
+              style={{
+                flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #555',
+                background: mode === 'tables' ? '#f59e0b' : '#333', color: '#fff', cursor: 'pointer'
+              }}
+            >
+              Table
+            </button>
+            <button
+              onClick={() => setMode('menu')}
+              style={{
+                flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #555',
+                background: mode === 'menu' ? '#f59e0b' : '#333', color: '#fff', cursor: 'pointer'
+              }}
+            >
+              MENU
+            </button>
           </div>
 
-          {(selectedLevel || selectedType) && (
-            <div style={{ paddingTop: '10px', paddingBottom: '10px' }}>
+          {/* Status pill */}
+          <div style={{ padding: 12 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 10px',
+                borderRadius: 999,
+                background:
+                  connState === 'connected'
+                    ? 'rgba(34,197,94,0.22)'
+                    : connState === 'connecting'
+                    ? 'rgba(59,130,246,0.22)'
+                    : 'rgba(115,115,115,0.22)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.25)',
+                backdropFilter: 'blur(4px)',
+                fontWeight: 600,
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background:
+                    connState === 'connected'
+                      ? '#22c55e'
+                      : connState === 'connecting'
+                      ? '#3b82f6'
+                      : '#9ca3af',
+                }}
+              />
+              <span style={{ whiteSpace: 'nowrap' }}>
+                {connState === 'connected' && <>✓ Connected{lastSyncAt ? ` • ${lastSyncAt.toLocaleTimeString()}` : ''}</>}
+                {connState === 'connecting' && 'Connecting…'}
+                {connState === 'offline' && 'Trying to reconnect…'}
+              </span>
+            </div>
+          </div>
+
+          {/* Sidebar body */}
+          <div style={{ flexGrow: 1, overflowY: 'auto' }}>
+            {mode === 'menu' ? (
+              <>
+                {!selectedLevel &&
+                  LEVELS.map((level) => (
+                    <div
+                      key={level}
+                      onClick={() => { setSelectedLevel(level); setSelectedType(null); }}
+                      style={sidebarItemStyle}
+                    >
+                      Level {level}
+                    </div>
+                  ))}
+
+                {selectedLevel && menuOptions.map((type) => {
+                  const key = (type === SOLD_OUT_MENU) ? SOLD_OUT_KEY : type;
+                  const isActive = selectedType === key;
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => setSelectedType(key)}
+                      style={{
+                        ...sidebarItemStyle,
+                        background: isActive ? '#555' : '#333',
+                        fontWeight: isActive ? 'bold' : 'normal',
+                      }}
+                    >
+                      {type}
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              <>
+                <div style={{ padding: '8px 10px' }}>
+                  <input
+                    value={tableSearch}
+                    onChange={e => setTableSearch(e.target.value)}
+                    placeholder="Search…"
+                    style={{
+                      width: '100%', padding: 6, borderRadius: 6,
+                      border: '1px solid #555', background: '#111', color: '#fff'
+                    }}
+                  />
+                </div>
+
+                {AREA_DEFS.map(a => (
+                  <div
+                    key={a.name}
+                    onClick={() => setActiveArea(a.name)}
+                    style={{
+                      ...sidebarItemStyle,
+                      background: activeArea === a.name ? '#555' : '#333',
+                      fontWeight: activeArea === a.name ? 'bold' : 'normal'
+                    }}
+                  >
+                    {a.name}
+                  </div>
+                ))}
+
+                <div style={{ padding: '8px 10px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {visibleTables.map(({ area, tableNo }) => {
+                    const isSel = selectedTable && selectedTable.area === area && selectedTable.tableNo === tableNo;
+                    const { count: oCount, color: oColor } = openOrderBadgeFor(area, tableNo);
+                    const cartCount = tableCartCount(area, tableNo);
+                    const hasCart = cartCount > 0;
+
+                    return (
+                      <button
+                        key={`${area}-${tableNo}`}
+                        onClick={() => { setSelectedTable({ area, tableNo }); }}
+                        style={{
+                          position: 'relative',
+                          padding: '6px 8px', borderRadius: 6, border: '1px solid #666',
+                          background: isSel ? '#16a34a' : (hasCart ? '#2563eb' : '#2d2d2d'),
+                          color: '#fff', cursor: 'pointer', display: 'grid', gap: 2
+                        }}
+                        title={`${area} - ${tableNo}`}
+                      >
+                        {oCount > 0 && (
+                          <span style={{
+                            position: 'absolute', top: 6, right: 6, fontSize: 11,
+                            background: oColor, color: '#fff', padding: '2px 6px',
+                            borderRadius: 999, border: '1px solid rgba(255,255,255,0.2)'
+                          }}>
+                            x{oCount}
+                          </span>
+                        )}
+                        <span style={{ fontWeight: 700 }}>{tableNo}</span>
+                        <span style={{ fontSize: 10, opacity: 0.9 }}>{area}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Back cho menu */}
+          {mode === 'menu' && (selectedLevel || selectedType) && (
+            <div style={{ paddingTop: 10, paddingBottom: 10 }}>
               {selectedType && (
                 <button onClick={() => setSelectedType(null)} style={backButtonStyle}>⬅</button>
               )}
@@ -454,45 +946,375 @@ const UserFoodList = () => {
         </div>
       )}
 
-      {/* Main grid */}
+      {/* Main */}
       <div
         style={{
           height: '100vh',
-          overflowY: 'auto',
           background: '#fff8dc',
-          padding: '20px',
-          marginLeft: menuOpen ? `${MENU_WIDTH}px` : '0',
+          marginLeft: menuOpen ? `${MENU_WIDTH}px` : 0,
           transition: 'margin-left 0.3s ease',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        {selectedLevel && (
+        {/* TOP BAR */}
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: menuOpen ? `${MENU_WIDTH}px` : 0,
+            right: 0,
+            height: TOP_BAR_H,
+            background: '#fff',
+            borderBottom: '1px solid #eee',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 12px',
+            zIndex: 1900,
+          }}
+        >
+          <button
+            onClick={() => setMode(mode === 'tables' ? 'menu' : 'tables')}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #ddd',
+              background: selectedTable ? '#fde68a' : '#eee',
+              cursor: 'pointer',
+              fontSize: 13,
+            }}
+            title="Nhấn để chuyển qua lại Bàn/Menu"
+          >
+            {selectedTable ? `Table: ${selectedTable.area} - ${selectedTable.tableNo}` : 'Hãy chọn bàn'}
+          </button>
+
+          {mode === 'tables' && (
+            <button
+              onClick={() => { setSelectedTable(null); setMode('tables'); }}
+              aria-label="Đóng chọn bàn"
+              title="Đóng chọn bàn"
+              style={{
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid #ddd',
+                background: '#fff',
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              ✕
+            </button>
+          )}
+
+          {selectedTable && (
+            <span style={{ fontSize: 12, color: '#555' }}>
+              Đang chọn: <b>{totalItems}</b> món
+            </span>
+          )}
+
+          {mode === 'menu' && selectedLevel && (
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search…"
+              style={{ marginLeft: 'auto', width: 220, padding: '6px 8px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, background: '#fff' }}
+            />
+          )}
+        </div>
+
+        {/* CONTENT SCROLL AREA */}
+        <div
+          style={{
+            position: 'fixed',
+            top: TOP_BAR_H,
+            left: menuOpen ? `${MENU_WIDTH}px` : 0,
+            right: 0,
+            bottom: selectedTable ? BOTTOM_BAR_H : 0,
+            overflowY: 'auto',
+            padding: '12px 16px',
+            background: '#fff8dc',
+            zIndex: 100,
+          }}
+        >
+          {mode === 'menu' ? (
+            selectedLevel ? (
+              <>
+                {/* Grid món */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${columns}, 1fr)`,
+                    gap: 16,
+                  }}
+                >
+                  {foodsForDisplay.map((food) => (
+                    <div
+                      key={food.id}
+                      style={{
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        border: '1px solid #ccc',
+                        background: '#fff',
+                        cursor: 'pointer',
+                        position: 'relative',
+                      }}
+                      onClick={() => openPreviewAt(food.imageUrl)}
+                    >
+                      <div style={{ position: 'relative' }}>
+                        <img
+                          src={withBase(food.imageUrl)}
+                          alt=""
+                          style={{ width: '100%', height: 'auto', objectFit: 'cover', display: 'block' }}
+                        />
+                      </div>
+
+                      {/* Controls chỉ hiện khi đã chọn bàn */}
+                      {selectedTable && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            padding: 8,
+                            background: '#fff',
+                            borderTop: '1px solid #eee'
+                          }}
+                        >
+                          <button
+                            onClick={() => decItem(food)}
+                            style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
+                            title="Giảm"
+                          >
+                            −
+                          </button>
+                          <div
+                            style={{
+                              minWidth: 40,
+                              textAlign: 'center',
+                              fontWeight: 700,
+                              border: '1px solid #eee',
+                              borderRadius: 8,
+                              padding: '4px 8px',
+                              background: '#f9fafb'
+                            }}
+                          >
+                            {cartQtyOf(getImageName(food.imageUrl))}
+                          </div>
+                          <button
+                            onClick={() => incItem(food)}
+                            style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
+                            title="Tăng"
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {foodsForDisplay.length === 0 && <p style={{ padding: 8 }}>Không có món nào.</p>}
+              </>
+            ) : null
+          ) : (
+            // ====== TRANG BÀN ======
+            <>
+              {!selectedTable ? (
+                <div style={{ padding: 12, color: '#6b7280' }}>Hãy chọn bàn ở thanh bên trái.</div>
+              ) : (
+                <div style={{ background: '#fff', border: '1px solid #eee', borderRadius: 8 }}>
+                  {/* Header */}
+                  <div style={{ padding: '12px 14px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 700 }}>Table {selectedTable.tableNo}</div>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => setMode('menu')}
+                        style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: 13 }}
+                      >
+                        + Thêm món
+                      </button>
+                          {Object.keys(currentCart).length > 0 && (
+      <button
+        onClick={() => setCarts(prev => ({ ...prev, [currentTableKey]: {} }))}
+        style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #ef4444', background: '#fff', color: '#ef4444', cursor: 'pointer', fontSize: 13 }}
+        title="Xoá toàn bộ món đã chọn"
+      >
+        Xoá giỏ
+      </button>
+    )}
+                    </div>
+                  </div>
+
+                  {/* Cart */}
+                  <div style={{ padding: 12 }}>
+                    {Object.keys(currentCart).length === 0 ? (
+                      <div style={{ color: '#6b7280' }}>Chưa chọn món nào. Nhấn “+ Thêm món”.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {Object.entries(currentCart).map(([imgName, qty]) => {
+                          const f = findFoodByImageName(imgName);
+                          return (
+                            <div
+                              key={imgName}
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: '64px 1fr auto',
+                                gap: 10,
+                                alignItems: 'center',
+                                border: '1px solid #f0f0f0',
+                                borderRadius: 8,
+                                padding: 8
+                              }}
+                            >
+                              <div style={{ width: 64, height: 48, overflow: 'hidden', borderRadius: 6, background: '#fafafa' }}>
+                                {f ? <img src={withBase(f.imageUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{imgName}</div>
+                                <div style={{ fontSize: 12, color: '#777' }}>{f?.type || ''}</div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <button onClick={() => decItem(f || { imageUrl: imgName })} style={{ width: 28, height: 28, border: '1px solid #ddd', borderRadius: 6, background: '#fff' }}>−</button>
+                                <div style={{ minWidth: 32, textAlign: 'center' }}>{qty}</div>
+                                <button onClick={() => incItem(f || { imageUrl: imgName })} style={{ width: 28, height: 28, border: '1px solid #ddd', borderRadius: 6, background: '#fff' }}>+</button>
+                                <button onClick={() => setCartQty(imgName, 0)} style={{ marginLeft: 8, border: '1px solid #e11d48', color: '#e11d48', background: '#fff', borderRadius: 6, padding: '4px 8px' }}>
+                                  Xóa
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Orders đã gửi */}
+                  <div style={{ marginTop: 12, borderTop: '1px solid #eee' }}>
+                    <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 700 }}>Đơn đã gửi</div>
+                      <div style={{ marginLeft: 'auto', fontSize: 12, color: '#6b7280' }}>
+                        {tableOrders.filter(o => !o.tableClosed).length} đơn đang mở
+                      </div>
+                    </div>
+
+                    <div style={{ padding: 12 }}>
+                      {tableOrders.filter(o => !o.tableClosed).length === 0 ? (
+                        <div style={{ color: '#6b7280' }}>Chưa có đơn nào hoặc đã đóng bàn.</div>
+                      ) : (
+                        <div style={{ display: 'grid', gap: 10 }}>
+                          {tableOrders.filter(o => !o.tableClosed).map((o) => {
+                            const pill = {
+                              PENDING:    { bg:'#fee2e2', fg:'#991b1b', label:'PENDING' },
+                              IN_PROGRESS:{ bg:'#dbeafe', fg:'#1d4ed8', label:'IN PROGRESS' },
+                              DONE:       { bg:'#dcfce7', fg:'#065f46', label:'DONE' },
+                              CANCELLED:  { bg:'#f3f4f6', fg:'#374151', label:'CANCELLED' },
+                            }[o.status] || { bg:'#eee', fg:'#333', label:o.status };
+
+                            return (
+                              <div key={o.id} style={{ border:'1px solid #eee', borderRadius:8, overflow:'hidden' }}>
+                                <div style={{ padding:10, background:'#f9fafb', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                    <div style={{ fontWeight:700 }}>Order #{o.id}</div>
+                                    <div style={{ fontSize:12, color:'#6b7280' }}>{new Date(o.createdAt).toLocaleString()}</div>
+                                    <div style={{ fontSize:12, background:pill.bg, color:pill.fg, padding:'2px 8px', borderRadius:999 }}>{pill.label}</div>
+                                  </div>
+                                  <div style={{ fontSize:12, color:'#6b7280' }}>
+                                    STAFF: <b>{o.staff}</b>{o.customerName ? <> · CUSTOMER: <b>{o.customerName}</b></> : null}
+                                  </div>
+                                </div>
+
+                                <div style={{ padding:10 }}>
+                                  <div style={{ display:'grid', gridTemplateColumns:'1fr auto', rowGap:6, alignItems:'center' }}>
+                                    {o.items.map((it, idx) => {
+                                      const f = findFoodByImageName(it.imageName);
+                                      return (
+                                        <React.Fragment key={idx}>
+                                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                            {f ? <img src={withBase(f.imageUrl)} alt="" style={{ width:38, height:38, objectFit:'cover', borderRadius:6, border:'1px solid #eee' }} /> : <div style={{ width:38 }} />}
+                                            <div style={{ fontSize:12 }}>{it.imageName}</div>
+                                          </div>
+                                          <div style={{ fontWeight:700 }}>x{it.qty}</div>
+                                        </React.Fragment>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {o.note && (
+                                    <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>📝 {o.note}</div>
+                                  )}
+                                  {(o.cancelReason || o.reason) && (
+                                    <div style={{ marginTop: 8, fontSize: 12, color: '#991b1b' }}>
+                                      ❌ Lý do huỷ: <b>{o.cancelReason || o.reason}</b>
+                                    </div>
+                                  )}
+
+                                  <div style={{ marginTop:10, display:'flex', gap:8 }}>
+                                    <button
+                                      onClick={async () => {
+                                        try { await axios.post(apiUrl(`/api/orders/${o.id}/close`), { by: orderForm.staff || 'user' }); }
+                                        catch(e){ alert('Không đóng được order: ' + (e?.response?.data?.error || e?.message || '')); }
+                                      }}
+                                      style={{ padding:'6px 10px', background:'#111', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12 }}
+                                      title="Khách rời bàn (ẩn order khỏi bàn)"
+                                    >
+                                      Done (Thu bàn)
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ORDER BAR */}
+        {selectedTable && (
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${columns}, 1fr)`,
-              gap: '16px',
+              position: 'fixed',
+              left: menuOpen ? `${MENU_WIDTH}px` : 0,
+              right: 0,
+              bottom: 0,
+              height: BOTTOM_BAR_H,
+              background: '#fff',
+              borderTop: '1px solid #eee',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '8px 12px',
+              zIndex: 2000,
             }}
           >
-            {foodsByType.map((food) => (
-              <div
-                key={food.id}
-                style={{
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  border: '1px solid #ccc',
-                  background: '#fff',
-                  cursor: 'pointer',
-                }}
-                onClick={() => setPreviewImage(food.imageUrl)}
-              >
-                <img
-                  src={food.imageUrl}
-                  alt=""
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              </div>
-            ))}
-            {foodsByType.length === 0 && <p>Không có món nào.</p>}
+            <div style={{ fontSize: 13, color: '#444' }}>
+              Table <b>{selectedTable.tableNo}</b> • Món đã chọn: <b>{totalItems}</b>
+            </div>
+            <button
+              onClick={() => setShowOrderForm(true)}
+              disabled={totalItems <= 0 || connState !== 'connected'}
+              style={{
+                marginLeft: 'auto',
+                padding: '8px 12px',
+                background: totalItems>0 ? '#10b981' : '#9ca3af',
+                color:'#fff',
+                border:'none',
+                borderRadius:8,
+                cursor: totalItems>0 ? 'pointer' : 'not-allowed',
+                fontSize: 13
+              }}
+            >
+              Order
+            </button>
           </div>
         )}
       </div>
@@ -500,35 +1322,131 @@ const UserFoodList = () => {
       {/* Preview overlay */}
       {previewImage && (
         <div
-          onClick={() => setPreviewImage(null)}
+          onClick={closePreview}
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
+            inset: 0,
             background: 'rgba(0,0,0,0.75)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 9999,
             cursor: 'zoom-out',
+            userSelect: 'none',
           }}
         >
+          <button
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            aria-label="Previous image"
+            style={{
+              position: 'absolute',
+              left: 20, top: '50%', transform: 'translateY(-50%)',
+              fontSize: 28, lineHeight: 1, padding: '10px 14px',
+              background: 'rgba(255,255,255,0.15)', color: '#fff',
+              border: '1px solid rgba(255,255,255,0.35)',
+              borderRadius: 999, cursor: 'pointer', backdropFilter: 'blur(6px)'
+            }}
+          >‹</button>
+
           <img
-            src={previewImage}
+            src={withBase(previewImage)}
             alt="Preview"
+            onClick={(e) => e.stopPropagation()}
             style={{
               maxWidth: '90vw',
               maxHeight: '90vh',
-              borderRadius: '8px',
+              borderRadius: 8,
               boxShadow: '0 0 15px rgba(0,0,0,0.5)',
+              cursor: 'default'
             }}
           />
+
+          <button
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
+            aria-label="Next image"
+            style={{
+              position: 'absolute',
+              right: 20, top: '50%', transform: 'translateY(-50%)',
+              fontSize: 28, lineHeight: 1, padding: '10px 14px',
+              background: 'rgba(255,255,255,0.15)', color: '#fff',
+              border: '1px solid rgba(255,255,255,0.35)',
+              borderRadius: 999, cursor: 'pointer', backdropFilter: 'blur(6px)'
+            }}
+          >›</button>
+
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+              fontSize: 12, padding: '6px 10px',
+              background: 'rgba(0,0,0,0.35)', color: '#fff',
+              borderRadius: 999, border: '1px solid rgba(255,255,255,0.25)'
+            }}
+          >
+            {previewIndex + 1} / {galleryList.length}
+          </div>
         </div>
       )}
 
-      {/* Funnel slider (custom, pointer-based) */}
+      {/* Order Form Overlay */}
+      {showOrderForm && (
+        <div
+          onClick={() => setShowOrderForm(false)}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999 }}
+        >
+          <div
+            onClick={(e)=>e.stopPropagation()}
+            style={{ width: 420, background:'#fff', borderRadius:10, padding:16 }}
+          >
+            <h3 style={{ marginTop:0 }}>Tạo Order</h3>
+
+            <div style={{ display:'grid', gap:10 }}>
+              <div>
+                <label>Staff *</label>
+                <input
+                  value={orderForm.staff}
+                  onChange={e=>setOrderForm(f=>({...f, staff:e.target.value}))}
+                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
+                />
+              </div>
+              <div>
+                <label>Member *</label>
+                <input
+                  value={orderForm.memberCard}
+                  onChange={e=>setOrderForm(f=>({...f, memberCard:e.target.value}))}
+                  placeholder="Nhập mã thẻ / số thẻ"
+                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
+                />
+              </div>
+              <div>
+                <label>Name</label>
+                <input
+                  value={orderForm.customerName}
+                  onChange={e=>setOrderForm(f=>({...f, customerName:e.target.value}))}
+                  placeholder="Tự động điền theo Customer nếu có"
+                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
+                />
+              </div>
+              <div>
+                <label>Ghi chú</label>
+                <textarea
+                  value={orderForm.note}
+                  onChange={e=>setOrderForm(f=>({...f, note:e.target.value}))}
+                  rows={3}
+                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:12 }}>
+              <button onClick={()=>setShowOrderForm(false)} style={{ padding:'8px 12px', border:'1px solid #ddd', borderRadius:8, background:'#fff' }}>Huỷ</button>
+              <button onClick={placeOrder} style={{ padding:'8px 12px', border:'none', borderRadius:8, background:'#10b981', color:'#fff' }}>Gửi Order</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Funnel slider */}
       <div
         ref={sliderRef}
         role="slider"
@@ -563,7 +1481,6 @@ const UserFoodList = () => {
             </clipPath>
           </defs>
 
-        {/* Khung viền */}
           <path
             d="M6 6 L22 6 L18 154 L10 154 Z"
             fill="transparent"
@@ -572,7 +1489,6 @@ const UserFoodList = () => {
             strokeLinejoin="round"
           />
 
-          {/* Fill theo giá trị */}
           <rect
             x="0"
             y={fillY}
@@ -583,6 +1499,16 @@ const UserFoodList = () => {
           />
         </svg>
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position:'fixed', bottom:20, left:'50%', transform:'translateX(-50%)',
+          background:'#111', color:'#fff', padding:'8px 12px', borderRadius:8, zIndex:10000, opacity:0.95
+        }}>
+          {toast}
+        </div>
+      )}
     </div>
   );
 };

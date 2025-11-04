@@ -1,0 +1,3251 @@
+[
+  {
+    "id": 1,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-09T15:19:40.003Z",
+    "status": "DONE",
+    "updatedAt": "2025-10-11T16:17:28.868Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:19:51.469Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 2,
+    "area": "Roulette 2",
+    "tableNo": 201,
+    "staff": "John",
+    "memberCard": "58957",
+    "customerName": null,
+    "note": "Out - 14",
+    "items": [
+      {
+        "imageName": "dogani-tang---k15.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-09T20:02:47.072Z",
+    "status": "DONE",
+    "updatedAt": "2025-10-11T16:17:30.643Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-12T11:34:57.540Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 3,
+    "area": "Roulette 2",
+    "tableNo": 213,
+    "staff": "Aki",
+    "memberCard": "56454",
+    "customerName": null,
+    "note": "Outside",
+    "items": [
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-10T11:39:19.881Z",
+    "status": "DONE",
+    "updatedAt": "2025-10-11T16:17:33.063Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-12T11:34:59.190Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 4,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "udon-noodles---j2.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T15:53:12.454Z",
+    "status": "DONE",
+    "updatedAt": "2025-10-11T16:17:27.740Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:19:50.510Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 5,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T16:04:33.504Z",
+    "status": "DONE",
+    "updatedAt": "2025-10-11T16:17:25.628Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:19:46.873Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 6,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "dimsum---c1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T16:18:05.980Z",
+    "status": "DONE",
+    "updatedAt": "2025-10-11T16:18:55.944Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:19:42.249Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 7,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T16:18:14.596Z",
+    "status": "DONE",
+    "updatedAt": "2025-10-11T16:19:02.174Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:28:06.091Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 8,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "wonton-noodles---c2.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T16:18:17.638Z",
+    "status": "DONE",
+    "updatedAt": "2025-10-11T16:19:05.005Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:28:07.489Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 9,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T16:23:16.200Z",
+    "status": "CANCELLED",
+    "updatedAt": "2025-10-11T16:26:15.377Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:19:41.072Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 10,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T16:26:24.177Z",
+    "status": "CANCELLED",
+    "updatedAt": "2025-10-11T16:26:28.442Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:19:40.904Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 11,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T16:30:38.161Z",
+    "status": "CANCELLED",
+    "updatedAt": "2025-10-11T16:30:42.714Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:19:40.772Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 12,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T16:30:53.026Z",
+    "status": "DONE",
+    "updatedAt": "2025-10-11T16:30:59.202Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:19:40.608Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 13,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T16:31:08.693Z",
+    "status": "CANCELLED",
+    "updatedAt": "2025-10-11T16:31:11.908Z",
+    "tableClosed": true,
+    "closedAt": "2025-10-11T17:19:40.452Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 14,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T17:16:51.185Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "updatedAt": "2025-10-11T17:17:00.692Z",
+    "closedAt": "2025-10-11T17:19:40.306Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 15,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "alo",
+    "items": [
+      {
+        "imageName": "sweet-&-spicy-cold-noodle.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T17:17:28.699Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "updatedAt": "2025-10-11T17:17:49.188Z",
+    "closedAt": "2025-10-11T17:19:40.142Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 16,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "alo",
+    "items": [
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T17:18:17.893Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "updatedAt": "2025-10-11T17:18:36.170Z",
+    "closedAt": "2025-10-11T17:19:40.000Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 17,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "alo",
+    "items": [
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T17:18:47.957Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "updatedAt": "2025-10-11T17:19:03.375Z",
+    "closedAt": "2025-10-11T17:19:39.861Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 18,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "alo",
+    "items": [
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T17:19:20.737Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "updatedAt": "2025-10-11T17:19:24.016Z",
+    "closedAt": "2025-10-11T17:19:37.899Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 19,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "alo",
+    "items": [
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T17:20:05.862Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "updatedAt": "2025-10-11T17:20:17.718Z",
+    "closedAt": "2025-10-11T17:28:04.681Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 20,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "alo",
+    "items": [
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T17:20:43.137Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "updatedAt": "2025-10-11T17:20:53.002Z",
+    "closedAt": "2025-10-11T17:28:03.581Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 21,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "Jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-11T17:21:17.462Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "updatedAt": "2025-10-11T17:21:25.686Z",
+    "closedAt": "2025-10-11T17:28:03.121Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 22,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "Dara",
+    "memberCard": "35325",
+    "customerName": null,
+    "note": "Cashier-inside",
+    "items": [
+      {
+        "imageName": "french-fried.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T09:21:13.373Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "updatedAt": "2025-10-12T10:59:00.874Z",
+    "restocked": true,
+    "closedAt": "2025-10-12T11:34:48.835Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 23,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "galbi-tang---k1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T10:58:42.095Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": true,
+    "updatedAt": "2025-10-12T10:59:03.837Z",
+    "closedAt": "2025-10-12T11:34:51.028Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 24,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "galbi-tang---k1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T10:59:09.266Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": true,
+    "updatedAt": "2025-10-12T10:59:16.900Z",
+    "closedAt": "2025-10-12T11:34:50.883Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 25,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "galbi-tang---k1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T11:00:16.708Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": true,
+    "updatedAt": "2025-10-12T11:00:40.656Z",
+    "closedAt": "2025-10-12T11:34:50.732Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 26,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "galbi-tang---k1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T11:00:50.947Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": false,
+    "updatedAt": "2025-10-12T11:01:21.337Z",
+    "closedAt": "2025-10-12T11:34:50.572Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 27,
+    "area": "Roulette 1",
+    "tableNo": 120,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T11:03:55.672Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": true,
+    "updatedAt": "2025-10-12T11:06:41.135Z",
+    "closedAt": "2025-10-12T11:34:55.028Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 28,
+    "area": "Roulette 1",
+    "tableNo": 119,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "udon.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T11:04:34.282Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": true,
+    "updatedAt": "2025-10-12T11:06:37.457Z",
+    "closedAt": "2025-10-12T11:34:53.852Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 29,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T11:09:19.408Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": false,
+    "updatedAt": "2025-10-12T11:09:43.211Z",
+    "closedAt": "2025-10-12T11:34:48.355Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 30,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "galbi-tang---k1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T11:09:57.505Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": false,
+    "updatedAt": "2025-10-12T11:10:19.787Z",
+    "closedAt": "2025-10-12T11:34:47.960Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 31,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "2",
+    "customerName": "test2",
+    "note": "",
+    "items": [
+      {
+        "imageName": "udon.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T11:33:48.587Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": false,
+    "updatedAt": "2025-10-12T11:34:05.276Z",
+    "closedAt": "2025-10-12T11:34:47.434Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 32,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "2",
+    "customerName": "test2",
+    "note": "",
+    "items": [
+      {
+        "imageName": "udon.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T11:34:29.027Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": true,
+    "updatedAt": "2025-10-12T11:34:40.758Z",
+    "closedAt": "2025-10-12T11:34:46.592Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 33,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "Sue",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "Test",
+    "items": [
+      {
+        "imageName": "galbi-tang---k1.jpg",
+        "qty": 2
+      }
+    ],
+    "createdAt": "2025-10-12T11:37:59.243Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": false,
+    "updatedAt": "2025-10-12T11:39:18.970Z",
+    "closedAt": "2025-10-12T11:39:32.054Z",
+    "closedBy": "Sue"
+  },
+  {
+    "id": 34,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "Jack",
+    "memberCard": "2",
+    "customerName": "test2",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T11:40:36.296Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": false,
+    "updatedAt": "2025-10-12T11:40:47.476Z",
+    "closedAt": "2025-10-12T11:41:20.129Z",
+    "closedBy": "Jack"
+  },
+  {
+    "id": 35,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "galbi-tang---k1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T13:41:49.102Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": true,
+    "updatedAt": "2025-10-12T13:43:44.380Z",
+    "closedAt": "2025-10-12T14:59:39.882Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 36,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "test",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "japanese-curry---j3.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T14:20:00.815Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": true,
+    "restocked": true,
+    "updatedAt": "2025-10-12T14:20:17.272Z",
+    "closedAt": "2025-10-12T14:59:39.098Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 37,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T14:55:29.215Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T14:59:11.524Z",
+    "closedAt": "2025-10-12T14:59:37.874Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 38,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T14:55:46.455Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T14:59:12.965Z",
+    "closedAt": "2025-10-12T14:59:37.738Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 39,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T14:56:04.342Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T14:59:14.323Z",
+    "closedAt": "2025-10-12T14:59:37.587Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 40,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "soba---noodles---j1.jpg",
+        "qty": 6
+      }
+    ],
+    "createdAt": "2025-10-12T14:58:44.658Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T14:59:19.143Z",
+    "closedAt": "2025-10-12T14:59:37.448Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 41,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "wonton-noodles---c2.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "fried-beef-noodles---c3.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T15:01:02.844Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T15:01:42.154Z",
+    "closedAt": "2025-10-12T15:21:39.558Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 42,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T15:26:39.336Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:03:13.235Z",
+    "closedAt": "2025-10-12T16:13:58.965Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 43,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j2.udon-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T15:28:35.704Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:03:10.485Z",
+    "closedAt": "2025-10-12T16:13:58.815Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 44,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 2
+      }
+    ],
+    "createdAt": "2025-10-12T15:52:12.622Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:03:03.183Z",
+    "closedAt": "2025-10-12T16:14:00.405Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 45,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:04:56.492Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:07:06.796Z",
+    "closedAt": "2025-10-12T16:13:58.677Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 46,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:05:07.265Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:07:01.541Z",
+    "closedAt": "2025-10-12T16:13:58.525Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 47,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:05:24.993Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:06:55.501Z",
+    "closedAt": "2025-10-12T16:13:58.382Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 48,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:05:50.184Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:06:47.044Z",
+    "closedAt": "2025-10-12T16:13:58.245Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 49,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:06:01.971Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:06:41.085Z",
+    "closedAt": "2025-10-12T16:13:58.117Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 50,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:13:23.509Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:13:32.552Z",
+    "closedAt": "2025-10-12T16:13:57.978Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 51,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:14:05.933Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:14:14.746Z",
+    "closedAt": "2025-10-12T16:35:18.965Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 52,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:15:57.445Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "updatedAt": "2025-10-12T16:16:08.405Z",
+    "closedAt": "2025-10-12T16:35:18.503Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 53,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:34:07.829Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "ko muốn làm",
+    "updatedAt": "2025-10-12T16:34:16.496Z",
+    "closedAt": "2025-10-12T16:59:22.503Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 54,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "2",
+    "customerName": "test2",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:35:27.574Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "mệt mỏi quá nha",
+    "updatedAt": "2025-10-12T16:35:33.834Z",
+    "closedAt": "2025-10-12T16:59:22.362Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 55,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "hopang.jpg",
+        "qty": 4
+      }
+    ],
+    "createdAt": "2025-10-12T16:36:30.863Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "đi về ngủ, ai rảnh",
+    "updatedAt": "2025-10-12T16:37:02.936Z",
+    "closedAt": "2025-10-12T16:59:22.211Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 56,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:46:11.228Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": ".",
+    "updatedAt": "2025-10-12T16:47:52.842Z",
+    "closedAt": "2025-10-12T16:49:08.309Z",
+    "closedBy": "user"
+  },
+  {
+    "id": 57,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:46:54.492Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": ".",
+    "updatedAt": "2025-10-12T16:47:50.754Z",
+    "closedAt": "2025-10-12T16:49:08.157Z",
+    "closedBy": "user"
+  },
+  {
+    "id": 58,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:46:58.950Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": ".",
+    "updatedAt": "2025-10-12T16:47:48.930Z",
+    "closedAt": "2025-10-12T16:49:08.013Z",
+    "closedBy": "user"
+  },
+  {
+    "id": 59,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:47:02.845Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": ".",
+    "updatedAt": "2025-10-12T16:47:47.010Z",
+    "closedAt": "2025-10-12T16:49:07.869Z",
+    "closedBy": "user"
+  },
+  {
+    "id": 60,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:47:07.622Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": ".",
+    "updatedAt": "2025-10-12T16:47:44.745Z",
+    "closedAt": "2025-10-12T16:49:07.501Z",
+    "closedBy": "user"
+  },
+  {
+    "id": 61,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:47:12.546Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": ".",
+    "updatedAt": "2025-10-12T16:47:41.771Z",
+    "closedAt": "2025-10-12T16:49:06.845Z",
+    "closedBy": "user"
+  },
+  {
+    "id": 62,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T16:47:25.524Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": ".",
+    "updatedAt": "2025-10-12T16:47:39.803Z",
+    "closedAt": "2025-10-12T16:49:06.262Z",
+    "closedBy": "user"
+  },
+  {
+    "id": 63,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:00:13.940Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-12T17:00:17.961Z",
+    "closedAt": "2025-10-12T17:55:21.065Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 64,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:15:28.003Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "alo",
+    "updatedAt": "2025-10-12T17:16:38.698Z",
+    "closedAt": "2025-10-12T17:55:20.458Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 65,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:15:42.246Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "về ngủ đi",
+    "updatedAt": "2025-10-12T17:16:33.077Z",
+    "closedAt": "2025-10-12T17:55:20.305Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 66,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:25:42.009Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-12T17:29:47.666Z",
+    "closedAt": "2025-10-12T17:55:20.169Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 67,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:26:01.607Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-12T17:29:44.734Z",
+    "closedAt": "2025-10-12T17:55:20.008Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 68,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:44:46.227Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-12T17:55:19.025Z",
+    "closedBy": "jack",
+    "updatedAt": "2025-10-12T17:55:28.912Z"
+  },
+  {
+    "id": 69,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:44:58.306Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-12T17:55:18.888Z",
+    "closedBy": "jack",
+    "updatedAt": "2025-10-12T17:55:27.996Z"
+  },
+  {
+    "id": 70,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:52:27.146Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-12T17:55:18.730Z",
+    "closedBy": "jack",
+    "updatedAt": "2025-10-12T17:55:27.033Z"
+  },
+  {
+    "id": 71,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:52:45.931Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-12T17:55:18.290Z",
+    "closedBy": "jack",
+    "updatedAt": "2025-10-12T17:55:25.850Z"
+  },
+  {
+    "id": 72,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:58:30.745Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-12T18:11:56.938Z",
+    "closedAt": "2025-10-12T18:13:10.788Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 73,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:58:52.530Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-12T18:11:55.386Z",
+    "closedAt": "2025-10-12T18:13:10.648Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 74,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:58:58.577Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-12T18:11:54.651Z",
+    "closedAt": "2025-10-12T18:13:10.508Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 75,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T17:59:07.130Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-12T18:11:54.035Z",
+    "closedAt": "2025-10-12T18:13:10.381Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 76,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "Jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T18:00:37.409Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-12T18:11:52.932Z",
+    "closedAt": "2025-10-12T18:13:10.229Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 77,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "Jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T18:02:34.939Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-12T18:11:52.204Z",
+    "closedAt": "2025-10-12T18:13:10.086Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 78,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T18:10:57.236Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-12T18:11:51.488Z",
+    "closedAt": "2025-10-12T18:13:09.941Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 79,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T18:16:56.092Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-12T18:19:24.870Z",
+    "closedAt": "2025-10-12T18:21:43.006Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 80,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "1",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T18:24:47.345Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-15T14:35:36.636Z",
+    "closedAt": "2025-10-15T14:35:41.991Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 81,
+    "area": "2 Floor",
+    "tableNo": 2005,
+    "staff": "Liana",
+    "memberCard": "52278",
+    "customerName": "Mr Lee",
+    "note": "",
+    "items": [
+      {
+        "imageName": "fried-chicken-soft-bones.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-12T20:33:37.709Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-15T14:35:33.991Z",
+    "closedAt": "2025-10-15T14:35:51.160Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 82,
+    "area": "Non - Smoking",
+    "tableNo": 1002,
+    "staff": "Isla",
+    "memberCard": "2888",
+    "customerName": "test2",
+    "note": "",
+    "items": [
+      {
+        "imageName": "xo.-wok-fried-hokkaido-scallop.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-13T20:59:28.697Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "closedAt": "2025-10-14T10:35:40.959Z",
+    "closedBy": "Isla",
+    "updatedAt": "2025-10-15T14:35:27.874Z"
+  },
+  {
+    "id": 83,
+    "area": "2 Floor",
+    "tableNo": 2020,
+    "staff": "Nora",
+    "memberCard": "6561",
+    "customerName": "Kim Ju Chan",
+    "note": "1 người",
+    "items": [
+      {
+        "imageName": "fish-cake.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "k1.galbi-tang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "k11.jjamppong.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-14T01:06:09.784Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-15T14:35:25.515Z",
+    "closedAt": "2025-10-15T14:35:53.619Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 84,
+    "area": "2 Floor",
+    "tableNo": 2020,
+    "staff": "Phoebe",
+    "memberCard": "4773",
+    "customerName": "Kim Hyung Suk",
+    "note": "1 người",
+    "items": [
+      {
+        "imageName": "k1.galbi-tang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "k3.jeyuk-bokkeum.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-14T02:48:25.109Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-15T14:35:23.426Z",
+    "closedAt": "2025-10-15T14:35:52.722Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 85,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-17T15:48:44.160Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-17T16:28:30.005Z",
+    "closedAt": "2025-10-18T07:20:55.391Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 86,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T07:21:13.724Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-18T07:21:50.949Z",
+    "closedAt": "2025-10-18T08:10:26.726Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 87,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 6
+      }
+    ],
+    "createdAt": "2025-10-18T07:21:59.681Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-18T07:24:07.026Z",
+    "closedAt": "2025-10-18T08:10:25.668Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 88,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T07:22:38.418Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-18T07:24:06.168Z",
+    "closedAt": "2025-10-18T08:10:24.341Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 89,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T07:23:28.658Z",
+    "status": "DONE",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-18T07:24:05.317Z",
+    "closedAt": "2025-10-18T08:10:23.727Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 90,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T07:41:58.112Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-18T08:10:06.728Z",
+    "closedAt": "2025-10-18T08:10:22.755Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 91,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T08:01:04.952Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-18T08:10:02.811Z",
+    "closedAt": "2025-10-18T08:10:21.541Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 92,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "ko duong",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T08:01:51.407Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-18T08:10:00.670Z",
+    "closedAt": "2025-10-18T08:10:20.249Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 93,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "ko duong",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 2
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 3
+      }
+    ],
+    "createdAt": "2025-10-18T08:02:11.739Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": "1",
+    "updatedAt": "2025-10-18T08:09:58.489Z",
+    "closedAt": "2025-10-18T08:10:19.237Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 94,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "c2.wonton-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "k4.so-bulgogi-jjigae.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T08:34:25.746Z",
+    "status": "CANCELLED",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-18T08:35:30.532Z",
+    "closedAt": "2025-10-18T08:35:38.387Z",
+    "closedBy": "jack"
+  },
+  {
+    "id": 95,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "été",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 2
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 6
+      }
+    ],
+    "createdAt": "2025-10-18T08:56:18.888Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:33.474Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 96,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "été",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T09:37:50.894Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:32.638Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 97,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "été",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "ddok.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "seafood-spicy-noodle.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sinramyun.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "c1.dimsum.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T09:38:33.034Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:31.766Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 98,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "été",
+    "items": [
+      {
+        "imageName": "ddok.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T09:47:27.988Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:30.709Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 99,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T10:00:11.727Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:29.739Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 100,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 4
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 5
+      },
+      {
+        "imageName": "seafood-spicy-noodle.jpg",
+        "qty": 5
+      }
+    ],
+    "createdAt": "2025-10-18T10:01:11.009Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:28.965Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 101,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "seafood-spicy-noodle.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "fish-cake.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "fried-tofu.jpg",
+        "qty": 4
+      },
+      {
+        "imageName": "ddok.jpg",
+        "qty": 3
+      }
+    ],
+    "createdAt": "2025-10-18T10:10:34.124Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:28.033Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 102,
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 5
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 3
+      },
+      {
+        "imageName": "sweet-&-spicy-cold-noodle.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 5
+      }
+    ],
+    "createdAt": "2025-10-18T10:15:39.757Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:27.145Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 103,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "jack",
+    "memberCard": "4602",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T10:54:36.520Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:36.664Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 104,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "Gin",
+    "memberCard": "4602",
+    "customerName": null,
+    "note": "Them hanh ",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T10:57:25.595Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:39.212Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 105,
+    "area": "Roulette 1",
+    "tableNo": 105,
+    "staff": "Gin",
+    "memberCard": "4602",
+    "customerName": null,
+    "note": "Them hanh ",
+    "items": [
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "c1.dimsum.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T11:46:28.873Z",
+    "status": "PENDING",
+    "tableClosed": true,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "closedAt": "2025-10-19T08:40:41.164Z",
+    "closedBy": "Isla"
+  },
+  {
+    "id": 106,
+    "area": "2 Floor",
+    "tableNo": 2016,
+    "staff": "Carolyn 2f",
+    "memberCard": "1000",
+    "customerName": null,
+    "note": "",
+    "items": [
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "k17.dwaeji-gukbap.jpg",
+        "qty": 2
+      }
+    ],
+    "createdAt": "2025-10-18T16:30:32.472Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 107,
+    "area": "2 Floor",
+    "tableNo": 2016,
+    "staff": "Ruby 2f",
+    "memberCard": "52278",
+    "customerName": "Mr Lee",
+    "note": "",
+    "items": [
+      {
+        "imageName": "sinramyun.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-18T16:35:50.948Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 108,
+    "area": "Roulette 1",
+    "tableNo": 120,
+    "staff": "Jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "Test",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 2
+      }
+    ],
+    "createdAt": "2025-10-19T11:18:40.008Z",
+    "status": "CANCELLED",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-20T08:26:47.032Z"
+  },
+  {
+    "id": 109,
+    "area": "Roulette 1",
+    "tableNo": 120,
+    "staff": "Jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "Test",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 4
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 5
+      }
+    ],
+    "createdAt": "2025-10-19T11:21:44.034Z",
+    "status": "CANCELLED",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-20T08:26:45.465Z"
+  },
+  {
+    "id": 110,
+    "area": "Roulette 1",
+    "tableNo": 120,
+    "staff": "Jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "Test",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sweet-&-spicy-cold-noodle.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-19T11:22:41.070Z",
+    "status": "CANCELLED",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-20T08:26:44.468Z"
+  },
+  {
+    "id": 111,
+    "area": "Roulette 1",
+    "tableNo": 120,
+    "staff": "Jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "Test",
+    "items": [
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sweet-&-spicy-cold-noodle.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "seafood-spicy-noodle.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "fish-cake.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-19T11:23:40.211Z",
+    "status": "CANCELLED",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-20T08:26:43.319Z"
+  },
+  {
+    "id": 112,
+    "area": "Roulette 1",
+    "tableNo": 120,
+    "staff": "Jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "",
+    "items": [
+      {
+        "imageName": "ddok.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "seafood-spicy-noodle.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "fish-cake.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-19T11:25:07.986Z",
+    "status": "CANCELLED",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-20T08:26:42.112Z"
+  },
+  {
+    "id": 113,
+    "area": "Roulette 1",
+    "tableNo": 120,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sweet-&-spicy-cold-noodle.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-19T11:41:13.329Z",
+    "status": "CANCELLED",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-20T08:26:40.882Z"
+  },
+  {
+    "id": 114,
+    "area": "Roulette 1",
+    "tableNo": 120,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "kimbap.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-19T11:45:37.868Z",
+    "status": "CANCELLED",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-20T08:26:38.974Z"
+  },
+  {
+    "id": 115,
+    "area": "Roulette 1",
+    "tableNo": 120,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "TECH",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "sundae.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tokoyaki.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "hopang.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-19T11:50:53.920Z",
+    "status": "CANCELLED",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null,
+    "updatedAt": "2025-10-20T08:26:37.084Z"
+  },
+  {
+    "id": 116,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "Grace",
+    "memberCard": "16013",
+    "customerName": "TECH",
+    "note": "1ng - pit33",
+    "items": [
+      {
+        "imageName": "fish-cake.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "k9.yang-pyung-haejangkuk.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-20T15:17:40.104Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 117,
+    "area": "Table",
+    "tableNo": 14,
+    "staff": "Trizzy",
+    "memberCard": "52285",
+    "customerName": null,
+    "note": "Inside",
+    "items": [
+      {
+        "imageName": "c4.fried-seafood-noodles.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-20T19:12:16.172Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 118,
+    "area": "2 Floor",
+    "tableNo": 2018,
+    "staff": "Blair 2f",
+    "memberCard": "4308",
+    "customerName": null,
+    "note": "",
+    "items": [
+      {
+        "imageName": "k10.jjajangmyoen.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-21T15:30:27.423Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 119,
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "John",
+    "memberCard": "31402",
+    "customerName": null,
+    "note": "",
+    "items": [
+      {
+        "imageName": "k11.jjamppong.jpg",
+        "qty": 2
+      }
+    ],
+    "createdAt": "2025-10-21T19:52:30.096Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 120,
+    "area": "2 Floor",
+    "tableNo": 2018,
+    "staff": "Liana 2f",
+    "memberCard": "Wu cai song",
+    "customerName": null,
+    "note": "",
+    "items": [
+      {
+        "imageName": "k1.galbi-tang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-22T08:51:17.531Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 121,
+    "area": "Roulette 1",
+    "tableNo": 107,
+    "staff": "Ruan",
+    "memberCard": "58957",
+    "customerName": "ZHOU DONGJIANG",
+    "note": "1pax",
+    "items": [
+      {
+        "imageName": "k14.tong-samgyupsal.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "tenderloin-&-tiger-prawn.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-22T12:57:00.656Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 122,
+    "area": "Table",
+    "tableNo": 14,
+    "staff": "Ashley",
+    "memberCard": "59411",
+    "customerName": null,
+    "note": "In - 2 người ăn ",
+    "items": [
+      {
+        "imageName": "k12.tangsuyuk.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "k11.jjamppong.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-22T15:25:01.832Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 123,
+    "area": "Table",
+    "tableNo": 15,
+    "staff": "Ashley",
+    "memberCard": "53388",
+    "customerName": null,
+    "note": "Out",
+    "items": [
+      {
+        "imageName": "k5.ggori-gom-tang.jpg",
+        "qty": 1
+      },
+      {
+        "imageName": "k20.seaok-sae-bulgogi.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-22T15:26:05.401Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 124,
+    "area": "Table",
+    "tableNo": 11,
+    "staff": "Sunnie",
+    "memberCard": "52285",
+    "customerName": null,
+    "note": "inside",
+    "items": [
+      {
+        "imageName": "banh-mi-bbq-pork-char-siu.jpg",
+        "qty": 1
+      }
+    ],
+    "createdAt": "2025-10-27T06:16:26.766Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  }
+]
