@@ -60,6 +60,22 @@ const STATUS_HISTORY_JSON = path.join(DATA_DIR, 'status-history.json');
 const ORDERS_JSON  = path.join(DATA_DIR, 'orders.json');
 const MEMBERS_JSON = path.join(DATA_DIR, 'members.json');
 
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+
+function backupMembers() {
+  try {
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    const src = MEMBERS_JSON;
+    const dest = path.join(BACKUP_DIR, `members-${ts}.json`);
+    fs.copyFileSync(src, dest);
+    console.log('Backup members.json to', dest);
+  } catch (e) {
+    console.error('Backup members failed:', e.message);
+  }
+}
+
+
 // products.json để enrich /api/foods với menus/itemGroup...
 const PRODUCTS_JSON = path.join(DATA_DIR, 'products.json');
 
@@ -517,6 +533,38 @@ function assertSafeMenuName(name) {
 app.get('/api/menu-types', (_req, res) => {
   res.json(getAllMenuTypes());
 });
+// Backup thủ công trước khi import
+app.post('/api/members/backup',
+  authenticateJWT, authorizeRoles('admin'),
+  (_req, res) => {
+    backupMembers();
+    res.json({ ok: true });
+  }
+);
+
+// Liệt kê file backup
+app.get('/api/members/backups',
+  authenticateJWT, authorizeRoles('admin'),
+  (_req, res) => {
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('members-'));
+    res.json({ files });
+  }
+);
+
+// Phục hồi từ backup
+app.post('/api/members/restore',
+  authenticateJWT, authorizeRoles('admin'),
+  (req, res) => {
+    const { file } = req.body || {};
+    if (!file) return res.status(400).json({ error: 'Thiếu file' });
+    const src = path.join(BACKUP_DIR, file);
+    if (!fs.existsSync(src)) return res.status(404).json({ error: 'Backup not found' });
+    fs.copyFileSync(src, MEMBERS_JSON);
+    // Reload vào bộ nhớ
+    members = JSON.parse(fs.readFileSync(MEMBERS_JSON, 'utf-8') || '{}');
+    res.json({ ok: true });
+  }
+);
 
 
 app.post('/api/broadcast-version',
@@ -675,25 +723,47 @@ const MemberApi = {
     const name = String(body.name || body.customerName || '').trim();
     const level = body.level ? String(body.level).trim() : null;
 
-    if (!code) return res.status(400).json({ error: 'Thiếu mã khách hàng (code)' });
-    if (!name) return res.status(400).json({ error: 'Thiếu tên khách hàng (name)' });
-    if (members[code]) return res.status(409).json({ error: 'Mã khách đã tồn tại' });
+if (!code) return res.status(400).json({ error: 'Thiếu mã khách hàng (code)' });
+if (!name) return res.status(400).json({ error: 'Thiếu tên khách hàng (name)' });
+const now = new Date().toISOString();
+// Nếu mã đã tồn tại → cập nhật tên và level
+if (members[code]) {
+  const prev = members[code];
+  members[code] = {
+    ...prev,
+    code,
+    name,
+    customerName: name,
+    level,
+    updatedAt: now,
+  };
+  // Ghi lịch sử import update
+  pushMemberHistory(code, {
+    type: 'IMPORT_UPDATE',
+    by: req.user?.sub || 'admin',
+    data: { name, level },
+    detail: `Import update: name → '${name}', level → '${level || ''}'`
+  });
+  saveMembers();
+  req.app.locals.io.emit('memberUpdated', { code, member: members[code] });
+  return res.status(201).json({ ok: true, updated: true, member: memberToRow(code, members[code]) });
+}
 
-    const now = new Date().toISOString();
-    members[code] = {
-      code,
-      name,
-      customerName: name,
-      level,
-      ordersCount: 0,
-      createdAt: now,
-      updatedAt: now,
-      lastSeenAt: null,
-      history: [{ at: now, type: 'CREATE', by: req.user?.sub || 'admin', data: { name, level } }],
-    };
-    saveMembers();
-    req.app.locals.io.emit('memberCreated', { code, member: members[code] });
-    res.status(201).json({ ok: true, member: memberToRow(code, members[code]) });
+// Nếu chưa tồn tại → tạo mới như trước
+members[code] = {
+  code,
+  name,
+  customerName: name,
+  level,
+  ordersCount: 0,
+  createdAt: now,
+  updatedAt: now,
+  lastSeenAt: null,
+  history: [{ at: now, type: 'CREATE', by: req.user?.sub || 'admin', data: { name, level } }],
+};
+saveMembers();
+req.app.locals.io.emit('memberCreated', { code, member: members[code] });
+return res.status(201).json({ ok: true, member: memberToRow(code, members[code]) });
   },
 update(req, res) {
   try {
