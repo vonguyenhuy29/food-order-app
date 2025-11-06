@@ -381,7 +381,7 @@
     "id": 1753713777721,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "c5aafae279f436283177b0448c6f57c0",
     "levelAccess": [
       "P",
@@ -389,13 +389,13 @@
       "V-One"
     ],
     "order": 27,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777722,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1c1136053dbc00396cb7e15941089381",
     "levelAccess": [
       "P",
@@ -403,7 +403,7 @@
       "V-One"
     ],
     "order": 28,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777736,
@@ -535,7 +535,7 @@
     "id": 1753713777718,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K6.SOGOGI-MIYUKGUK.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "f62c5c89013567f2bf7fafc7194fc9aa",
     "levelAccess": [
       "P",
@@ -543,7 +543,7 @@
       "V-One"
     ],
     "order": 38,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777731,
@@ -965,27 +965,27 @@
     "id": 1753713777763,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/C2.WONTON-NOODLES.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "c5aafae279f436283177b0448c6f57c0",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 69,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777764,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/C3.FRIED-BEEF-NOODLES.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1c1136053dbc00396cb7e15941089381",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 70,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777778,
@@ -1108,14 +1108,14 @@
     "id": 1753713777760,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/K6.SOGOGI-MIYUKGUK.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "f62c5c89013567f2bf7fafc7194fc9aa",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 80,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777773,
@@ -1611,25 +1611,25 @@
     "id": 1753713777864,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/C2.WONTON-NOODLES.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "68c0c188c82a40397f70f0c509cf9dd1",
     "levelAccess": [
       "V-One"
     ],
     "order": 119,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777865,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/C3.FRIED-BEEF-NOODLES.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "82eac03e733081c9566f35899f216436",
     "levelAccess": [
       "V-One"
     ],
     "order": 120,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777879,
@@ -1743,13 +1743,13 @@
     "id": 1753713777861,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/K6.SOGOGI-MIYUKGUK.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "f62c5c89013567f2bf7fafc7194fc9aa",
     "levelAccess": [
       "V-One"
     ],
     "order": 130,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777874,

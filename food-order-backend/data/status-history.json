@@ -59164,5 +59164,56 @@
       1753713777742,
       1753713777843
     ]
+  },
+  {
+    "id": 1762429331576.1274,
+    "at": "2025-11-06T11:42:11.576Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1762436099530.6436,
+    "at": "2025-11-06T13:34:59.530Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1762437183712.196,
+    "at": "2025-11-06T13:53:03.712Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k6.sogogi-miyukguk.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K6.SOGOGI-MIYUKGUK.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777718,
+      1753713777760,
+      1753713777861
+    ]
   }
 ]
