@@ -699,17 +699,34 @@ function pushMemberHistory(code, entry) {
   // không gọi saveMembers() ở đây; để hàm gọi tự lưu
 }
 const MemberApi = {
-  list(req, res) {
-    const arr = Object.entries(members).map(([code, m]) => memberToRow(code, m));
-    const q = (req.query.q || '').toString().trim().toLowerCase();
-    const filtered = q
-      ? arr.filter(x =>
-          x.code.toLowerCase().includes(q) ||
-          (x.name || '').toLowerCase().includes(q)
-        )
-      : arr;
-    filtered.sort((a, b) => String(a.code).localeCompare(String(b.code)));
-    res.json(filtered);
+list(req, res) {
+    try {
+      const { q, limit = 100, page = 1 } = req.query || {};
+      let arr = Object.keys(members).map(code => memberToRow(code, members[code]));
+      if (q) {
+        const qn = (q || '').toLowerCase();
+        arr = arr.filter(r =>
+          (r.code || '').toLowerCase().includes(qn) ||
+          (r.name || '').toLowerCase().includes(qn)
+        );
+      }
+      arr.sort((a,b) => a.code.localeCompare(b.code));
+      // phân trang: tính start và end index
+      const lim  = Math.max(1, Number(limit));   // số bản ghi mỗi trang
+      const pg   = Math.max(1, Number(page));    // số trang
+      const start = (pg - 1) * lim;
+      const end   = start + lim;
+      const sliced = arr.slice(start, end);
+      return res.json({
+        total: arr.length,
+        page: pg,
+        limit: lim,
+        items: sliced,
+      });
+    } catch (err) {
+      console.error('list members error:', err);
+      return res.status(500).json({ error: 'Cannot list members' });
+    }
   },
   get(req, res) {
     const code = String(req.params.code || '').trim();
