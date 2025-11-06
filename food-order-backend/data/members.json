@@ -6,7 +6,7 @@
     "code": "1",
     "name": "TECH",
     "level": "P",
-    "updatedAt": "2025-11-04T07:17:18.021Z",
+    "updatedAt": "2025-11-04T07:36:07.259Z",
     "history": [
       {
         "at": "2025-11-04T06:42:31.231Z",
@@ -574,6 +574,100 @@
           "name": "TECH",
           "level": "P"
         }
+      },
+      {
+        "at": "2025-11-04T07:36:07.259Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {},
+        "detail": ""
+      }
+    ]
+  },
+  "123": {
+    "code": "123",
+    "name": "Test1",
+    "customerName": "Test1",
+    "level": "P",
+    "ordersCount": 2,
+    "createdAt": "2025-11-04T07:36:35.735Z",
+    "updatedAt": "2025-11-04T07:37:58.117Z",
+    "lastSeenAt": "2025-11-04T07:37:58.117Z",
+    "history": [
+      {
+        "at": "2025-11-04T07:36:35.735Z",
+        "type": "CREATE",
+        "by": "admin",
+        "data": {
+          "name": "Test",
+          "level": "P"
+        }
+      },
+      {
+        "at": "2025-11-04T07:36:43.032Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {},
+        "detail": ""
+      },
+      {
+        "at": "2025-11-04T07:36:54.016Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {
+          "name": {
+            "from": "Test",
+            "to": "Test1"
+          }
+        },
+        "detail": "name: 'Test' → 'Test1'"
+      },
+      {
+        "at": "2025-11-04T07:37:04.985Z",
+        "type": "UPDATE",
+        "by": "admin",
+        "data": {},
+        "detail": ""
+      },
+      {
+        "at": "2025-11-04T07:37:24.920Z",
+        "type": "ORDER",
+        "orderId": 125,
+        "area": "Roulette 1",
+        "tableNo": 119,
+        "items": [
+          {
+            "imageName": "j1.soba-noodles.jpg",
+            "qty": 1
+          }
+        ],
+        "note": "test"
+      },
+      {
+        "at": "2025-11-04T07:37:58.117Z",
+        "type": "ORDER",
+        "orderId": 126,
+        "area": "Roulette 1",
+        "tableNo": 119,
+        "items": [
+          {
+            "imageName": "j1.soba-noodles.jpg",
+            "qty": 1
+          },
+          {
+            "imageName": "hopang.jpg",
+            "qty": 1
+          },
+          {
+            "imageName": "kimbap.jpg",
+            "qty": 1
+          },
+          {
+            "imageName": "chapagetti.jpg",
+            "qty": 1
+          }
+        ],
+        "note": "test"
       }
     ]
   },
