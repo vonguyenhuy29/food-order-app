@@ -1490,6 +1490,13 @@ out.push(...rows2.map(o => ({
     const allSelected = rows.length > 0 && selectedIds.size === rows.length;
 
 const fetchCustomersApi = React.useCallback(async () => {
+    async function fetchCustomersApi(q, page = 1) {
+  const resp = await axios.get(apiUrl('/api/customers'), {
+    params: { q, limit: 100, page }
+  });
+  return resp.data; // { total, page, limit, items }
+}
+
   try {
     const r = await axios.get(apiUrl('/api/customers'), { params:{ limit:2000, q:kSearch||undefined } });
     return r.data?.rows || r.data || [];
@@ -1510,6 +1517,21 @@ const fetchCustomersApi = React.useCallback(async () => {
 
 
 const loadCustomers = React.useCallback(async () => {
+    async function loadCustomers({ page = 1, q = '' } = {}) {
+  setLoading(true);
+  try {
+    const resp = await fetchCustomersApi(q, page);
+    setRawRows(resp.items);
+    setRows(normalizeCustomers(resp.items));
+    setTotalCustomers(resp.total);
+    setPage(resp.page);
+  } catch (e) {
+    // handle
+  } finally {
+    setLoading(false);
+  }
+}
+
   setLoading(true);
   try {
     const data = await fetchCustomersApi();
