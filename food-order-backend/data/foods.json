@@ -45,7 +45,7 @@
     "id": 1753713777673,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/KIMBAP.jpg",
     "type": "SNACK MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "85088d60894ede3b9689075b7c6d4cfd",
     "levelAccess": [
       "P",
@@ -53,7 +53,7 @@
       "V-One"
     ],
     "order": 3,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777674,
@@ -115,7 +115,7 @@
     "id": 1753713777679,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/DDOK.jpg",
     "type": "SNACK MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "a099820be7f5a63cf6cf917e56630117",
     "levelAccess": [
       "P",
@@ -123,7 +123,7 @@
       "V-One"
     ],
     "order": 8,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777680,
@@ -241,7 +241,7 @@
     "id": 1753713777689,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK TRAVEL/KIMBAP.jpg",
     "type": "SNACK TRAVEL",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "baf530c88382029926dbea2b8f4742dd",
     "levelAccess": [
       "P",
@@ -249,7 +249,7 @@
       "V-One"
     ],
     "order": 17,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777690,
@@ -269,7 +269,7 @@
     "id": 1753713777692,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK TRAVEL/DDOK.jpg",
     "type": "SNACK TRAVEL",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "53fd9fe1af35c40da0c0d591a43e6889",
     "levelAccess": [
       "P",
@@ -277,7 +277,7 @@
       "V-One"
     ],
     "order": 19,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1755923952357,
@@ -759,7 +759,7 @@
     "id": 1753713777706,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/KIMBAP.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "85088d60894ede3b9689075b7c6d4cfd",
     "levelAccess": [
       "P",
@@ -767,7 +767,7 @@
       "V-One"
     ],
     "order": 54,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777710,
@@ -829,7 +829,7 @@
     "id": 1753713777726,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/DDOK.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "971d4b948b7484b831550eb8c842b502",
     "levelAccess": [
       "P",
@@ -837,7 +837,7 @@
       "V-One"
     ],
     "order": 59,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777727,
@@ -1316,14 +1316,14 @@
     "id": 1753713777748,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/KIMBAP.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1e224432c4fee72b232f197154975e5c",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 96,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777752,
@@ -1381,14 +1381,14 @@
     "id": 1753713777768,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/DDOK.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "971d4b948b7484b831550eb8c842b502",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 101,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777769,
@@ -1959,13 +1959,13 @@
     "id": 1753713777849,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/KIMBAP.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1e224432c4fee72b232f197154975e5c",
     "levelAccess": [
       "V-One"
     ],
     "order": 148,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777853,
@@ -2019,13 +2019,13 @@
     "id": 1753713777869,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/DDOK.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "971d4b948b7484b831550eb8c842b502",
     "levelAccess": [
       "V-One"
     ],
     "order": 153,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777870,

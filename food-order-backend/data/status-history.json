@@ -59215,5 +59215,43 @@
       1753713777760,
       1753713777861
     ]
+  },
+  {
+    "id": 1762440871959.3103,
+    "at": "2025-11-06T14:54:31.958Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "kimbap.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/SNACK TRAVEL/KIMBAP.jpg",
+    "type": "SNACK TRAVEL",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1753713777673,
+      1753713777689,
+      1753713777706,
+      1753713777748,
+      1753713777849
+    ]
+  },
+  {
+    "id": 1762440876908.6328,
+    "at": "2025-11-06T14:54:36.908Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "ddok.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/SNACK TRAVEL/DDOK.jpg",
+    "type": "SNACK TRAVEL",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1753713777679,
+      1753713777692,
+      1753713777726,
+      1753713777768,
+      1753713777869
+    ]
   }
 ]

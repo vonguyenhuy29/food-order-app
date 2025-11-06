@@ -1648,6 +1648,11 @@ const loadCustomers = React.useCallback(async () => {
         for (let i=1; i<lines.length; i++){
           const cols = parseCsvLine(lines[i], header.length);
           const payload = { code: safeCell(cols[codeIdx]), name: safeCell(cols[nameIdx]), level: safeCell(cols[levelIdx]) || (ALL_LEVELS[0]||'P') };
+                // Bỏ qua nếu thiếu mã hoặc tên
+      if (!payload.code || !payload.name) {
+        fail++;
+        continue;
+      }
           try {
             const id = safeCell(cols[idIdx]);
             if (id) {
