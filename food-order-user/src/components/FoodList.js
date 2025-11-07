@@ -165,7 +165,8 @@ const UserFoodList = () => {
   const [orderForm, setOrderForm] = useState(() => {
     try {
       const last = JSON.parse(localStorage.getItem('lastOrderInfo') || '{}');
-      return { staff: last.staff || '', memberCard: '', customerName: '', note: '' };
+      return { staff: last.staff || '', memberCard: '', customerName: '', level: '', note: '' };
+
     } catch { return { staff: '', memberCard: '', customerName: '', note: '' }; }
   });
   const [toast, setToast] = useState('');
@@ -655,14 +656,22 @@ const foodsForDisplay = normQ
   }, [carts]);
 
   // Member lookup
-  const lookupMember = useCallback(async (memberCard) => {
-    try {
-      if (!memberCard) return;
-      const res = await axios.get(apiUrl('/api/member-lookup'), { params: { memberCard } });
-      const name = res?.data?.customerName || '';
-      if (name) setOrderForm((f) => ({ ...f, customerName: name }));
-    } catch {}
-  }, []);
+const lookupMember = useCallback(async (memberCard) => {
+  try {
+    if (!memberCard) return;
+    const res = await axios.get(apiUrl('/api/member-lookup'), { params: { memberCard } });
+    const name = res?.data?.customerName || '';
+    const lv   = res?.data?.level || '';
+    setOrderForm(f => ({
+      ...f,
+      customerName: name || 'Chưa có thông tin',
+      level: lv || 'Chưa có thông tin'
+    }));
+  } catch {
+    setOrderForm(f => ({ ...f, customerName: 'Chưa có thông tin', level: 'Chưa có thông tin' }));
+  }
+}, []);
+
   useEffect(() => {
     const card = (orderForm.memberCard || '').trim();
     if (!card) return;
@@ -1419,13 +1428,21 @@ const foodsForDisplay = normQ
                 />
               </div>
               <div>
-                <label>Name</label>
-                <input
-                  value={orderForm.customerName}
-                  onChange={e=>setOrderForm(f=>({...f, customerName:e.target.value}))}
-                  placeholder="Tự động điền theo Customer nếu có"
-                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
-                />
+<label>Name</label>
+<input
+  value={orderForm.customerName}
+  readOnly
+  placeholder="Chưa có thông tin"
+  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6, background:'#f3f4f6' }}
+/>
+<label>Level</label>
+<input
+  value={orderForm.level}
+  readOnly
+  placeholder="Chưa có thông tin"
+  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6, background:'#f3f4f6' }}
+/>
+
               </div>
               <div>
                 <label>Ghi chú</label>
