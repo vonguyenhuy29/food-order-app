@@ -1548,7 +1548,10 @@ const foodsForDisplay = normQ
                                     <React.Fragment key={idx}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                         {url ? <img src={url} alt="" style={{ width: 38, height: 38, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee' }} /> : <div style={{ width: 38 }} />}
-                                        <div style={{ fontSize: 12 }}>{it.imageName}</div>
+                                         <div style={{ fontSize: 12 }}>
+   {it.imageName}
+   {it.note ? ` – ${it.note}` : ''}
+ </div>
                                       </div>
                                       <div style={{ fontWeight: 700 }}>x{it.qty}</div>
                                     </React.Fragment>
