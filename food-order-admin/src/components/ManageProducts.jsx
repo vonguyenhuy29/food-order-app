@@ -1488,44 +1488,65 @@ out.push(...rows2.map(o => ({
     const [historyOf, setHistoryOf] = React.useState(null); // {id, code, name}
 const [page, setPage] = React.useState(1);
 const [totalCustomers, setTotalCustomers] = React.useState(0);
+// Danh sách file backup và modal hiển thị
+const [backupList, setBackupList] = React.useState([]);
+const [showBackupModal, setShowBackupModal] = React.useState(false);
+
+// Lấy danh sách backup từ server
+async function listBackups() {
+  try {
+    const res = await axios.get(apiUrl('/api/members/backups'));
+    setBackupList(res.data?.files || []);
+  } catch (e) {
+    alert('Không lấy được danh sách backup: ' + (e.response?.data?.error || e.message));
+  }
+}
+
+// Khôi phục từ file backup (hỏi trước khi gọi API)
+async function restoreBackup(file) {
+  if (!window.confirm(`Bạn có chắc muốn khôi phục dữ liệu từ bản "${file}" không?`)) return;
+  try {
+    await axios.post(apiUrl('/api/members/restore'), { file });
+    alert('Khôi phục dữ liệu thành công.');
+    // Sau khi khôi phục, reload danh sách khách hàng
+    await loadCustomers({ q: kSearch, page });
+  } catch (e) {
+    alert('Khôi phục thất bại: ' + (e.response?.data?.error || e.message));
+  }
+}
 
 
     const allSelected = rows.length > 0 && selectedIds.size === rows.length;
 
-const fetchCustomersApi = React.useCallback(async () => {
-    async function fetchCustomersApi(q = '', page = 1) {
-  const resp = await axios.get(apiUrl('/api/customers'), {
-    params: { q, limit: 100, page }
-  });
-  return resp.data; // trả về { total, page, limit, items }
-}
-
+const fetchCustomersApi = React.useCallback(async (q = '', page = 1) => {
   try {
-    const r = await axios.get(apiUrl('/api/customers'), { params:{ limit:2000, q:kSearch||undefined } });
-    return r.data?.rows || r.data || [];
-  } catch (e1) {
+    // Gọi API mới có hỗ trợ phân trang (backend trả về total, page, limit, items)
+    const r = await axios.get(apiUrl('/api/customers'), {
+      params: { q, limit: 100, page }
+    });
+    return r.data;
+  } catch (e) {
+    // Fallback sang /api/members rồi /api/clients nếu /api/customers lỗi
     try {
-      const r2 = await axios.get(apiUrl('/api/members'), { params:{ limit:2000, q:kSearch||undefined } });
-      return r2.data?.rows || r2.data || [];
-    } catch (e2) {
-      try {
-        const r3 = await axios.get(apiUrl('/api/clients'), { params:{ limit:2000, q:kSearch||undefined } });
-        return r3.data?.rows || r3.data || [];
-      } catch {
-        return [];
-      }
+      const r2 = await axios.get(apiUrl('/api/members'), { params: { q, limit: 100, page } });
+      return r2.data;
+    } catch {
+      const r3 = await axios.get(apiUrl('/api/clients'), { params: { q, limit: 100, page } });
+      return r3.data;
     }
   }
-}, [apiUrl, kSearch]);
+}, [apiUrl]);
 
 
-const loadCustomers = React.useCallback(async () => {
-async function loadCustomers({ q = '', page = 1 } = {}) {
+
+const loadCustomers = React.useCallback(async ({ q = kSearch, page = 1 } = {}) => {
   setLoading(true);
   try {
     const data = await fetchCustomersApi(q, page);
-    setRawRows(data.items);
-    setRows(normalizeCustomers(data.items));
+    // data = { items, total, page, limit } từ backend
+    const items = data.items || [];
+    setRawRows(items);
+    setRows(normalizeCustomers(items)); // hoặc setRows(items) nếu đã chuẩn
     setPage(data.page);
     setTotalCustomers(data.total);
   } catch (e) {
@@ -1534,23 +1555,8 @@ async function loadCustomers({ q = '', page = 1 } = {}) {
   } finally {
     setLoading(false);
   }
-}
+}, [fetchCustomersApi, kSearch]);
 
-
-  setLoading(true);
-  try {
-    const data = await fetchCustomersApi();
-    const normalized = (Array.isArray(data) ? data : []).map(c => ({
-      id: c.id ?? c._id ?? c.customerId ?? c.code,
-      code: c.code ?? c.customerCode ?? c.memberCode ?? '',
-      name: c.name ?? c.customerName ?? '',
-      level: c.level ?? c.memberLevel ?? (ALL_LEVELS[0] || 'P'),
-    })).filter(x => x.id != null);
-    setRawRows(normalized);
-  } finally {
-    setLoading(false);
-  }
-}, [fetchCustomersApi, ALL_LEVELS]);
 
     // Nhận sự kiện filter từ Sidebar trái (để không phải truyền props quá sâu)
     React.useEffect(()=>{
@@ -1709,6 +1715,39 @@ function normalizeCustomers(items) {
 
     const importRef = React.useRef(null);
     const allLevels = ALL_LEVELS || [];
+{showBackupModal && ReactDOM.createPortal(
+  <div
+    onClick={() => setShowBackupModal(false)}
+    style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'grid', placeItems:'center', zIndex:20010 }}
+  >
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{ width:480, maxHeight:'80vh', overflow:'auto', background:'#fff', borderRadius:10, boxShadow:'0 20px 60px rgba(0,0,0,0.35)', padding:16 }}
+    >
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+        <div style={{ fontWeight:700 }}>Danh sách bản sao lưu</div>
+        <button onClick={() => setShowBackupModal(false)} style={{ border:'none', background:'#ef4444', color:'#fff', padding:'6px 10px', borderRadius:6, cursor:'pointer' }}>
+          Đóng
+        </button>
+      </div>
+      {backupList.length === 0 ? (
+        <div style={{ color:'#6b7280' }}>(Chưa có bản backup nào)</div>
+      ) : (
+        <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
+          {backupList.map(f => (
+            <li key={f} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 10px' }}>
+              <span>{f}</span>
+              <button onClick={() => restoreBackup(f)} style={{ border:'1px solid #10b981', color:'#10b981', borderRadius:6, background:'#fff', padding:'4px 8px' }}>
+                Restore
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>,
+  document.body
+)}
 
     return (
       <div style={{ background:'#fff', borderTopLeftRadius:12, padding:12, overflow:'auto' }}>
@@ -1718,14 +1757,24 @@ function normalizeCustomers(items) {
           <button type="button" onClick={exportCsv} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}>Export CSV</button>
           <input ref={importRef} type="file" accept=".csv" hidden onChange={e=>{ if(e.target.files?.[0]) importCsv(e.target.files[0]); e.target.value=''; }} />
           <button type="button" onClick={()=>importRef.current?.click()} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}>Import CSV</button>
-          <button onClick={async () => {
+<button onClick={async () => {
   try {
     await axios.post(apiUrl('/api/members/backup'));
-    alert('Đã sao lưu dữ liệu thành viên.');
+    alert('Đã sao lưu dữ liệu.');
   } catch (e) {
     alert('Backup thất bại: ' + (e.response?.data?.error || e.message));
   }
-}}>Backup</button>
+}}>
+  Backup
+</button>
+
+<button onClick={async () => {
+  await listBackups();
+  setShowBackupModal(true);
+}}>
+  View Backups
+</button>
+
 
           <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ fontSize:12, color:'#6b7280' }}>Sắp xếp:</span>
