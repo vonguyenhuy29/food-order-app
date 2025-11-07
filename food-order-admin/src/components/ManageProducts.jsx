@@ -1799,6 +1799,24 @@ async function loadCustomers({ q = '', page = 1 } = {}) {
                 )}
               </tbody>
             </table>
+            <div style={{ marginTop: '10px' }}>
+  <button
+    disabled={page <= 1}
+    onClick={() => loadCustomers({ q: search, page: page - 1 })}
+  >
+    Prev
+  </button>
+  <span style={{ margin: '0 10px' }}>
+    Page {page} / {Math.ceil(totalCustomers / 100)}
+  </span>
+  <button
+    disabled={page * 100 >= totalCustomers}
+    onClick={() => loadCustomers({ q: search, page: page + 1 })}
+  >
+    Next
+  </button>
+</div>
+
           </div>
         )}
 
