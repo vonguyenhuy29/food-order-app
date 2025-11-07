@@ -59627,5 +59627,39 @@
       1753713777768,
       1753713777869
     ]
+  },
+  {
+    "id": 1762514483535.5186,
+    "at": "2025-11-07T11:21:23.535Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k14.tong-samgyupsal.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K14.TONG-SAMGYUPSAL.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777703,
+      1753713777745,
+      1753713777846
+    ]
+  },
+  {
+    "id": 1762514487091.709,
+    "at": "2025-11-07T11:21:27.091Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777720,
+      1753713777762,
+      1753713777863
+    ]
   }
 ]

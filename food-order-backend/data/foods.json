@@ -423,7 +423,7 @@
     "id": 1753713777720,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "51566db3af0fcdbe08f550b3420a53c8",
     "levelAccess": [
       "P",
@@ -431,7 +431,7 @@
       "V-One"
     ],
     "order": 30,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777705,
@@ -647,7 +647,7 @@
     "id": 1753713777703,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K14.TONG-SAMGYUPSAL.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "e2b983b8101211ac60f0b3b245063826",
     "levelAccess": [
       "P",
@@ -655,7 +655,7 @@
       "V-One"
     ],
     "order": 46,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777728,
@@ -1004,14 +1004,14 @@
     "id": 1753713777762,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "51566db3af0fcdbe08f550b3420a53c8",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 72,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777747,
@@ -1212,14 +1212,14 @@
     "id": 1753713777745,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/K14.TONG-SAMGYUPSAL.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "f0f14ca8c8a2e8747609ca149f6d1cbc",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 88,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777770,
@@ -1647,13 +1647,13 @@
     "id": 1753713777863,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "51566db3af0fcdbe08f550b3420a53c8",
     "levelAccess": [
       "V-One"
     ],
     "order": 122,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777848,
@@ -1839,13 +1839,13 @@
     "id": 1753713777846,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/K14.TONG-SAMGYUPSAL.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "e2b983b8101211ac60f0b3b245063826",
     "levelAccess": [
       "V-One"
     ],
     "order": 138,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777871,
