@@ -1486,8 +1486,8 @@ out.push(...rows2.map(o => ({
     const [showAdd, setShowAdd] = React.useState(false);
     const [savingId, setSavingId] = React.useState(null);
     const [historyOf, setHistoryOf] = React.useState(null); // {id, code, name}
-    const [page, setPage] = useState(1);
-    const [totalCustomers, setTotalCustomers] = useState(0);
+const [page, setPage] = React.useState(1);
+const [totalCustomers, setTotalCustomers] = React.useState(0);
 
 
     const allSelected = rows.length > 0 && selectedIds.size === rows.length;
@@ -1641,6 +1641,14 @@ async function loadCustomers({ q = '', page = 1 } = {}) {
         alert('Bulk delete thất bại: ' + (e?.response?.data?.error || e?.message || ''));
       }
     }
+function normalizeCustomers(items) {
+  return (items || []).map(c => ({
+    id: c.id ?? c.code ?? '',
+    code: c.code ?? c.customerCode ?? '',
+    name: c.name ?? c.customerName ?? '',
+    level: c.level ?? c.memberLevel ?? ''
+  }));
+}
 
     function download(filename, text) {
       const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
@@ -1710,14 +1718,14 @@ async function loadCustomers({ q = '', page = 1 } = {}) {
           <button type="button" onClick={exportCsv} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}>Export CSV</button>
           <input ref={importRef} type="file" accept=".csv" hidden onChange={e=>{ if(e.target.files?.[0]) importCsv(e.target.files[0]); e.target.value=''; }} />
           <button type="button" onClick={()=>importRef.current?.click()} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}>Import CSV</button>
-          <Button onClick={async () => {
+          <button onClick={async () => {
   try {
     await axios.post(apiUrl('/api/members/backup'));
     alert('Đã sao lưu dữ liệu thành viên.');
   } catch (e) {
     alert('Backup thất bại: ' + (e.response?.data?.error || e.message));
   }
-}}>Backup</Button>
+}}>Backup</button>
 
           <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ fontSize:12, color:'#6b7280' }}>Sắp xếp:</span>
@@ -1802,7 +1810,7 @@ async function loadCustomers({ q = '', page = 1 } = {}) {
             <div style={{ marginTop: '10px' }}>
   <button
     disabled={page <= 1}
-    onClick={() => loadCustomers({ q: search, page: page - 1 })}
+    onClick={() => loadCustomers({ q: kSearch, page: page - 1 })}
   >
     Prev
   </button>
@@ -1811,7 +1819,7 @@ async function loadCustomers({ q = '', page = 1 } = {}) {
   </span>
   <button
     disabled={page * 100 >= totalCustomers}
-    onClick={() => loadCustomers({ q: search, page: page + 1 })}
+    onClick={() => loadCustomers({ q: kSearch, page: page + 1 })}
   >
     Next
   </button>
