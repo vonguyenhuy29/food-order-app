@@ -116,9 +116,10 @@ const UserFoodList = () => {
   );
 
   // Giỏ theo bàn
-  const [carts, setCarts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tableCarts')) || {}; } catch { return {}; }
-  });
+const [carts, setCarts] = useState(() => {
+  try { return JSON.parse(localStorage.getItem('tableCarts')) || {}; } catch { return {}; }
+});
+
 
   // Orders theo bàn
   const [ordersByTable, setOrdersByTable] = useState(() => {
@@ -621,13 +622,17 @@ const foodsForDisplay = normQ
 
   // ==== Cart helpers
   const currentCart = useMemo(() => (currentTableKey ? (carts[currentTableKey] || {}) : {}), [carts, currentTableKey]);
-  const cartQtyOf = (imageName) => currentCart[imageName] || 0;
+const cartQtyOf = (imageName) => currentCart[imageName]?.qty || 0;
+
   const setCartQty = (imageName, qty) => {
     if (!currentTableKey) return;
     setCarts(prev => {
       const cart = { ...(prev[currentTableKey] || {}) };
       if (qty <= 0) delete cart[imageName];
-      else cart[imageName] = qty;
+        else {
+    const cur = cart[imageName] || { qty: 0, note: '' };
+    cart[imageName] = { ...cur, qty };
+  }
       return { ...prev, [currentTableKey]: cart };
     });
   };
@@ -647,12 +652,14 @@ const foodsForDisplay = normQ
     const now = cartQtyOf(imageName);
     setCartQty(imageName, Math.max(0, now - 1));
   };
-  const totalItems = useMemo(() => Object.values(currentCart).reduce((s, n) => s + n, 0), [currentCart]);
+  const totalItems = useMemo(() => Object.values(currentCart).reduce((s, it) => s + (it.qty || 0), 0), [currentCart]);
+
 
   const tableCartCount = useCallback((areaName, tableNo) => {
     const key = tableKeyOf(areaName, tableNo);
     const cart = (carts && carts[key]) || {};
-    return Object.values(cart).reduce((sum, n) => sum + Number(n || 0), 0);
+    return Object.values(cart).reduce((sum, it) => sum + Number(it.qty || 0), 0);
+
   }, [carts]);
 
   // Member lookup
@@ -686,7 +693,12 @@ const lookupMember = useCallback(async (memberCard) => {
     if (!orderForm.staff?.trim() || !orderForm.memberCard?.trim()) {
       setToast('Nhập Nhân viên & Member'); return;
     }
-    const items = Object.entries(currentCart).map(([imageName, qty]) => ({ imageName, qty }));
+    const items = Object.entries(currentCart).map(([imageName, item]) => ({
+  imageName,
+  qty: item.qty,
+  note: item.note || ''
+}));
+
     try {
       const body = {
         area: selectedTable.area,
@@ -1164,9 +1176,9 @@ const lookupMember = useCallback(async (memberCard) => {
                       <div style={{ color: '#6b7280' }}>Chưa chọn món nào. Nhấn “+ Thêm món”.</div>
                     ) : (
                       <div style={{ display: 'grid', gap: 8 }}>
-                        {Object.entries(currentCart).map(([imgName, qty]) => {
-                          const f = findFoodByImageName(imgName);
-                          return (
+{Object.entries(currentCart).map(([imgName, qty]) => {
+  const f = findFoodByImageName(imgName);
+  return (
                             <div
                               key={imgName}
                               style={{
@@ -1186,17 +1198,26 @@ const lookupMember = useCallback(async (memberCard) => {
                                 <div style={{ fontWeight: 600 }}>{imgName}</div>
                                 <div style={{ fontSize: 12, color: '#777' }}>{f?.type || ''}</div>
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <button onClick={() => decItem(f || { imageUrl: imgName })} style={{ width: 28, height: 28, border: '1px solid #ddd', borderRadius: 6, background: '#fff' }}>−</button>
-                                <div style={{ minWidth: 32, textAlign: 'center' }}>{qty}</div>
-                                <button onClick={() => incItem(f || { imageUrl: imgName })} style={{ width: 28, height: 28, border: '1px solid #ddd', borderRadius: 6, background: '#fff' }}>+</button>
-                                <button onClick={() => setCartQty(imgName, 0)} style={{ marginLeft: 8, border: '1px solid #e11d48', color: '#e11d48', background: '#fff', borderRadius: 6, padding: '4px 8px' }}>
-                                  Xóa
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
+   <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+        <button onClick={() => decItem(f || { imageUrl: imgName })}>−</button>
+        <div style={{ minWidth: 32, textAlign: 'center' }}>{item.qty}</div>
+        <button onClick={() => incItem(f || { imageUrl: imgName })}>+</button>
+        {/* Input ghi chú */}
+        <input
+          value={item.note}
+          onChange={e => setCarts(prev => {
+            const cart = { ...(prev[currentTableKey] || {}) };
+            cart[imgName] = { ...cart[imgName], note: e.target.value };
+            return { ...prev, [currentTableKey]: cart };
+          })}
+          placeholder="Ghi chú (không hành, ít ớt...)"
+          style={{ width: 120, padding: 4, border:'1px solid #ddd', borderRadius:6 }}
+        />
+        <button onClick={() => setCartQty(imgName, 0)}>Xóa</button>
+      </div>
+    </div>
+  );
+})}
                       </div>
                     )}
                   </div>
