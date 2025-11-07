@@ -2323,13 +2323,14 @@
       }
     ],
     "createdAt": "2025-10-18T08:56:18.888Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:33.474Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:02:07.319Z"
   },
   {
     "id": 96,
@@ -2350,13 +2351,14 @@
       }
     ],
     "createdAt": "2025-10-18T09:37:50.894Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:32.638Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:02:06.127Z"
   },
   {
     "id": 97,
@@ -2409,13 +2411,14 @@
       }
     ],
     "createdAt": "2025-10-18T09:38:33.034Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:31.766Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:02:05.475Z"
   },
   {
     "id": 98,
@@ -2432,13 +2435,14 @@
       }
     ],
     "createdAt": "2025-10-18T09:47:27.988Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:30.709Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:02:03.489Z"
   },
   {
     "id": 99,
@@ -2459,13 +2463,14 @@
       }
     ],
     "createdAt": "2025-10-18T10:00:11.727Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:29.739Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:02:02.737Z"
   },
   {
     "id": 100,
@@ -2490,13 +2495,14 @@
       }
     ],
     "createdAt": "2025-10-18T10:01:11.009Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:28.965Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:02:02.053Z"
   },
   {
     "id": 101,
@@ -2541,13 +2547,14 @@
       }
     ],
     "createdAt": "2025-10-18T10:10:34.124Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:28.033Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:02:01.054Z"
   },
   {
     "id": 102,
@@ -2588,13 +2595,14 @@
       }
     ],
     "createdAt": "2025-10-18T10:15:39.757Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:27.145Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:01:59.253Z"
   },
   {
     "id": 103,
@@ -2611,13 +2619,14 @@
       }
     ],
     "createdAt": "2025-10-18T10:54:36.520Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:36.664Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:01:57.725Z"
   },
   {
     "id": 104,
@@ -2634,13 +2643,14 @@
       }
     ],
     "createdAt": "2025-10-18T10:57:25.595Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:39.212Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:01:55.489Z"
   },
   {
     "id": 105,
@@ -2661,13 +2671,14 @@
       }
     ],
     "createdAt": "2025-10-18T11:46:28.873Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
     "closedAt": "2025-10-19T08:40:41.164Z",
-    "closedBy": "Isla"
+    "closedBy": "Isla",
+    "updatedAt": "2025-11-07T16:01:50.949Z"
   },
   {
     "id": 106,
@@ -2688,11 +2699,12 @@
       }
     ],
     "createdAt": "2025-10-18T16:30:32.472Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": false,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "updatedAt": "2025-11-07T16:01:53.138Z"
   },
   {
     "id": 107,
@@ -2709,11 +2721,12 @@
       }
     ],
     "createdAt": "2025-10-18T16:35:50.948Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": false,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "updatedAt": "2025-11-07T16:01:52.332Z"
   },
   {
     "id": 108,
@@ -2743,11 +2756,13 @@
     ],
     "createdAt": "2025-10-19T11:18:40.008Z",
     "status": "CANCELLED",
-    "tableClosed": false,
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
-    "updatedAt": "2025-10-20T08:26:47.032Z"
+    "updatedAt": "2025-10-20T08:26:47.032Z",
+    "closedAt": "2025-11-07T16:01:10.152Z",
+    "closedBy": "jack"
   },
   {
     "id": 109,
@@ -2769,11 +2784,13 @@
     ],
     "createdAt": "2025-10-19T11:21:44.034Z",
     "status": "CANCELLED",
-    "tableClosed": false,
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
-    "updatedAt": "2025-10-20T08:26:45.465Z"
+    "updatedAt": "2025-10-20T08:26:45.465Z",
+    "closedAt": "2025-11-07T16:01:10.688Z",
+    "closedBy": "jack"
   },
   {
     "id": 110,
@@ -2811,11 +2828,13 @@
     ],
     "createdAt": "2025-10-19T11:22:41.070Z",
     "status": "CANCELLED",
-    "tableClosed": false,
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
-    "updatedAt": "2025-10-20T08:26:44.468Z"
+    "updatedAt": "2025-10-20T08:26:44.468Z",
+    "closedAt": "2025-11-07T16:01:09.295Z",
+    "closedBy": "jack"
   },
   {
     "id": 111,
@@ -2853,11 +2872,13 @@
     ],
     "createdAt": "2025-10-19T11:23:40.211Z",
     "status": "CANCELLED",
-    "tableClosed": false,
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
-    "updatedAt": "2025-10-20T08:26:43.319Z"
+    "updatedAt": "2025-10-20T08:26:43.319Z",
+    "closedAt": "2025-11-07T16:01:08.879Z",
+    "closedBy": "jack"
   },
   {
     "id": 112,
@@ -2899,11 +2920,13 @@
     ],
     "createdAt": "2025-10-19T11:25:07.986Z",
     "status": "CANCELLED",
-    "tableClosed": false,
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
-    "updatedAt": "2025-10-20T08:26:42.112Z"
+    "updatedAt": "2025-10-20T08:26:42.112Z",
+    "closedAt": "2025-11-07T16:01:08.340Z",
+    "closedBy": "jack"
   },
   {
     "id": 113,
@@ -2949,11 +2972,13 @@
     ],
     "createdAt": "2025-10-19T11:41:13.329Z",
     "status": "CANCELLED",
-    "tableClosed": false,
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
-    "updatedAt": "2025-10-20T08:26:40.882Z"
+    "updatedAt": "2025-10-20T08:26:40.882Z",
+    "closedAt": "2025-11-07T16:01:07.619Z",
+    "closedBy": "jack"
   },
   {
     "id": 114,
@@ -2991,11 +3016,13 @@
     ],
     "createdAt": "2025-10-19T11:45:37.868Z",
     "status": "CANCELLED",
-    "tableClosed": false,
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
-    "updatedAt": "2025-10-20T08:26:38.974Z"
+    "updatedAt": "2025-10-20T08:26:38.974Z",
+    "closedAt": "2025-11-07T16:01:06.740Z",
+    "closedBy": "jack"
   },
   {
     "id": 115,
@@ -3033,11 +3060,13 @@
     ],
     "createdAt": "2025-10-19T11:50:53.920Z",
     "status": "CANCELLED",
-    "tableClosed": false,
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null,
-    "updatedAt": "2025-10-20T08:26:37.084Z"
+    "updatedAt": "2025-10-20T08:26:37.084Z",
+    "closedAt": "2025-11-07T16:01:06.348Z",
+    "closedBy": "jack"
   },
   {
     "id": 116,
@@ -3058,11 +3087,14 @@
       }
     ],
     "createdAt": "2025-10-20T15:17:40.104Z",
-    "status": "PENDING",
-    "tableClosed": false,
+    "status": "CANCELLED",
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "closedAt": "2025-11-07T16:01:25.527Z",
+    "closedBy": "jack",
+    "updatedAt": "2025-11-07T16:01:54.561Z"
   },
   {
     "id": 117,
@@ -3079,11 +3111,12 @@
       }
     ],
     "createdAt": "2025-10-20T19:12:16.172Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": false,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "updatedAt": "2025-11-07T16:01:45.388Z"
   },
   {
     "id": 118,
@@ -3100,11 +3133,12 @@
       }
     ],
     "createdAt": "2025-10-21T15:30:27.423Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": false,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "updatedAt": "2025-11-07T16:01:48.987Z"
   },
   {
     "id": 119,
@@ -3121,11 +3155,14 @@
       }
     ],
     "createdAt": "2025-10-21T19:52:30.096Z",
-    "status": "PENDING",
-    "tableClosed": false,
+    "status": "CANCELLED",
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "closedAt": "2025-11-07T16:01:23.576Z",
+    "closedBy": "jack",
+    "updatedAt": "2025-11-07T16:01:56.848Z"
   },
   {
     "id": 120,
@@ -3146,11 +3183,12 @@
       }
     ],
     "createdAt": "2025-10-22T08:51:17.531Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": false,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "updatedAt": "2025-11-07T16:01:47.961Z"
   },
   {
     "id": 121,
@@ -3171,11 +3209,14 @@
       }
     ],
     "createdAt": "2025-10-22T12:57:00.656Z",
-    "status": "PENDING",
-    "tableClosed": false,
+    "status": "CANCELLED",
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "closedAt": "2025-11-07T16:01:22.096Z",
+    "closedBy": "jack",
+    "updatedAt": "2025-11-07T16:01:46.632Z"
   },
   {
     "id": 122,
@@ -3196,11 +3237,12 @@
       }
     ],
     "createdAt": "2025-10-22T15:25:01.832Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": false,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "updatedAt": "2025-11-07T16:01:44.594Z"
   },
   {
     "id": 123,
@@ -3221,11 +3263,12 @@
       }
     ],
     "createdAt": "2025-10-22T15:26:05.401Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": false,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "updatedAt": "2025-11-07T16:01:43.423Z"
   },
   {
     "id": 124,
@@ -3242,11 +3285,12 @@
       }
     ],
     "createdAt": "2025-10-27T06:16:26.766Z",
-    "status": "PENDING",
+    "status": "CANCELLED",
     "tableClosed": false,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "updatedAt": "2025-11-07T16:01:41.914Z"
   },
   {
     "id": 125,
@@ -3263,11 +3307,14 @@
       }
     ],
     "createdAt": "2025-11-04T07:37:24.918Z",
-    "status": "PENDING",
-    "tableClosed": false,
+    "status": "CANCELLED",
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "closedAt": "2025-11-07T16:01:20.728Z",
+    "closedBy": "jack",
+    "updatedAt": "2025-11-07T16:01:39.036Z"
   },
   {
     "id": 126,
@@ -3296,10 +3343,13 @@
       }
     ],
     "createdAt": "2025-11-04T07:37:58.115Z",
-    "status": "PENDING",
-    "tableClosed": false,
+    "status": "CANCELLED",
+    "tableClosed": true,
     "consumeStock": false,
     "restocked": false,
-    "cancelReason": null
+    "cancelReason": null,
+    "closedAt": "2025-11-07T16:01:20.072Z",
+    "closedBy": "jack",
+    "updatedAt": "2025-11-07T16:01:37.598Z"
   }
 ]

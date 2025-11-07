@@ -1495,12 +1495,16 @@ const [showBackupModal, setShowBackupModal] = React.useState(false);
 // Lấy danh sách backup từ server
 async function listBackups() {
   try {
-    const res = await axios.get(apiUrl('/api/members/backups'));
+    // thêm tham số _ts để tránh bị cache
+    const res = await axios.get(apiUrl('/api/members/backups'), {
+      params: { _ts: Date.now() }
+    });
     setBackupList(res.data?.files || []);
   } catch (e) {
     alert('Không lấy được danh sách backup: ' + (e.response?.data?.error || e.message));
   }
 }
+
 
 // Khôi phục từ file backup (hỏi trước khi gọi API)
 async function restoreBackup(file) {

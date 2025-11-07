@@ -547,7 +547,9 @@ app.get('/api/members/backups',
   authenticateJWT, authorizeRoles('admin'),
   (_req, res) => {
     const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('members-'));
-    res.json({ files });
+    res.set('Cache-Control', 'no-store');
+res.json({ files });
+
   }
 );
 
@@ -1108,15 +1110,20 @@ app.post('/api/orders',orderLimiter, async (req, res) => {
     if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Giỏ trống' });
 
     const grouped = new Map();
+    const orderItems = [];
     for (const it of items) {
       const imageName =
         (it.imageName && String(it.imageName).toLowerCase()) ||
         extractImageName(foods.find(f => f.id === it.foodId)?.imageUrl);
       const qty = Math.max(0, Number(it.qty || it.quantity || 0));
+      const noteItem = (typeof it.note === 'string') ? it.note.trim() : '';
       if (!imageName || qty <= 0) continue;
+      // Thêm item vào mảng orderItems với ghi chú riêng
+      orderItems.push({ imageName, qty, note: noteItem });
+      // Cộng dồn số lượng để kiểm tra tồn kho
       grouped.set(imageName, (grouped.get(imageName) || 0) + qty);
     }
-    if (grouped.size === 0) return res.status(400).json({ error: 'Không có món hợp lệ' });
+    if (orderItems.length === 0) return res.status(400).json({ error: 'Không có món hợp lệ' });
 
     const missing = [];
     for (const [imageName, need] of grouped.entries()) {
@@ -1170,7 +1177,7 @@ app.post('/api/orders',orderLimiter, async (req, res) => {
       staff, memberCard,
       customerName: customerName || null,
       note: note || '',
-      items: Array.from(grouped.entries()).map(([imageName, qty]) => ({ imageName, qty })),
+      items: orderItems, // giữ nguyên note của từng món
       createdAt: new Date().toISOString(),
       status: 'PENDING',
       tableClosed: false,
@@ -1185,7 +1192,7 @@ const card = String(memberCard || '').trim();
 if (card) {
   const prev = members[card] || {};
   const now = new Date().toISOString();
-  const orderItems = Array.from(grouped.entries()).map(([imageName, qty]) => ({ imageName, qty }));
+  
 
 members[card] = {
   ...prev,
@@ -1202,8 +1209,8 @@ members[card] = {
         orderId: order.id,  // <– thêm orderId
         area,
         tableNo,
-        items: orderItems,
-        note: note || ''
+            items: orderItems, // mảng có cả note
+            note: note || ''   // note chung của đơn hàng
       }]
     : [{
         at: now,
@@ -1211,8 +1218,8 @@ members[card] = {
         orderId: order.id,
         area,
         tableNo,
-        items: orderItems,
-        note: note || ''
+            items: orderItems,
+            note: note || ''
       }],
   updatedAt: now,
 };
