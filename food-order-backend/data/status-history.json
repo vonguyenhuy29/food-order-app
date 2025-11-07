@@ -59661,5 +59661,332 @@
       1753713777762,
       1753713777863
     ]
+  },
+  {
+    "id": 1762518980695.0886,
+    "at": "2025-11-07T12:36:20.695Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k19.jok-bal.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/K19.JOK-BAL.jpg",
+    "type": "VIP MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777714,
+      1753713777756,
+      1753713777857
+    ]
+  },
+  {
+    "id": 1762520810500.8235,
+    "at": "2025-11-07T13:06:50.500Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1762521910305.634,
+    "at": "2025-11-07T13:25:10.305Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1762522038700.2788,
+    "at": "2025-11-07T13:27:18.700Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "kimbap.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/KIMBAP.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1753713777673,
+      1753713777689,
+      1753713777706,
+      1753713777748,
+      1753713777849
+    ]
+  },
+  {
+    "id": 1762523604981.1287,
+    "at": "2025-11-07T13:53:24.981Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1762523605732.9495,
+    "at": "2025-11-07T13:53:25.732Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1762523606846.6426,
+    "at": "2025-11-07T13:53:26.845Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1762525903945.7322,
+    "at": "2025-11-07T14:31:43.945Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1762525905932.0703,
+    "at": "2025-11-07T14:31:45.932Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1762525906719.3306,
+    "at": "2025-11-07T14:31:46.719Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1762525910293.3806,
+    "at": "2025-11-07T14:31:50.293Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1762525911741.7625,
+    "at": "2025-11-07T14:31:51.741Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1762525918182.9705,
+    "at": "2025-11-07T14:31:58.182Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k19.jok-bal.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K19.JOK-BAL.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777714,
+      1753713777756,
+      1753713777857
+    ]
+  },
+  {
+    "id": 1762525920271.6782,
+    "at": "2025-11-07T14:32:00.271Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k14.tong-samgyupsal.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K14.TONG-SAMGYUPSAL.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777703,
+      1753713777745,
+      1753713777846
+    ]
+  },
+  {
+    "id": 1762527812122.3362,
+    "at": "2025-11-07T15:03:32.121Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k8.nakju-bokkum.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K8.NAKJU-BOKKUM.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777724,
+      1753713777766,
+      1753713777867
+    ]
+  },
+  {
+    "id": 1762528002587.834,
+    "at": "2025-11-07T15:06:42.586Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k20.seaok-sae-bulgogi.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777730,
+      1753713777772,
+      1753713777873
+    ]
+  },
+  {
+    "id": 1762529128042.9963,
+    "at": "2025-11-07T15:25:28.041Z",
+    "by": "admin",
+    "role": "admin",
+    "imageName": "j1.soba-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/J1.SOBA-NOODLES.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 4,
+    "affectedIds": [
+      1755907399113,
+      1753713777699,
+      1755907399112,
+      1753713777842
+    ]
+  },
+  {
+    "id": 1762529130615.6514,
+    "at": "2025-11-07T15:25:30.615Z",
+    "by": "admin",
+    "role": "admin",
+    "imageName": "j1.soba-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/J1.SOBA-NOODLES.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 4,
+    "affectedIds": [
+      1755907399113,
+      1753713777699,
+      1755907399112,
+      1753713777842
+    ]
+  },
+  {
+    "id": 1762529318859.5266,
+    "at": "2025-11-07T15:28:38.858Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
   }
 ]
