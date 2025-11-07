@@ -1661,6 +1661,73 @@ app.get('/api/status-history', authenticateJWT, authorizeRoles('admin', 'kitchen
     res.status(500).json({ error: 'Không lấy được lịch sử' });
   }
 });
+// server.js
+
+app.get('/api/report', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+  // from/to dạng ISO, hoặc dùng “week”, “lastWeek”, “month”, “lastMonth”, “year”, “lastYear”
+  const { from, to, preset } = req.query || {};
+  
+  // Tính toán thời gian bắt đầu/kết thúc: 
+  // Nếu preset = 'thisWeek', 'lastWeek', 'thisMonth', ... thì đổi thành from/to.
+  // Bạn cần định nghĩa hàm getDateRangeByPreset(preset) trả về { from, to } theo quy tắc 6h sáng:
+  // Ví dụ: tuần này: từ thứ Hai 6h00 đến 6h00 thứ Hai tuần sau.
+  
+  const { fromTime, toTime } = preset 
+    ? getDateRangeByPreset(preset) 
+    : { fromTime: new Date(from), toTime: new Date(to) };
+
+  // Lọc orders trong khoảng thời gian
+  const selectedOrders = orders.filter(o => {
+    const t = new Date(o.createdAt);
+    return t >= fromTime && t <= toTime;
+  });
+
+  // Tổng số đơn
+  const totalOrders = selectedOrders.length;
+
+  // Tính số lượng từng món
+  const itemCounts = {};
+  selectedOrders.forEach(o => {
+    o.items.forEach(it => {
+      const key = it.imageName || it.name;
+      itemCounts[key] = (itemCounts[key] || 0) + (Number(it.qty) || 1);
+    });
+  });
+
+  // Tính theo menu (type) – cần mapping imageName -> type
+  const itemsByMenu = {};
+  selectedOrders.forEach(o => {
+    o.items.forEach(it => {
+      const f = foods.find(x => getImageName(x.imageUrl) === String(it.imageName || '').toLowerCase());
+      const menu = f?.type || 'OTHER';
+      if (!itemsByMenu[menu]) itemsByMenu[menu] = {};
+      const name = it.imageName || it.name;
+      itemsByMenu[menu][name] = (itemsByMenu[menu][name] || 0) + (Number(it.qty) || 1);
+    });
+  });
+
+  // Khách hàng đã order
+  const customers = {};
+  selectedOrders.forEach(o => {
+    if (!o.memberCard) return;
+    const card = String(o.memberCard);
+    if (!customers[card]) customers[card] = { name: o.customerName || null, items: {} };
+    o.items.forEach(it => {
+      const key = it.imageName || it.name;
+      customers[card].items[key] = (customers[card].items[key] || 0) + (Number(it.qty) || 1);
+    });
+  });
+
+  res.json({
+    totalOrders,
+    itemCounts,
+    itemsByMenu,
+    customers,
+    from: fromTime.toISOString(),
+    to: toTime.toISOString(),
+  });
+});
+
 // DELETE: xóa toàn bộ 1 menu (kể cả khi menu không có item)
 app.delete('/api/menu-levels/:type', authenticateJWT, authorizeRoles('admin'), (req, res) => {
   try {

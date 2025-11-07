@@ -633,7 +633,7 @@
     "id": 1753713777719,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "8ecebcc13295dea2eb12d8595353ce8d",
     "levelAccess": [
       "P",
@@ -641,7 +641,7 @@
       "V-One"
     ],
     "order": 45,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777703,
@@ -1199,14 +1199,14 @@
     "id": 1753713777761,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/K13.KIMCHI-DUMPING.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "8ecebcc13295dea2eb12d8595353ce8d",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 87,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777745,
@@ -1827,13 +1827,13 @@
     "id": 1753713777862,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/K13.KIMCHI-DUMPING.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "8ecebcc13295dea2eb12d8595353ce8d",
     "levelAccess": [
       "V-One"
     ],
     "order": 137,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777846,

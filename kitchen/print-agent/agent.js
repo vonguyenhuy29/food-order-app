@@ -168,17 +168,27 @@ function buildKitchenTicket(o = {}) {
 
   // Items
   const items = Array.isArray(o.items) ? o.items : [];
-  for (const it of items) {
-    const qtyStr = padLeft(String(it.qty ?? 1), QTY_COL);
-    const name   = cleanFoodName(it.imageName);
-    const rows   = wrapText(name, nameCol);
-    // dòng 1: qty + name
-    parts.push(qtyStr + ' ' + padRight(rows[0], nameCol) + LF);
-    // các dòng tiếp theo: chừa chỗ cột SL
-    for (let i = 1; i < rows.length; i++) {
-      parts.push(' '.repeat(QTY_COL) + ' ' + padRight(rows[i], nameCol) + LF);
+for (const it of items) {
+  const qtyStr = padLeft(String(it.qty ?? 1), QTY_COL);
+  const name   = cleanFoodName(it.imageName);
+  const note   = it.note ? String(it.note).trim() : '';
+  const rows   = wrapText(name, nameCol);
+
+  // dòng đầu: qty + tên món
+  parts.push(qtyStr + ' ' + padRight(rows[0], nameCol) + LF);
+  // nếu món có note, in dòng ghi chú ngay dưới
+  if (note) {
+    const noteRows = wrapText(note, nameCol);
+    // ghi chú nên in với tiền tố 'NOTE:' hoặc dấu '-', tuỳ bạn
+    for (const row of noteRows) {
+      parts.push(' '.repeat(QTY_COL) + ' ' + padRight(`- ${row}`, nameCol) + LF);
     }
   }
+  // các dòng tên món tiếp theo (nếu tên dài)
+  for (let i = 1; i < rows.length; i++) {
+    parts.push(' '.repeat(QTY_COL) + ' ' + padRight(rows[i], nameCol) + LF);
+  }
+}
 
   // Tắt spacing + đậm sau phần items
   parts.push(charSpace(0), boldOff);
