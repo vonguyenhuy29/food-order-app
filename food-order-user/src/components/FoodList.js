@@ -1176,29 +1176,12 @@ const lookupMember = useCallback(async (memberCard) => {
                       <div style={{ color: '#6b7280' }}>Chưa chọn món nào. Nhấn “+ Thêm món”.</div>
                     ) : (
                       <div style={{ display: 'grid', gap: 8 }}>
-{Object.entries(currentCart).map(([imgName, qty]) => {
+{Object.entries(currentCart).map(([imgName, item]) => {
   const f = findFoodByImageName(imgName);
   return (
-                            <div
-                              key={imgName}
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: '64px 1fr auto',
-                                gap: 10,
-                                alignItems: 'center',
-                                border: '1px solid #f0f0f0',
-                                borderRadius: 8,
-                                padding: 8
-                              }}
-                            >
-                              <div style={{ width: 64, height: 48, overflow: 'hidden', borderRadius: 6, background: '#fafafa' }}>
-                                {f ? <img src={withBase(f.imageUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 600 }}>{imgName}</div>
-                                <div style={{ fontSize: 12, color: '#777' }}>{f?.type || ''}</div>
-                              </div>
-   <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+    <div key={imgName} style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+      {/* phần hiển thị món */}
+      <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
         <button onClick={() => decItem(f || { imageUrl: imgName })}>−</button>
         <div style={{ minWidth: 32, textAlign: 'center' }}>{item.qty}</div>
         <button onClick={() => incItem(f || { imageUrl: imgName })}>+</button>
@@ -1218,6 +1201,7 @@ const lookupMember = useCallback(async (memberCard) => {
     </div>
   );
 })}
+
                       </div>
                     )}
                   </div>

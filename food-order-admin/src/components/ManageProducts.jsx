@@ -1734,7 +1734,7 @@ function normalizeCustomers(items) {
           Đóng
         </button>
       </div>
-      {backupList.length === 0 ? (
+      backupList.length === 0 ? (
         <div style={{ color:'#6b7280' }}>(Chưa có bản backup nào)</div>
       ) : (
         <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
@@ -1747,7 +1747,7 @@ function normalizeCustomers(items) {
             </li>
           ))}
         </ul>
-      )}
+      )
     </div>
   </div>,
   document.body
