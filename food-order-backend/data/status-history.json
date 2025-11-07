@@ -59988,5 +59988,22 @@
       1753713777763,
       1753713777864
     ]
+  },
+  {
+    "id": 1762534492379.8284,
+    "at": "2025-11-07T16:54:52.379Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k13.kimchi-dumping.jpg",
+    "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777719,
+      1753713777761,
+      1753713777862
+    ]
   }
 ]

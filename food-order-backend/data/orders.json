@@ -3378,5 +3378,64 @@
     "consumeStock": false,
     "restocked": false,
     "cancelReason": null
+  },
+  {
+    "id": 128,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "Tech Vegas",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1,
+        "note": "1"
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1,
+        "note": "2"
+      }
+    ],
+    "createdAt": "2025-11-07T16:47:43.737Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
+  },
+  {
+    "id": 129,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "Tech Vegas",
+    "note": "test 10000",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1,
+        "note": "Không hành"
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1,
+        "note": "Không ớt"
+      },
+      {
+        "imageName": "chapagetti.jpg",
+        "qty": 1,
+        "note": "Không mì"
+      }
+    ],
+    "createdAt": "2025-11-07T16:48:18.556Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
   }
 ]
