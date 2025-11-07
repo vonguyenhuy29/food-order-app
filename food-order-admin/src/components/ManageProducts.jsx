@@ -628,6 +628,145 @@ const fetchMenuLevels = React.useCallback(async () => {
       alert('Import lỗi: ' + (e?.message || ''));
     }
   }
+  function ReportPanel({ apiUrl }) {
+  const [preset, setPreset] = React.useState('thisWeek');
+  const [fromDate, setFromDate] = React.useState('');
+  const [toDate, setToDate] = React.useState('');
+  const [reportData, setReportData] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+
+  // Hàm gọi API báo cáo
+  const fetchReport = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const params =
+        preset !== 'custom'
+          ? { preset }
+          : {
+              from: fromDate ? `${fromDate}T06:00:00.000Z` : undefined,
+              to:   toDate   ? `${toDate}T05:59:59.999Z` : undefined,
+            };
+      const res = await axios.get(apiUrl('/api/report'), { params });
+      setReportData(res.data || null);
+    } catch (e) {
+      alert('Không tải được báo cáo: ' + (e?.response?.data?.error || e?.message || ''));
+      setReportData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [preset, fromDate, toDate, apiUrl]);
+
+  // Tự động gọi khi thay đổi preset/dates
+  React.useEffect(() => { fetchReport(); }, [fetchReport]);
+
+  // Xuất CSV đơn giản
+  const exportCsv = () => {
+    if (!reportData) return;
+    const rows = [];
+    rows.push(['Item','Qty']);
+    Object.entries(reportData.itemCounts).forEach(([name, qty]) => rows.push([name, qty]));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const url = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'report.csv';
+    a.click();
+  };
+
+  return (
+    <div style={{ padding: 16 }}>
+      <h2>Báo cáo</h2>
+
+      {/* Phần chọn thời gian */}
+      <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+        <select value={preset} onChange={e => setPreset(e.target.value)}>
+          <option value="thisWeek">Tuần này</option>
+          <option value="lastWeek">Tuần trước</option>
+          <option value="thisMonth">Tháng này</option>
+          <option value="lastMonth">Tháng trước</option>
+          <option value="thisYear">Năm này</option>
+          <option value="lastYear">Năm trước</option>
+          <option value="custom">Tùy chọn…</option>
+        </select>
+        {preset === 'custom' && (
+          <>
+            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+            <span>→</span>
+            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
+          </>
+        )}
+        <button onClick={fetchReport} disabled={loading}>
+          {loading ? 'Đang tải…' : 'Xem báo cáo'}
+        </button>
+      </div>
+
+      {/* Hiển thị dữ liệu báo cáo */}
+      {!reportData ? (
+        <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div>
+      ) : (
+        <div style={{ display:'grid', gap:16 }}>
+          <div><h3>Tổng số đơn: {reportData.totalOrders}</h3></div>
+
+          {/* Thống kê số lượng từng món */}
+          <div>
+            <h3>Món được gọi</h3>
+            <table border="1" cellPadding="4">
+              <thead><tr><th>Món</th><th>Số lượng</th></tr></thead>
+              <tbody>
+                {Object.entries(reportData.itemCounts).map(([name, qty]) => (
+                  <tr key={name}><td>{name}</td><td>{qty}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Thống kê theo menu (itemsByMenu) */}
+          <div>
+            <h3>Theo menu</h3>
+            {Object.entries(reportData.itemsByMenu).map(([menu, items]) => (
+              <div key={menu} style={{ marginBottom: 12 }}>
+                <h4>{menu}</h4>
+                <table border="1" cellPadding="4">
+                  <thead><tr><th>Món</th><th>Số lượng</th></tr></thead>
+                  <tbody>
+                    {Object.entries(items).map(([name, qty]) => (
+                      <tr key={name}><td>{name}</td><td>{qty}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+
+          {/* Thống kê theo khách hàng */}
+          <div>
+            <h3>Khách hàng</h3>
+            {Object.entries(reportData.customers).map(([card, info]) => (
+              <div key={card} style={{ marginBottom: 12 }}>
+                <b>{card}</b> – {info.name || '(không tên)'}
+                <table border="1" cellPadding="4">
+                  <thead><tr><th>Món</th><th>Số lượng</th></tr></thead>
+                  <tbody>
+                    {Object.entries(info.items).map(([name, qty]) => (
+                      <tr key={name}><td>{name}</td><td>{qty}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+
+          {/* Nút xuất báo cáo */}
+          <div>
+            <button onClick={exportCsv}>Xuất CSV</button>
+            {/* Bạn có thể thêm nút Export PDF, Print tại đây */}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
   function parseCsvLine(line, expectCols) {
     const out = [];
     let cur = '',
@@ -727,6 +866,7 @@ const fetchMenuLevels = React.useCallback(async () => {
     const [groupValue, setGroupValue] = React.useState('');
     const [menuSel, setMenuSel] = React.useState(new Set());
     const [saving, setSaving] = React.useState(false);
+    
 
     const ids = Array.from(selectedIds);
     const toggleMenu = m => {
@@ -1929,6 +2069,12 @@ function normalizeCustomers(items) {
                  background: activeTab==='customers' ? '#fff' : '#334155', color: activeTab==='customers' ? '#111' : '#fff', fontSize:12 }}>
         Khách hàng
       </button>
+            <button
+        onClick={()=>setActiveTab('customers')}
+        style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 10px', cursor:'pointer',
+                 background: activeTab==='customers' ? '#fff' : '#334155', color: activeTab==='customers' ? '#111' : '#fff', fontSize:12 }}>
+        Báo cáo
+      </button>
     </div>
   </div>
           <button
@@ -2189,6 +2335,11 @@ function normalizeCustomers(items) {
      </div>
    </div>
  )}
+{activeTab === 'report' && (
+  <div style={{ flex:1, overflow:'auto' }}>
+    <ReportPanel apiUrl={apiUrl} />
+  </div>
+)}
 
       </div>
 
