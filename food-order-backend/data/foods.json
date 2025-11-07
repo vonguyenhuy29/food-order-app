@@ -45,7 +45,7 @@
     "id": 1753713777673,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/KIMBAP.jpg",
     "type": "SNACK MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "85088d60894ede3b9689075b7c6d4cfd",
     "levelAccess": [
       "P",
@@ -53,7 +53,7 @@
       "V-One"
     ],
     "order": 3,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777674,
@@ -241,7 +241,7 @@
     "id": 1753713777689,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK TRAVEL/KIMBAP.jpg",
     "type": "SNACK TRAVEL",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "baf530c88382029926dbea2b8f4742dd",
     "levelAccess": [
       "P",
@@ -249,7 +249,7 @@
       "V-One"
     ],
     "order": 17,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777690,
@@ -381,7 +381,7 @@
     "id": 1753713777721,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "c5aafae279f436283177b0448c6f57c0",
     "levelAccess": [
       "P",
@@ -389,13 +389,13 @@
       "V-One"
     ],
     "order": 27,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777722,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1c1136053dbc00396cb7e15941089381",
     "levelAccess": [
       "P",
@@ -403,7 +403,7 @@
       "V-One"
     ],
     "order": 28,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777736,
@@ -451,7 +451,7 @@
     "id": 1753713777700,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "44bc3cc07eb7b5399affa7d9b6f24bde",
     "levelAccess": [
       "P",
@@ -459,7 +459,7 @@
       "V-One"
     ],
     "order": 32,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777701,
@@ -689,7 +689,7 @@
     "id": 1753713777735,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/K17.DWAEJI-GUKBAP.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "127d91fd2cd0cbd953db5c7cedb4ce7a",
     "levelAccess": [
       "P",
@@ -697,7 +697,7 @@
       "V-One"
     ],
     "order": 49,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777697,
@@ -759,7 +759,7 @@
     "id": 1753713777706,
     "imageUrl": "http://192.168.100.137:5000/images/CLUB MENU/KIMBAP.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "85088d60894ede3b9689075b7c6d4cfd",
     "levelAccess": [
       "P",
@@ -767,7 +767,7 @@
       "V-One"
     ],
     "order": 54,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777710,
@@ -965,27 +965,27 @@
     "id": 1753713777763,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/C2.WONTON-NOODLES.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "c5aafae279f436283177b0448c6f57c0",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 69,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777764,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/C3.FRIED-BEEF-NOODLES.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1c1136053dbc00396cb7e15941089381",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 70,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777778,
@@ -1030,14 +1030,14 @@
     "id": 1753713777742,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "44bc3cc07eb7b5399affa7d9b6f24bde",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 74,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777743,
@@ -1251,14 +1251,14 @@
     "id": 1753713777777,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/K17.DWAEJI-GUKBAP.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "94c55418777b684371407a26e5059834",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 91,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777739,
@@ -1316,14 +1316,14 @@
     "id": 1753713777748,
     "imageUrl": "http://192.168.100.137:5000/images/HOTEL MENU/KIMBAP.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1e224432c4fee72b232f197154975e5c",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 96,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777752,
@@ -1611,25 +1611,25 @@
     "id": 1753713777864,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/C2.WONTON-NOODLES.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "68c0c188c82a40397f70f0c509cf9dd1",
     "levelAccess": [
       "V-One"
     ],
     "order": 119,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777865,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/C3.FRIED-BEEF-NOODLES.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "82eac03e733081c9566f35899f216436",
     "levelAccess": [
       "V-One"
     ],
     "order": 120,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777879,
@@ -1671,13 +1671,13 @@
     "id": 1753713777843,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "44bc3cc07eb7b5399affa7d9b6f24bde",
     "levelAccess": [
       "V-One"
     ],
     "order": 124,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777844,
@@ -1875,13 +1875,13 @@
     "id": 1753713777878,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/K17.DWAEJI-GUKBAP.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "127d91fd2cd0cbd953db5c7cedb4ce7a",
     "levelAccess": [
       "V-One"
     ],
     "order": 141,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777840,
@@ -1959,13 +1959,13 @@
     "id": 1753713777849,
     "imageUrl": "http://192.168.100.137:5000/images/VIP MENU/KIMBAP.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1e224432c4fee72b232f197154975e5c",
     "levelAccess": [
       "V-One"
     ],
     "order": 148,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777853,
@@ -3163,7 +3163,7 @@
     "id": 1755923952360,
     "imageUrl": "http://192.168.100.137:5000/images/SNACK MENU/SALTED-EGG-CROISSANT.jpg",
     "type": "SNACK MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "fc5e3aed05bfbf86509dfec4c049b7da",
     "levelAccess": [
       "P",
@@ -3171,7 +3171,7 @@
       "V-One"
     ],
     "order": 248,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1755923952359,
@@ -3328,7 +3328,7 @@
       "V-One"
     ],
     "order": 260,
-    "quantity": 1
+    "quantity": 10
   },
   {
     "id": 1755923952375,

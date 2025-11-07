@@ -1486,15 +1486,18 @@ out.push(...rows2.map(o => ({
     const [showAdd, setShowAdd] = React.useState(false);
     const [savingId, setSavingId] = React.useState(null);
     const [historyOf, setHistoryOf] = React.useState(null); // {id, code, name}
+    const [page, setPage] = useState(1);
+    const [totalCustomers, setTotalCustomers] = useState(0);
+
 
     const allSelected = rows.length > 0 && selectedIds.size === rows.length;
 
 const fetchCustomersApi = React.useCallback(async () => {
-    async function fetchCustomersApi(q, page = 1) {
+    async function fetchCustomersApi(q = '', page = 1) {
   const resp = await axios.get(apiUrl('/api/customers'), {
     params: { q, limit: 100, page }
   });
-  return resp.data; // { total, page, limit, items }
+  return resp.data; // trả về { total, page, limit, items }
 }
 
   try {
@@ -1517,20 +1520,22 @@ const fetchCustomersApi = React.useCallback(async () => {
 
 
 const loadCustomers = React.useCallback(async () => {
-    async function loadCustomers({ page = 1, q = '' } = {}) {
+async function loadCustomers({ q = '', page = 1 } = {}) {
   setLoading(true);
   try {
-    const resp = await fetchCustomersApi(q, page);
-    setRawRows(resp.items);
-    setRows(normalizeCustomers(resp.items));
-    setTotalCustomers(resp.total);
-    setPage(resp.page);
+    const data = await fetchCustomersApi(q, page);
+    setRawRows(data.items);
+    setRows(normalizeCustomers(data.items));
+    setPage(data.page);
+    setTotalCustomers(data.total);
   } catch (e) {
-    // handle
+    console.error(e);
+    alert('Không tải được danh sách khách hàng.');
   } finally {
     setLoading(false);
   }
 }
+
 
   setLoading(true);
   try {
@@ -1705,6 +1710,15 @@ const loadCustomers = React.useCallback(async () => {
           <button type="button" onClick={exportCsv} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}>Export CSV</button>
           <input ref={importRef} type="file" accept=".csv" hidden onChange={e=>{ if(e.target.files?.[0]) importCsv(e.target.files[0]); e.target.value=''; }} />
           <button type="button" onClick={()=>importRef.current?.click()} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}>Import CSV</button>
+          <Button onClick={async () => {
+  try {
+    await axios.post(apiUrl('/api/members/backup'));
+    alert('Đã sao lưu dữ liệu thành viên.');
+  } catch (e) {
+    alert('Backup thất bại: ' + (e.response?.data?.error || e.message));
+  }
+}}>Backup</Button>
+
           <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ fontSize:12, color:'#6b7280' }}>Sắp xếp:</span>
             <select value={sortKey} onChange={e=>setSortKey(e.target.value)} style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 8px' }}>
