@@ -3351,5 +3351,32 @@
     "closedAt": "2025-11-07T16:01:20.072Z",
     "closedBy": "jack",
     "updatedAt": "2025-11-07T16:01:37.598Z"
+  },
+  {
+    "id": 127,
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "jack",
+    "memberCard": "1",
+    "customerName": "Tech Vegas",
+    "note": "test",
+    "items": [
+      {
+        "imageName": "j1.soba-noodles.jpg",
+        "qty": 1,
+        "note": "test"
+      },
+      {
+        "imageName": "j3.japanese-curry.jpg",
+        "qty": 1,
+        "note": "test1"
+      }
+    ],
+    "createdAt": "2025-11-07T16:35:50.004Z",
+    "status": "PENDING",
+    "tableClosed": false,
+    "consumeStock": false,
+    "restocked": false,
+    "cancelReason": null
   }
 ]

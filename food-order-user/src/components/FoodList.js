@@ -1177,15 +1177,32 @@ const lookupMember = useCallback(async (memberCard) => {
                     ) : (
                       <div style={{ display: 'grid', gap: 8 }}>
 {Object.entries(currentCart).map(([imgName, item]) => {
-  const f = findFoodByImageName(imgName);
+  const f = findFoodByImageName(imgName); // tìm thông tin món
   return (
-    <div key={imgName} style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-      {/* phần hiển thị món */}
+    <div key={imgName} style={{ display:'flex', alignItems:'center', marginBottom:8 }}>
+      {/* Hiển thị hình ảnh và tên món */}
+      {f ? (
+        <>
+          <img
+            src={f.imageUrl}
+            alt={f.name}
+            style={{ width: 40, height: 40, marginRight: 8, borderRadius: 4 }}
+          />
+          <div style={{ flex: 1 }}>
+            <div>{f.name}</div>
+          </div>
+        </>
+      ) : (
+        <div style={{ flex: 1 }}>
+          {imgName}
+        </div>
+      )}
+
+      {/* Các nút điều chỉnh số lượng và ghi chú */}
       <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
         <button onClick={() => decItem(f || { imageUrl: imgName })}>−</button>
         <div style={{ minWidth: 32, textAlign: 'center' }}>{item.qty}</div>
         <button onClick={() => incItem(f || { imageUrl: imgName })}>+</button>
-        {/* Input ghi chú */}
         <input
           value={item.note}
           onChange={e => setCarts(prev => {
@@ -1193,7 +1210,7 @@ const lookupMember = useCallback(async (memberCard) => {
             cart[imgName] = { ...cart[imgName], note: e.target.value };
             return { ...prev, [currentTableKey]: cart };
           })}
-          placeholder="Ghi chú (không hành, ít ớt...)"
+          placeholder="Ghi chú... "
           style={{ width: 120, padding: 4, border:'1px solid #ddd', borderRadius:6 }}
         />
         <button onClick={() => setCartQty(imgName, 0)}>Xóa</button>
