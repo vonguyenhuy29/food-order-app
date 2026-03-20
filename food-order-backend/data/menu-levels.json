@@ -34,7 +34,12 @@
     "V-One"
   ],
   "DRINKS VIP": [
-    "V-One"
+    "V-One",
+    "I-I+"
   ],
-  "TEST": []
+  "DRINKS": [
+    "P",
+    "V-One",
+    "I-I+"
+  ]
 }

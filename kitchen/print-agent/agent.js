@@ -2,17 +2,16 @@
 // Usage:
 //   node agent.js --listen 0.0.0.0 --port 9393 --printer 192.168.100.131:9100
 //
-// Env tuỳ chọn:
-//   LINE_WIDTH=48            (độ rộng ký tự mỗi dòng, thường 42-48 cho khổ 80mm, font A, tỉ lệ W=1,H=1~2)
-//   QTY_COL=3                (độ rộng cột SL)
-//   FEED_BEFORE_CUT=6        (số dòng \n trước khi cắt)
-//   CUT_AFTER_FEED=2         (số dòng \n sau khi cắt - vài máy in cần thêm; cũng chấp nhận CUT_AFTER_CUT)
-//   LETTER_SPACE=1           (khoảng cách chữ ESC SP n; 0..255)
+// ENV tùy chọn:
+//   LINE_WIDTH=48  | QTY_COL=3 | FEED_BEFORE_CUT=6 | CUT_AFTER_CUT=2 | LETTER_SPACE=1
+
+'use strict';
 
 const http = require('http');
 const net  = require('net');
 const { URL } = require('url');
 
+/* ================= CLI & ENV ================= */
 function argsToMap() {
   const m = new Map();
   for (let i = 2; i < process.argv.length; i++) {
@@ -32,65 +31,49 @@ const LISTEN_PORT  = Number(argv.get('port') || process.env.LISTEN_PORT || 9393)
 const PRINTER_HOST = (argv.get('printer') || process.env.PRINTER_HOST || '127.0.0.1').split(':')[0];
 const PRINTER_PORT = Number((argv.get('printer') || '').split(':')[1] || process.env.PRINTER_PORT || 9100);
 
-// ===== Layout config (có thể chỉnh bằng ENV) =====
-const LINE_WIDTH      = Number(process.env.LINE_WIDTH || 48); // 48 cho 80mm phổ biến (font A, width=1)
-const QTY_COL         = Math.max(2, Number(process.env.QTY_COL || 3)); // cột SL
+const LINE_WIDTH      = Number(process.env.LINE_WIDTH || 48);       // 48 cho 80mm (font A)
+const QTY_COL         = Math.max(2, Number(process.env.QTY_COL || 3));
 const FEED_BEFORE_CUT = Number(process.env.FEED_BEFORE_CUT || 6);
-// Hỗ trợ cả CUT_AFTER_FEED và CUT_AFTER_CUT để tương thích ngược
 const CUT_AFTER_CUT   = Number(process.env.CUT_AFTER_CUT || process.env.CUT_AFTER_FEED || 2);
-// Khoảng cách chữ (ESC SP n)
 const LETTER_SPACE    = Math.max(0, Math.min(255, Number(process.env.LETTER_SPACE || 1)));
 
-// ===== HTTP helpers =====
+/* ================ HTTP helpers ================ */
 function ok(res, data = {}) {
-  res.writeHead(200, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-  });
+  res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
   res.end(JSON.stringify({ ok: true, ...data }));
 }
 function bad(res, code, msg, extra = {}) {
-  res.writeHead(code, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-  });
+  res.writeHead(code, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
   res.end(JSON.stringify({ ok: false, error: msg, ...extra }));
 }
 
-// ===== ESC/POS helpers =====
-const ESC = '\x1B', GS = '\x1D', LF = '\x0A';
+/* ================ ESC/POS helpers ================ */
+const ESC = '\x1b';
+const GS  = '\x1d';
+const LF  = '\n';
+
 const init     = ESC + '@';
 const left     = ESC + 'a' + '\x00';
 const center   = ESC + 'a' + '\x01';
 const boldOn   = ESC + 'E' + '\x01';
 const boldOff  = ESC + 'E' + '\x00';
-const cut      = GS  + 'V' + '\x00'; // partial cut (tuỳ máy)
+const cut      = GS  + 'V' + '\x00'; // partial cut (tùy máy)
 
 function size(widthMul = 1, heightMul = 2) {
   const w = Math.max(0, Math.min(7, widthMul - 1));
   const h = Math.max(0, Math.min(7, heightMul - 1));
   return GS + '!' + String.fromCharCode((w << 4) | h);
 }
-function fontA() { return ESC + 'M' + '\x00'; } // Font A (rộng hơn, 48 cột)
-function fontB() { return ESC + 'M' + '\x01'; } // Font B (hẹp hơn, 64 cột tuỳ máy)
-function charSpace(n = 0) { return ESC + ' ' + String.fromCharCode(Math.max(0, Math.min(255, n))); }
-
-function lineOf(char = '-', width = LINE_WIDTH) {
-  return char.repeat(Math.max(0, width)) + LF;
+function fontA() { return ESC + 'M' + '\x00'; } // Font A (48 cột)
+function fontB() { return ESC + 'M' + '\x01'; } // Font B (hẹp hơn)
+function charSpace(n = 0) { // ESC SP n — giãn chữ
+  return ESC + ' ' + String.fromCharCode(Math.max(0, Math.min(255, n)));
 }
-function padRight(s, w) {
-  s = String(s || '');
-  if (s.length >= w) return s.slice(0, w);
-  return s + ' '.repeat(w - s.length);
-}
-function padLeft(s, w) {
-  s = String(s || '');
-  if (s.length >= w) return s.slice(-w);
-  return ' '.repeat(w - s.length) + s;
-}
-function twoCols(leftText, rightText, width = LINE_WIDTH) {
-  const L = String(leftText || '');
-  const R = String(rightText || '');
+function lineOf(char = '-', width = LINE_WIDTH) { return char.repeat(Math.max(0, width)) + LF; }
+function padRight(s, w) { s = String(s || ''); return s.length >= w ? s.slice(0, w) : s + ' '.repeat(w - s.length); }
+function padLeft(s, w)  { s = String(s || ''); return s.length >= w ? s.slice(-w) : ' '.repeat(w - s.length) + s; }
+function twoCols(L, R, width = LINE_WIDTH) {
+  L = String(L || ''); R = String(R || '');
   const space = width - L.length - R.length;
   if (space >= 1) return L + ' '.repeat(space) + R;
   const maxLeft = Math.max(1, width - R.length - 1);
@@ -108,98 +91,191 @@ function fmtTime(x) {
   return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-// Làm sạch tên món: bỏ đuôi ảnh, thay . _ - bằng khoảng trắng, gộp khoảng trắng, trim, in hoa
+// Làm sạch tên món
 function cleanFoodName(raw) {
   const s = String(raw || '');
-  // 1) Bỏ đuôi ảnh (cuối chuỗi), chấp nhận nhiều loại đuôi + query (nếu có)
   const withoutExt = s.replace(/\.[A-Za-z0-9]{2,5}(\?.*)?$/i, '');
-  // 2) Thay . _ - thành khoảng trắng
   const withSpaces = withoutExt.replace(/[._-]+/g, ' ');
-  // 3) Gộp khoảng trắng và cắt mép
   const normalized = withSpaces.replace(/\s+/g, ' ').trim();
-  // 4) IN HOA
   return normalized.toUpperCase();
 }
 
-// ===== Build ticket =====
-function buildKitchenTicket(o = {}) {
-  const hdrSize  = size(1, 2); // header: cao 2
-  const bodySize = size(1, 2); // body: cao 2
-  const setFontA = fontA();
-
-  const parts = [];
-  parts.push(init, setFontA, left, bodySize);
-
-  // ===== TITLE =====
-  parts.push(center, boldOn, hdrSize, 'ORDER' + LF, boldOff, left, bodySize);
-
-  // ===== Meta lines (bold nhãn) =====
-  const areaStr  = boldOn + 'Area:'  + boldOff + ' ' + (o.area || '');
-  const tableStr = boldOn + 'Table:' + boldOff + ' ' + (o.tableNo || '');
-  parts.push(twoCols(areaStr, tableStr, LINE_WIDTH) + LF);
-
-  // Tách Staff và Time ra 2 dòng riêng
-  const staffStr = boldOn + 'Staff:' + boldOff + ' ' + (o.staff || '');
-  parts.push(staffStr + LF);
-  const timeStr  = boldOn + 'Time:'  + boldOff + ' ' + fmtTime(o.createdAt);
-  parts.push(timeStr + LF);
-
-  // Member & Customer (tuỳ có dữ liệu)
-  if (o.memberCard || o.customerName) {
-    const memStr  = boldOn + 'Member:'   + boldOff + ' ' + (o.memberCard || '');
-    const custStr = boldOn + 'Customer:' + boldOff + ' ' + (o.customerName || '');
-    parts.push(twoCols(memStr, custStr, LINE_WIDTH) + LF);
-  }
-
-  // Note (nếu có)
-  if (o.note) {
-    parts.push(boldOn + 'Note:' + boldOff + ' ' + String(o.note) + LF);
-  }
-
-  // ----- line
-  parts.push(lineOf('-', LINE_WIDTH));
-
-  // ===== Header items: "SL FOOD"
-  const nameCol = Math.max(6, LINE_WIDTH - QTY_COL - 1); // 1 là khoảng trắng giữa cột
-  parts.push(boldOn + padLeft('SL', QTY_COL) + ' ' + 'FOOD' + boldOff + LF);
-
-  // Bật chữ đậm + tăng spacing cho phần danh sách món (dễ đọc)
-  parts.push(boldOn, charSpace(LETTER_SPACE));
-
-  // Items
-  const items = Array.isArray(o.items) ? o.items : [];
-for (const it of items) {
-  const qtyStr = padLeft(String(it.qty ?? 1), QTY_COL);
-  const name   = cleanFoodName(it.imageName);
-  const note   = it.note ? String(it.note).trim() : '';
-  const rows   = wrapText(name, nameCol);
-
-  // dòng đầu: qty + tên món
-  parts.push(qtyStr + ' ' + padRight(rows[0], nameCol) + LF);
-  // nếu món có note, in dòng ghi chú ngay dưới
-  if (note) {
-    const noteRows = wrapText(note, nameCol);
-    // ghi chú nên in với tiền tố 'NOTE:' hoặc dấu '-', tuỳ bạn
-    for (const row of noteRows) {
-      parts.push(' '.repeat(QTY_COL) + ' ' + padRight(`- ${row}`, nameCol) + LF);
-    }
-  }
-  // các dòng tên món tiếp theo (nếu tên dài)
-  for (let i = 1; i < rows.length; i++) {
-    parts.push(' '.repeat(QTY_COL) + ' ' + padRight(rows[i], nameCol) + LF);
-  }
+// Customer: chỉ in tên (như bạn yêu cầu)
+function getCustomerDisplay(o = {}) {
+  const name = o.customerName || o.customer?.name || o.customer_full_name || '';
+  return name ? `${name}` : '';
 }
 
-  // Tắt spacing + đậm sau phần items
-  parts.push(charSpace(0), boldOff);
+// >>> REPLACE/ADD HELPERS <<<
 
-  // khoảng trống rồi cắt
+// Suy mã hàng từ imageName/imageKey: C2.WONTON-NOODLES.jpg -> C02
+function extractProductCodeFromName(name = '') {
+  const base = String(name).replace(/\.[A-Za-z0-9]{2,5}(\?.*)?$/i, '');
+  const m = base.match(/^([A-Za-z]+)(\d{1,3})/); // ví dụ C + 2
+  if (!m) return '';
+  const letters = m[1].toUpperCase();
+  const num     = m[2].padStart(2, '0');        // 2 chữ số: 1 -> 01
+  return letters + num;
+}
+
+function getItemCode(it = {}) {
+  // 1) Ưu tiên dùng productCode / code nếu backend đã gửi đúng
+  const direct = it.productCode || it.code;
+  if (direct) return String(direct).toUpperCase();
+
+  // 2) Nếu không có, thử đoán từ tên file / key
+  const guess = extractProductCodeFromName(
+    it.imageName || it.imageKey || it.name || ''
+  );
+  return guess ? guess.toUpperCase() : '';
+}
+
+
+
+// In dòng 3 cột có vạch dọc: SL | FOOD | CODE (tự wrap)
+function row3(sl, food, code, lineWidth) {
+  const wSL   = Math.max(QTY_COL, 2);
+  const wCode = 10;
+  const wFood = Math.max(8, lineWidth - wSL - wCode - 6); // 6 ký tự cho " | " x2
+  const wrap = (s, w) => {
+    const lines = [];
+    String(s || '').split('\n').forEach(chunk => {
+      let t = chunk;
+      while (t.length > w) { lines.push(t.slice(0, w)); t = t.slice(w); }
+      lines.push(t);
+    });
+    return lines;
+  };
+  const a = wrap(sl,   wSL);
+  const b = wrap(food, wFood);
+  const c = wrap(code, wCode);
+  const rows = Math.max(a.length, b.length, c.length);
+  let out = '';
+  for (let i = 0; i < rows; i++) {
+    const s1 = (a[i]||'').padEnd(wSL,' ');
+    const s2 = (b[i]||'').padEnd(wFood,' ');
+    const s3 = (c[i]||'').padEnd(wCode,' ');
+    out += `${s1} | ${s2} | ${s3}${LF}`;
+  }
+  return out;
+}
+
+function buildKitchenTicket(o = {}) {
+  const setFontA   = fontA();
+
+  // Style chính
+  const normalSize = size(1, 1); // body bình thường, gọn dễ đọc
+  const metaSize   = size(1, 1);
+  const focusSize  = size(1, 2); // Staff / Customer nổi bật
+  const titleSize  = size(2, 2); // ORDER to rõ
+
+  const parts = [];
+
+  parts.push(init, setFontA, left, normalSize);
+
+  // ===== TITLE =====
+  parts.push(
+    center +
+    boldOn +
+    charSpace(1) +
+    titleSize +
+    'ORDER' +
+    normalSize +
+    charSpace(0) +
+    boldOff +
+    LF
+  );
+
+  parts.push(left);
+
+  // ===== META =====
+  parts.push(metaSize);
+
+  parts.push(
+    boldOn + 'Area: ' + boldOff + String(o.area || '') + LF
+  );
+
+  parts.push(
+    boldOn + 'Table: ' + boldOff + String(o.tableNo || '') + LF
+  );
+
+  parts.push(
+    boldOn + 'Time: ' + boldOff + fmtTime(o.createdAt) + LF
+  );
+
+  // Staff nổi bật hơn
+  const staffText = String(o.staff || '').trim().toUpperCase();
+  if (staffText) {
+    parts.push(
+      boldOn +
+      focusSize +
+      'STAFF: ' + staffText +
+      normalSize +
+      boldOff +
+      LF
+    );
+  } else {
+    parts.push(
+      boldOn + 'Staff: ' + boldOff + LF
+    );
+  }
+
+  // Customer nổi bật hơn
+  const custDisplay = getCustomerDisplay(o);
+  if (custDisplay) {
+    const custText = String(custDisplay).trim().toUpperCase();
+    parts.push(
+      boldOn +
+      focusSize +
+      'CUSTOMER: ' + custText +
+      normalSize +
+      boldOff +
+      LF
+    );
+  }
+
+  if (o.note) {
+    parts.push(
+      boldOn + 'Note: ' + boldOff + String(o.note).trim() + LF
+    );
+  }
+
+  parts.push(lineOf('-', LINE_WIDTH));
+
+  // ===== HEADER BẢNG =====
+  parts.push(
+    boldOn + 'SL' + boldOff + ' | ' +
+    boldOn + 'FOOD' + boldOff + ' | ' +
+    boldOn + 'CODE' + boldOff + LF
+  );
+  parts.push(lineOf('-', LINE_WIDTH));
+
+  // ===== ITEMS =====
+  const items = Array.isArray(o.items) ? o.items : [];
+
+  for (let i = 0; i < items.length; i++) {
+    const it   = items[i] || {};
+    const qty  = String(it.qty ?? 1);
+    const name = cleanFoodName(it.name || it.imageName || it.imageKey);
+    const note = it.note ? `Note: ${String(it.note).trim()}` : '';
+    const code = getItemCode(it);
+
+    const foodBlock = `${name}${note ? LF + note : ''}`;
+
+    // Tên món + dòng món in đậm để dễ đọc
+    parts.push(boldOn);
+    parts.push(row3(qty, foodBlock, code, LINE_WIDTH));
+    parts.push(boldOff);
+
+    parts.push(lineOf('-', LINE_WIDTH));
+  }
+
   parts.push(LF.repeat(FEED_BEFORE_CUT), cut, LF.repeat(CUT_AFTER_CUT));
-
   return parts.join('');
 }
 
-// ===== TCP send =====
+
+/* ================ TCP send ================ */
 function sendRawToPrinter(rawBuffer) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({ host: PRINTER_HOST, port: PRINTER_PORT }, () => {
@@ -213,33 +289,26 @@ function sendRawToPrinter(rawBuffer) {
   });
 }
 
-// ===== HTTP handlers =====
-function handlePrint(req, res, body) {
+/* ================ HTTP handlers ================ */
+function handlePrint(_req, res, body) {
   try {
     const parsed = JSON.parse(body || '{}');
 
     if (parsed.rawBase64) {
       const buf = Buffer.from(parsed.rawBase64, 'base64');
-      return sendRawToPrinter(buf)
-        .then(() => ok(res))
-        .catch((e) => bad(res, 500, 'Print failed', { reason: e.message }));
+      return sendRawToPrinter(buf).then(() => ok(res)).catch(e => bad(res, 500, 'Print failed', { reason: e.message }));
     }
-
     if (parsed.order) {
       const data = buildKitchenTicket(parsed.order);
       const buf = Buffer.from(data, 'binary');
-      return sendRawToPrinter(buf)
-        .then(() => ok(res))
-        .catch((e) => bad(res, 500, 'Print failed', { reason: e.message }));
+      return sendRawToPrinter(buf).then(() => ok(res)).catch(e => bad(res, 500, 'Print failed', { reason: e.message }));
     }
-
     return bad(res, 400, 'Invalid payload');
   } catch (e) {
     return bad(res, 400, 'Bad JSON', { reason: e.message });
   }
 }
-
-function handleDetect(req, res) {
+function handleDetect(_req, res) {
   const s = net.createConnection({ host: PRINTER_HOST, port: PRINTER_PORT });
   let done = false;
   const finish = (online, reason) => {
@@ -252,8 +321,7 @@ function handleDetect(req, res) {
   s.on('timeout', () => finish(false, 'timeout'));
   s.on('error', (e) => finish(false, e.message));
 }
-
-function handleCors(req, res) {
+function handleCors(_req, res) {
   res.writeHead(204, {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
@@ -262,29 +330,16 @@ function handleCors(req, res) {
   res.end();
 }
 
-// ===== Server =====
+/* ================ Server ================ */
 const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') return handleCors(req, res);
 
   const url = new URL(req.url, `http://${req.headers.host}`);
-  if (req.method === 'GET' && url.pathname === '/health') {
-    return ok(res, {
-      status: 'ok',
-      printer: { host: PRINTER_HOST, port: PRINTER_PORT },
-      lineWidth: LINE_WIDTH,
-      qtyCol: QTY_COL
-    });
+  if (req.method === 'GET'  && url.pathname === '/health')  return ok(res, { status: 'ok', printer: { host: PRINTER_HOST, port: PRINTER_PORT }, lineWidth: LINE_WIDTH, qtyCol: QTY_COL });
+  if (req.method === 'GET'  && url.pathname === '/detect')  return handleDetect(req, res);
+  if (req.method === 'POST' && url.pathname === '/print')   {
+    let body = ''; req.on('data', (c) => (body += c)); req.on('end', () => handlePrint(req, res, body)); return;
   }
-  if (req.method === 'GET' && url.pathname === '/detect') {
-    return handleDetect(req, res);
-  }
-  if (req.method === 'POST' && url.pathname === '/print') {
-    let body = '';
-    req.on('data', (c) => (body += c));
-    req.on('end', () => handlePrint(req, res, body));
-    return;
-  }
-
   bad(res, 404, 'Not found');
 });
 

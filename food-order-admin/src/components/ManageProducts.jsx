@@ -2,30 +2,141 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
-/**
- * Trang Quản lý Hàng hóa — tách file
- * YÊU CẦU: truyền vào các props từ AdminFoodList:
- *   - apiUrl: (path) => string
- *   - resolveImg: (url) => string
- *   - socket: socket.io-client instance (có .on/.off)
- *   - ALL_LEVELS: string[]
- */
+
+
 
 export default function ManageProductsModal({
   onClose,
   apiUrl,
   resolveImg,
   socket,
-  ALL_LEVELS = ['P', 'I', 'I+', 'V', 'One'],
+  ALL_LEVELS = ['P', 'I', 'I+', 'V', 'One', 'One+', 'EC'],
 }) 
 
 
 {
+    // Level menu dùng bên User (FoodList)
+  const USER_MENU_LEVELS = ['P', 'I-I+', 'V-One'];
+const [membersMap, setMembersMap] = React.useState({}); // { [code]: { code, name, level } }
+
+React.useEffect(() => {
+  let cancelled = false;
+
+  (async () => {
+    try {
+      // Ưu tiên backend (/api/members), sau đó fallback sang /members.json (public)
+      const urlCandidates = [
+        apiUrl ? apiUrl('/api/members') : null,
+        '/members.json',
+      ].filter(Boolean);
+
+      let data = null;
+      for (const u of urlCandidates) {
+        try {
+          const isMembersApi = u.includes('/api/members');
+          const res = await axios.get(u, {
+            headers: { 'Cache-Control': 'no-cache' },
+            ...(isMembersApi ? { params: { limit: 70000 } } : {}),
+          });
+          if (res?.data) { data = res.data; break; }
+        } catch (_) {
+          // thử URL kế tiếp
+        }
+      }
+      if (!data) return;
+
+      // Chuẩn hóa về map theo code
+      // data có thể là:
+      // - Array các member
+      // - Object { items: [...] } hoặc { rows: [...] } từ /api/members
+      // - Object key=code từ /members.json
+      let rows = null;
+      if (Array.isArray(data)) {
+        rows = data;
+      } else if (Array.isArray(data.items)) {
+        rows = data.items;
+      } else if (Array.isArray(data.rows)) {
+        rows = data.rows;
+      }
+
+      const map = {};
+      if (Array.isArray(rows)) {
+        rows.forEach(m => {
+          const code = String(m?.code ?? m?.customerCode ?? '').trim();
+          if (!code) return;
+          map[code] = {
+            code,
+            name: m?.name || m?.customerName || '',
+            level: m?.level || m?.memberLevel || '',
+          };
+        });
+      } else if (data && typeof data === 'object') {
+        // data đang là object key=code (đúng như members.json bạn gửi)
+        Object.keys(data).forEach(k => {
+          const m = data[k] || {};
+          const code = String(m?.code ?? k).trim();
+          if (!code) return;
+          map[code] = {
+            code,
+            name: m?.name || m?.customerName || '',
+            level: m?.level || m?.memberLevel || '',
+          };
+        });
+      }
+
+      if (!cancelled) setMembersMap(map);
+    } catch (err) {
+      console.error('Load members failed', err);
+    }
+  })();
+
+  return () => { cancelled = true; };
+}, [apiUrl]);
+
+
+
+
+
+
+
+
+
   // ===== Helpers/Constants =====
   const [activeTab, setActiveTab] = React.useState('products'); // 'products' | 'customers'
   const SOURCE_FOLDER = 'SOURCE'; // thư mục chứa ảnh gốc
+  const custSearchTimer = React.useRef(null);
   const TYPE_LS_KEY = 'menuTypeOptions';
+
+
+  // ==== Levels (Khách hàng) — động + lưu localStorage ====
+  const LEVELS_LS_KEY = 'customerLevelsOptions';
+  const RESERVED_LEVELS = ['P', 'I', 'I+', 'V', 'One', 'One+', 'EC'];
+  const [levelOptions, setLevelOptions] = React.useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LEVELS_LS_KEY) || '[]');
+      return Array.from(new Set([...RESERVED_LEVELS, ...saved]));
+    } catch { return RESERVED_LEVELS; }
+  });
+React.useEffect(() => {
+  const custom = levelOptions.filter(lv => !RESERVED_LEVELS.includes(lv));
+  localStorage.setItem(LEVELS_LS_KEY, JSON.stringify(custom));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [levelOptions]);
+
+
+  const addLevelOption = () => {
+    const raw = prompt('Tên level mới (ví dụ: VIP, Diamond…)');
+    if (!raw) return;
+    const name = String(raw).trim();
+    if (!name) return alert('Tên level không hợp lệ.');
+    setLevelOptions(prev => (prev.includes(name) ? prev : [...prev, name]));
+  };
+  const deleteLevelOption = (lv) => {
+    if (RESERVED_LEVELS.includes(lv)) return alert('Không thể xoá level mặc định.');
+    setLevelOptions(prev => prev.filter(x => x !== lv));
+  };
 
   function sanitizeMenuName(s = '') {
     const t = String(s).trim();
@@ -175,10 +286,21 @@ const fetchMenuLevels = React.useCallback(async () => {
   const [preview, setPreview] = React.useState(null);
   const [showBulk, setShowBulk] = React.useState(false);
 
+  // PATCH: phân trang + lock + cancel
+const PRODUCTS_PAGE_SIZE = 500;
+const [productsPage, setProductsPage] = React.useState(1);
+
+const productsLoadLock = React.useRef(false);
+const productsCancelRef = React.useRef(null);
+const productsReloadTimerRef = React.useRef(null);
+
+
   // Index menu/foods để quản lý menu thực sự (Admin/User)
   const [foodsIndex, setFoodsIndex] = React.useState(new Map()); // key = `${type}|${imageKey}` -> food
   const [menusOfImage, setMenusOfImage] = React.useState(new Map()); // key = imageKey -> Set(menuTypes)
+  const [imageVersions, setImageVersions] = React.useState({}); // cache-buster cho ảnh sau khi đổi
   const [menuEditor, setMenuEditor] = React.useState({ open: false, product: null });
+
 
   // Filters (sidebar)
   const [kSearch, setKSearch] = React.useState('');
@@ -206,7 +328,7 @@ const fetchMenuLevels = React.useCallback(async () => {
 
   // Add modal / Import
   const [showAdd, setShowAdd] = React.useState(false);
-  const importRef = React.useRef(null);
+
 
   // Levels mặc định cho từng Menu
   const [menuLevelsMap, setMenuLevelsMap] = React.useState({});
@@ -414,56 +536,81 @@ const fetchMenuLevels = React.useCallback(async () => {
     loadFoodsLite();
   }, [loadFoodsLite]);
 
-  React.useEffect(() => {
-    const refetch = () => loadFoodsLite();
-    socket?.on?.('foodAdded', refetch);
-    socket?.on?.('foodDeleted', refetch);
-    socket?.on?.('foodsDeleted', refetch);
-    socket?.on?.('foodRenamed', refetch);
-    socket?.on?.('foodsReordered', refetch);
-    socket?.on?.('menuLevelsUpdated', refetch);
-    return () => {
-      socket?.off?.('foodAdded', refetch);
-      socket?.off?.('foodDeleted', refetch);
-      socket?.off?.('foodsDeleted', refetch);
-      socket?.off?.('foodRenamed', refetch);
-      socket?.off?.('foodsReordered', refetch);
-      socket?.off?.('menuLevelsUpdated', refetch);
-    };
-  }, [socket, loadFoodsLite]);
 
-  const loadProducts = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const r = await axios.get(apiUrl('/api/products'), { params: { limit: 2000, q: kSearch || undefined } });
-      const data = Array.isArray(r.data?.rows) ? r.data.rows : [];
-      setRawRows(data);
-    } catch (e) {
-      alert('Load products fail: ' + (e?.message || ''));
-    } finally {
-      setLoading(false);
-    }
-  }, [kSearch, apiUrl]);
+
+
+  // PATCH: đặt gần loadProducts
+const fetchProductsApi = React.useCallback(async (q = '', page = 1, limit = PRODUCTS_PAGE_SIZE) => {
+  // Hủy request trước nếu còn
+  if (productsCancelRef.current) { try { productsCancelRef.current(); } catch {} }
+  const source = axios.CancelToken.source();
+  productsCancelRef.current = source.cancel;
+
+  try {
+    const r = await axios.get(apiUrl('/api/products'), {
+      params: { q: q || undefined, limit, page, _ts: Date.now() }, // _ts tránh cache
+      cancelToken: source.token,
+      timeout: 10000
+    });
+    return r.data;
+  } finally {
+    productsCancelRef.current = null;
+  }
+}, [apiUrl]);
+
+// PATCH: thay loadProducts cũ
+const loadProducts = React.useCallback(async ({ q = kSearch, page = productsPage } = {}) => {
+  if (productsLoadLock.current) return;
+  productsLoadLock.current = true;
+  setLoading(true);
+  try {
+    const data = await fetchProductsApi(q, page);
+    const rows = Array.isArray(data?.rows) ? data.rows : (Array.isArray(data) ? data : []);
+
+
+    setRawRows(rows);                // chỉ giữ dữ liệu của trang hiện tại
+
+    setProductsPage(Number(data?.page ?? page));
+  } catch (e) {
+    alert('Load products fail: ' + (e?.response?.data?.error || e?.message || ''));
+  } finally {
+    setLoading(false);
+    productsLoadLock.current = false;
+  }
+}, [fetchProductsApi, kSearch, productsPage]);
+
 
   React.useEffect(() => {
     loadProducts();
   }, [loadProducts]);
 
-  React.useEffect(() => {
-    const onChange = () => {
+// PATCH: gộp sự kiện socket trong 300ms
+React.useEffect(() => {
+  const onChange = () => {
+    if (productsReloadTimerRef.current) clearTimeout(productsReloadTimerRef.current);
+    productsReloadTimerRef.current = setTimeout(() => {
       loadProducts();
-    };
-    socket?.on?.('foodAdded', onChange);
-    socket?.on?.('foodRenamed', onChange);
-    socket?.on?.('foodDeleted', onChange);
-    socket?.on?.('menuLevelsUpdated', onChange);
-    return () => {
-      socket?.off?.('foodAdded', onChange);
-      socket?.off?.('foodRenamed', onChange);
-      socket?.off?.('foodDeleted', onChange);
-      socket?.off?.('menuLevelsUpdated', onChange);
-    };
-  }, [socket, loadProducts]);
+    }, 300);
+  };
+
+  socket?.on?.('foodAdded', onChange);
+  socket?.on?.('foodRenamed', onChange);
+  socket?.on?.('foodDeleted', onChange);
+  socket?.on?.('foodsDeleted', onChange);
+  socket?.on?.('foodsReordered', onChange);
+  socket?.on?.('menuLevelsUpdated', onChange);
+
+  return () => {
+    clearTimeout(productsReloadTimerRef.current);
+    socket?.off?.('foodAdded', onChange);
+    socket?.off?.('foodRenamed', onChange);
+    socket?.off?.('foodDeleted', onChange);
+    socket?.off?.('foodsDeleted', onChange);
+    socket?.off?.('foodsReordered', onChange);
+    socket?.off?.('menuLevelsUpdated', onChange);
+  };
+}, [socket, loadProducts]);
+
 
   // Derive filtered + sorted
   React.useEffect(() => {
@@ -524,170 +671,745 @@ const fetchMenuLevels = React.useCallback(async () => {
       return s;
     });
 
-  function download(filename, text) {
-    const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+    // ===== Export Hàng hóa ra Excel (.xlsx) =====
+  function exportProductsXlsx() {
+    if (!rows || rows.length === 0) {
+      alert('Không có dữ liệu để xuất.');
+      return;
+    }
+
+    const data = rows.map(r => {
+      const imgKey = imageKeyFromUrlOrName(r.imageUrl, r.imageName);
+      const menuSet = menusOfImage.get(imgKey) || new Set();
+      const menuList = Array.from(menuSet).sort().join(', ');
+
+      return {
+        'Hình ảnh': r.imageName || r.imageUrl || '',
+        'Mã hàng': r.productCode || '',
+        'Tên hàng': r.name || '',
+        'Loại thực đơn': r.menuType || '',
+        'Nhóm hàng': r.itemGroup || '',
+        'Menu': menuList,
+        'Giá': r.price ?? '',
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(data, {
+      header: ['Hình ảnh', 'Mã hàng', 'Tên hàng', 'Loại thực đơn', 'Nhóm hàng', 'Menu', 'Giá'],
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'HangHoa');
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = `hang-hoa-${Date.now()}.xlsx`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 2500);
   }
-  function toCsvCell(v) {
-    if (v == null) return '';
-    const s = String(v);
-    if (s.includes('"') || s.includes(',') || s.includes('\n')) {
-      return '"' + s.replace(/"/g, '""') + '"';
-    }
-    return s;
-  }
-  function exportCsv() {
-    const header = ['id', 'productCode', 'name', 'menuType', 'itemGroup', 'price', 'imageName', 'imageUrl'];
-    const lines = [header.join(',')];
-    rows.forEach(r => {
-      lines.push(
-        [
-          r.id ?? '',
-          r.productCode ?? '',
-          r.name ?? '',
-          r.menuType ?? '',
-          r.itemGroup ?? '',
-          r.price ?? '',
-          r.imageName ?? '',
-          r.imageUrl ?? '',
-        ].map(toCsvCell).join(','),
-      );
-    });
-    download(`products-export-${Date.now()}.csv`, lines.join('\n'));
-  }
-  function downloadTemplate() {
-    const header = 'productCode,name,menuType,itemGroup,price,imageName,imageUrl';
-    const sample = 'SP001,Khoai tây chiên,đồ ăn,SNACK MENU,45000,KHOAI-TAY-CHIENG.PNG,';
-    download('products-import-template.csv', header + '\n' + sample + '\n');
-  }
-  async function importCsv(file) {
-    try {
-      const txt = await file.text();
-      const rows = txt
-        .split(/\r?\n/)
-        .map(l => l.trim())
-        .filter(Boolean);
-      if (rows.length < 2) return alert('File trống hoặc sai định dạng.');
-      const header = rows[0].split(',');
-      const idx = name => header.findIndex(h => h.trim().toLowerCase() === name);
-      const idIdx = idx('id');
-      const codeIdx = idx('productcode');
-      const nameIdx = idx('name');
-      const typeIdx = idx('menutype');
-      const itemGroupIdx = idx('itemgroup');
-      const groupsIdx = idx('groups'); // tương thích cũ
-      const groupIdx = idx('group'); // tương thích cũ
-      const priceIdx = idx('price');
-      const imageNameIdx = idx('imagename');
-      const imageUrlIdx = idx('imageurl');
 
-      let ok = 0,
-        fail = 0;
-      for (let i = 1; i < rows.length; i++) {
-        const cols = parseCsvLine(rows[i], header.length);
-        if (!cols) continue;
-
-        let itemGroup = itemGroupIdx >= 0 ? safeCell(cols[itemGroupIdx]) || '' : '';
-        if (!itemGroup) {
-          const groupsStr = groupsIdx >= 0 ? safeCell(cols[groupsIdx]) : '';
-          if (groupsStr) itemGroup = groupsStr.split(';').map(s => s.trim()).filter(Boolean)[0] || '';
-          if (!itemGroup && groupIdx >= 0) itemGroup = safeCell(cols[groupIdx]) || '';
-        }
-
-        const payload = {
-          productCode: safeCell(cols[codeIdx]),
-          name: safeCell(cols[nameIdx]),
-          menuType: safeCell(cols[typeIdx]) || 'đồ ăn',
-          itemGroup: itemGroup || '',
-          price: Number(safeCell(cols[priceIdx])),
-          imageName: safeCell(cols[imageNameIdx]),
-          imageUrl: safeCell(cols[imageUrlIdx]),
-        };
-
-        try {
-          const id = safeCell(cols[idIdx]);
-          if (id) {
-            await axios.put(apiUrl(`/api/products/${id}`), payload);
-          } else {
-            await axios.post(apiUrl('/api/products'), payload);
-          }
-          ok++;
-        } catch (e) {
-          console.warn('Import row fail:', e?.message || e);
-          fail++;
-        }
-      }
-      await loadProducts();
-      alert(`Import xong. OK: ${ok} • Fail: ${fail}`);
-    } catch (e) {
-      alert('Import lỗi: ' + (e?.message || ''));
-    }
-  }
-  function ReportPanel({ apiUrl }) {
-  const [preset, setPreset] = React.useState('thisWeek');
+function ReportPanel({ apiUrl,membersMap = {},    ALL_LEVELS = ['P','I','I+','V','One','One+','EC'] }) {
+    
+  // ====== Time range ======
+  const [preset, setPreset] = React.useState('today');
   const [fromDate, setFromDate] = React.useState('');
   const [toDate, setToDate] = React.useState('');
-  const [reportData, setReportData] = React.useState(null);
-  const [loading, setLoading] = React.useState(false);
 
-  // Hàm gọi API báo cáo
-  const fetchReport = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const params =
-        preset !== 'custom'
-          ? { preset }
-          : {
-              from: fromDate ? `${fromDate}T06:00:00.000Z` : undefined,
-              to:   toDate   ? `${toDate}T05:59:59.999Z` : undefined,
-            };
-      const res = await axios.get(apiUrl('/api/report'), { params });
-      setReportData(res.data || null);
-    } catch (e) {
-      alert('Không tải được báo cáo: ' + (e?.response?.data?.error || e?.message || ''));
-      setReportData(null);
-    } finally {
-      setLoading(false);
+  // ====== Group filter (NHÓM HÀNG) ======
+  const [selectedGroups] = React.useState(new Set());
+
+
+
+  // ===== Helpers =====
+  const norm = (s) => String(s || '').trim().toLowerCase();
+  const phoneDigits = s => String(s||'').replace(/[^\d]/g,'').replace(/^84/, '0');
+  const money = x => new Intl.NumberFormat('vi-VN').format(+x || 0);
+  // Đọc membersMap theo code (hỗ trợ Object hoặc Map)
+const getMemberByCode = (map, code) => {
+  if (!code) return null;
+  const k = String(code).trim();
+  if (!map) return null;
+  if (typeof map.get === 'function') return map.get(k) || null; // Map
+  return map[k] || map[String(k)] || null;                      // Object
+};
+
+  const isoRange = React.useMemo(() => {
+    const toISO = (d, end = false) => {
+      const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+      return new Date(y, m, day, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0).toISOString();
+    };
+    const startEnd = (s, e) => ({ from: toISO(s), to: toISO(e, true) });
+    const today = new Date();
+
+    const startOfWeek = (d) => {
+      const c = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const dow = (c.getDay() + 6) % 7; // Mon=0
+      c.setDate(c.getDate() - dow);
+      return c;
+    };
+    const endOfWeek = (d) => { const s = startOfWeek(d); const e = new Date(s); e.setDate(s.getDate() + 6); return e; };
+    const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
+    const endOfMonth   = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const startOfYear  = (d) => new Date(d.getFullYear(), 0, 1);
+    const endOfYear    = (d) => new Date(d.getFullYear(), 11, 31);
+
+    switch (preset) {
+      case 'today':       return startEnd(today, today);
+      case 'yesterday':   { const y = new Date(today); y.setDate(y.getDate() - 1); return startEnd(y, y); }
+      case 'last7':       { const s = new Date(today); s.setDate(s.getDate() - 6); return startEnd(s, today); }
+      case 'last30':      { const s = new Date(today); s.setDate(s.getDate() - 29); return startEnd(s, today); }
+      case 'thisWeek':    return startEnd(startOfWeek(today), endOfWeek(today));
+      case 'lastWeek':    { const s = startOfWeek(today); s.setDate(s.getDate() - 7); const e = new Date(s); e.setDate(s.getDate() + 6); return startEnd(s, e); }
+      case 'thisMonth':   return startEnd(startOfMonth(today), endOfMonth(today));
+      case 'lastMonth':   { const s = startOfMonth(today); s.setMonth(s.getMonth() - 1); return startEnd(s, endOfMonth(s)); }
+      case 'thisYear':    return startEnd(startOfYear(today), endOfYear(today));
+      case 'lastYear':    { const s = startOfYear(today); s.setFullYear(s.getFullYear() - 1); return startEnd(s, endOfYear(s)); }
+      case 'custom': {
+        const from = fromDate ? `${fromDate}T06:00:00.000Z` : undefined;
+        const to   = toDate   ? `${toDate}T05:59:59.999Z`   : undefined;
+        return { from, to };
+      }
+      default:            return startEnd(today, today);
     }
-  }, [preset, fromDate, toDate, apiUrl]);
+  }, [preset, fromDate, toDate]);
 
-  // Tự động gọi khi thay đổi preset/dates
-  React.useEffect(() => { fetchReport(); }, [fetchReport]);
+  // ====== Maps from /api/products ======
+  const [nameMap, setNameMap] = React.useState(new Map());   // imageKey -> product.name
+  const [groupMap, setGroupMap] = React.useState(new Map()); // imageKey -> itemGroup
+  const [codeMap, setCodeMap] = React.useState(new Map());   // imageKey -> productCode
+  const [priceMap, setPriceMap] = React.useState(new Map()); // img:/code:/name: -> price
 
-  // Xuất CSV đơn giản
-  const exportCsv = () => {
+  const keyFrom = (imageUrl, imageName, fallbackName='') => {
+    const pick = imageUrl || imageName || fallbackName || '';
+    return (String(pick).split('/').pop() || '').trim().toLowerCase();
+  };
+
+  const resolveItemName = React.useCallback((item) => {
+    const pick = item?.imageUrl || item?.imageName || item?.name || '';
+    const k = (String(pick).split('/').pop() || '').trim().toLowerCase();
+    return nameMap.get(k) || item?.name || item?.imageName || '(Không rõ tên)';
+  }, [nameMap]);
+
+const resolveItemCode = React.useCallback((item) => {
+  const pick = item?.imageName || item?.imageKey ||
+               item?.imageUrl || item?.name || '';
+  const k = (String(pick).split('/').pop() || '').trim().toLowerCase();
+
+  // Ưu tiên mapping từ products
+  if (codeMap.has(k)) return codeMap.get(k);
+
+  // fallback
+  return item?.productCode || item?.code || item?.sku || item?.itemCode || '';
+}, [codeMap]);
+
+
+
+  const deriveItemGroup = React.useCallback((item, k) => {
+    const g = item?.itemGroup ?? item?.group ?? groupMap.get(k) ?? '';
+    return g || '(Chưa có nhóm)';
+  }, [groupMap]);
+
+  const buildMaps = React.useCallback(async () => {
+    try {
+      const pr = await axios.get(apiUrl('/api/products'), { params: { limit: 70000 } });
+      const rows = Array.isArray(pr.data?.rows) ? pr.data.rows : (Array.isArray(pr.data) ? pr.data : []);
+
+      const _name  = new Map();
+      const _group = new Map();
+      const _code  = new Map();
+      const _price = new Map();
+
+      for (const p of rows) {
+        const k = keyFrom(p?.imageUrl, p?.imageName, p?.name);
+        if (!k) continue;
+
+        if (p?.name) _name.set(k, p.name);
+        _group.set(k, (p?.itemGroup ?? '').trim());
+
+ // Ưu tiên productCode giống màn Hàng hóa
+      const codeVal = p?.productCode || p?.code || p?.sku || p?.itemCode || '';
+      if (codeVal) _code.set(k, String(codeVal));
+
+        const price = Number(p?.price);
+        if (Number.isFinite(price) && price > 0) {
+          _price.set(`img:${k}`, price);
+          const codeKey = norm(p?.productCode ?? p?.code ?? p?.sku ?? p?.itemCode);
+          if (codeKey) _price.set(`code:${codeKey}`, price);
+          const nm = norm(p?.name);
+          if (nm) _price.set(`name:${nm}`, price);
+        }
+      }
+
+      setNameMap(_name); setGroupMap(_group); setCodeMap(_code); setPriceMap(_price);
+    } catch (e) {
+      console.warn('buildMaps fail:', e?.message || e);
+      setNameMap(new Map()); setGroupMap(new Map()); setCodeMap(new Map()); setPriceMap(new Map());
+    }
+  }, [apiUrl]);
+
+  React.useEffect(() => { buildMaps(); }, [buildMaps]);
+
+  // ====== Customers index (JOIN để lấy Level) ======
+  const [custIndex, setCustIndex] = React.useState(new Map());
+
+  const splitNameAndTrailingCode = (name) => {
+    const raw = (name ?? '').trim();
+    const m = raw.match(/^(.*?)[-#(]\s*(\d{2,})\s*\)?\s*$/);
+    if (m) return { baseName: m[1].trim(), code: m[2] };
+    return { baseName: raw, code: '' };
+  };
+
+  const normalizeLevel = (lv) => {
+    if (!lv) return '';
+    const upper = String(lv).trim().toUpperCase();
+    const map = { 'P':'P','I':'I','I+':'I+','V':'V','ONE':'One','ONE+':'One+','EC':'EC' };
+    return map[upper] ?? lv;
+  };
+
+  const fetchCustomersAll = React.useCallback(async () => {
+    const tryGet = async (url) => {
+      try { const r = await axios.get(apiUrl(url), { params: { limit: 70000 } }); return r.data; }
+      catch { return null; }
+    };
+    return (await tryGet('/api/customers'))
+        || (await tryGet('/api/members'))
+        || (await tryGet('/api/clients'))
+        || [];
+  }, [apiUrl]);
+
+  const buildCustomerIndex = React.useCallback(async () => {
+    const data = await fetchCustomersAll();
+    const arr  = Array.isArray(data?.rows) ? data.rows
+               : Array.isArray(data?.items) ? data.items
+               : Array.isArray(data) ? data : [];
+               // Đếm số lần xuất hiện baseName để tránh key name:<base> bị trùng
+const baseNameCount = new Map();
+for (const c of arr) {
+  const n = (c.name ?? c.customerName ?? '').toString().trim();
+  if (!n) continue;
+  const m = n.match(/^(.*?)[-#(]\s*(\d{2,})\s*\)?\s*$/);
+  const base = (m ? m[1] : n).trim();
+  if (!base) continue;
+  const k = `name:${(base).toLowerCase()}`;
+  baseNameCount.set(k, (baseNameCount.get(k) || 0) + 1);
+}
+
+    const idx = new Map();
+
+    for (const c of arr) {
+      const id    = c.id ?? '';
+      const code  = (c.code ?? c.customerCode ?? '').toString().trim();
+      const name  = (c.name ?? c.customerName ?? '').toString().trim();
+      const phone = (c.phone ?? c.customerPhone ?? '').toString().trim();
+      const email = (c.email ?? c.customerEmail ?? '').toString().trim();
+      const level = normalizeLevel(c.level ?? c.memberLevel ?? c.tier ?? '');
+
+      const obj = { code, name, level };
+
+      if (id)      idx.set(`id:${norm(id)}`, obj);
+      if (code)    idx.set(`code:${norm(code)}`, obj);
+      if (phone)   idx.set(`phone:${norm(phone)}`, obj);
+      if (phone)   idx.set(`phoned:${phoneDigits(phone)}`, obj);
+      if (email)   idx.set(`email:${norm(email)}`, obj);
+      if (name)    idx.set(`name:${norm(name)}`, obj);
+
+      
+if (name) {
+  // Index theo full name
+  idx.set(`name:${norm(name)}`, obj);
+
+  // Bóc mã ở đuôi tên (ví dụ: "Nguyễn A - 10767") để index theo code
+  const { baseName, code: tail } = splitNameAndTrailingCode(name);
+  if (tail) {
+    const codeKey = `code:${norm(tail)}`;
+    if (!idx.has(codeKey)) idx.set(codeKey, obj);
+  }
+
+  // Nếu baseName không mơ hồ (chỉ xuất hiện 1 lần) thì index thêm theo baseName
+  if (baseName) {
+    const k = `name:${norm(baseName)}`;
+    if ((baseNameCount.get(k) || 0) === 1 && !idx.has(k)) {
+      idx.set(k, obj);
+    }
+  }
+}
+
+
+    }
+        // +++ Fallback từ members.json: đưa vào index theo code
+    try {
+      (Object.values(membersMap || {})).forEach(m => {
+        const code = (m?.code || '').toString().trim();
+        if (!code) return;
+        const obj = {
+          code,
+          name: (m?.name || '').toString().trim(),
+          level: normalizeLevel(m?.level || '')
+        };
+        // chỉ add nếu chưa có trong idx
+        const key = `code:${code.toLowerCase()}`;
+        if (!idx.has(key)) idx.set(key, obj);
+      });
+    } catch {}
+
+    setCustIndex(idx);
+}, [fetchCustomersAll, membersMap]);
+
+  React.useEffect(() => {
+  const t = setTimeout(() => { buildCustomerIndex(); }, 800);
+  return () => clearTimeout(t);
+}, [buildCustomerIndex]);
+
+
+  // ====== Report type ======
+  // hanghoa_mon | hanghoa_nhom | hanghoa_ban | khachhang_tomtat | khachhang_chitiet
+  const [reportType, setReportType] = React.useState('hanghoa_mon');
+  const [loading, setLoading] = React.useState(false);
+  const [reportData, setReportData] = React.useState(null);
+
+  // ====== Core builders ======
+  const getLineRevenue = React.useCallback((it) => {
+    const qty = Number(it?.qty) || 0;
+
+    // total line available?
+    const line = [it?.total, it?.amount, it?.lineTotal]
+      .map(v => Number(v)).find(v => Number.isFinite(v));
+    if (Number.isFinite(line)) return { qty, revenue: line };
+
+    // unit price available?
+    const unit = [it?.price, it?.unitPrice, it?.unit_price, it?.pricePerUnit, it?.p]
+      .map(v => Number(v)).find(v => Number.isFinite(v));
+    if (Number.isFinite(unit)) return { qty, revenue: unit * qty };
+
+    // fallback → priceMap
+    const imgKey = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+    const byImg  = priceMap.get(`img:${imgKey}`);
+    if (Number.isFinite(byImg)) return { qty, revenue: byImg * qty };
+
+    const codeKey = norm(it?.productCode || it?.code || it?.sku);
+    if (codeKey) {
+      const byCode = priceMap.get(`code:${codeKey}`);
+      if (Number.isFinite(byCode)) return { qty, revenue: byCode * qty };
+    }
+
+    const nameKey = norm(resolveItemName(it));
+    if (nameKey) {
+      const byName = priceMap.get(`name:${nameKey}`);
+      if (Number.isFinite(byName)) return { qty, revenue: byName * qty };
+    }
+
+    return { qty, revenue: 0 };
+  }, [priceMap, resolveItemName]);
+
+// ===== Helpers để lấy MÃ KH từ order (chỉ để JOIN) =====
+const extractCustomerCode = (o) => {
+  // Ưu tiên các trường code/card trong order
+  const pick = (...arr) => arr.find(v => v !== undefined && v !== null && String(v).trim() !== '');
+  const raw = pick(o?.customer?.code, o?.customerCode, o?.memberCard, o?.card, o?.customer?.card);
+  if (raw) return String(raw).trim();
+
+  // Fallback duy nhất: lấy mã từ đuôi tên (nếu có định dạng "Tên - 12345")
+  const name0 = pick(o?.customer?.name, o?.customerName);
+  if (name0) {
+    const m = String(name0).trim().match(/(\d{2,})\s*\)?\s*$/);
+    if (m) return String(m[1]).trim();
+  }
+  return '';
+};
+
+// JOIN CHỈ THEO MÃ KH; Tên + Level lấy từ bảng Khách hàng (hoặc membersMap fallback)
+const lookupCustomerByCode = React.useCallback((o) => {
+  const code = extractCustomerCode(o);
+  if (!code) return { code: '', name: '', level: '' };
+
+  const k = `code:${code.toLowerCase()}`;
+  const fromApi = custIndex.get(k) || null;                  // index build từ /api/customers|/api/members
+  const fromFallback = getMemberByCode(membersMap, code) || null; // fallback từ membersMap nếu có
+
+  const src = fromApi || fromFallback;
+  return {
+    code,
+    name: (src?.name || '').toString(),
+    level: normalizeLevel(src?.level || ''),
+  };
+}, [custIndex, membersMap]);
+
+
+
+  const buildReport = React.useCallback((orders, type) => {
+    const gset = (selectedGroups instanceof Set) ? selectedGroups : new Set();
+    const out = { totalOrders: 0, totalRevenue: 0 };
+    if (!Array.isArray(orders) || orders.length === 0) return out;
+
+    const acceptedOrderIds = new Set();
+
+    if (type === 'hanghoa_mon') {
+      const by = new Map(); // key -> {name, code, qty, revenue}
+      for (const o of orders) {
+        let hit = false;
+        for (const it of (o.items || [])) {
+          const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+          const g = deriveItemGroup(it, k);
+          if (gset.size && !gset.has(g)) continue;
+
+          hit = true;
+          const name = resolveItemName(it);
+          const code = resolveItemCode(it);
+          const { qty, revenue } = getLineRevenue(it);
+          out.totalRevenue += revenue;
+
+          if (!by.has(k)) by.set(k, { name, code, qty: 0, revenue: 0 });
+          const row = by.get(k);
+          row.qty += qty; row.revenue += revenue;
+        }
+        if (hit) acceptedOrderIds.add(o.id || o._id || JSON.stringify(o));
+      }
+      out.totalOrders = acceptedOrderIds.size;
+      out.rows = Array.from(by.values());
+      return out;
+    }
+
+    if (type === 'hanghoa_nhom') {
+      const by = new Map(); // group -> {qty, revenue}
+      for (const o of orders) {
+        let hit = false;
+        for (const it of (o.items || [])) {
+          const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+          const g = deriveItemGroup(it, k);
+          if (gset.size && !gset.has(g)) continue;
+
+          hit = true;
+          const { qty, revenue } = getLineRevenue(it);
+          out.totalRevenue += revenue;
+
+          if (!by.has(g)) by.set(g, { qty: 0, revenue: 0 });
+          const row = by.get(g);
+          row.qty += qty; row.revenue += revenue;
+        }
+        if (hit) acceptedOrderIds.add(o.id || o._id || JSON.stringify(o));
+      }
+      out.totalOrders = acceptedOrderIds.size;
+      out.rows = Array.from(by, ([group, v]) => ({ group, qty: v.qty, revenue: v.revenue }));
+      return out;
+    }
+
+    if (type === 'hanghoa_ban') {
+      const by = new Map(); // table -> {qty, revenue}
+      for (const o of orders) {
+        const table = [o?.area, o?.tableNo].filter(Boolean).join('-') || '(Không rõ bàn)';
+        let hit = false;
+        let sumQty = 0, sumRev = 0;
+        for (const it of (o.items || [])) {
+          const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+          const g = deriveItemGroup(it, k);
+          if (gset.size && !gset.has(g)) continue;
+
+          hit = true;
+          const { qty, revenue } = getLineRevenue(it);
+          sumQty += qty; sumRev += revenue; out.totalRevenue += revenue;
+        }
+        if (sumQty || sumRev) {
+          if (!by.has(table)) by.set(table, { qty: 0, revenue: 0 });
+          const row = by.get(table); row.qty += sumQty; row.revenue += sumRev;
+        }
+        if (hit) acceptedOrderIds.add(o.id || o._id || JSON.stringify(o));
+      }
+      out.totalOrders = acceptedOrderIds.size;
+      out.rows = Array.from(by, ([table, v]) => ({ table, qty: v.qty, revenue: v.revenue }));
+      return out;
+    }
+
+if (type === 'khachhang_tomtat' || type === 'khachhang_chitiet') {
+  const cust = new Map(); // key = code:<MÃ>, hoặc fallback unique theo order nếu không có mã
+  for (const o of orders) {
+    let hit = false;
+
+    // Lấy thông tin CHỈ-TỪ-MÃ
+    const info = lookupCustomerByCode(o);
+
+    // Key group: chỉ theo MÃ KH; nếu không có mã thì tách riêng từng order để không trộn sai
+    const key = info.code
+      ? `code:${norm(info.code)}`
+      : (o.id || o._id ? `order:${o.id || o._id}` : `order:${JSON.stringify(o)}`);
+
+    // Tạo bucket với TÊN và LEVEL LẤY TỪ BẢNG KHÁCH HÀNG (không lấy từ order)
+    if (!cust.has(key)) {
+      cust.set(key, {
+        id: key,
+        code: info.code || '',
+        name: info.name || '',
+        level: info.level || '',
+        qty: 0,
+        revenue: 0,
+        items: new Map(),
+      });
+    }
+    const bucket = cust.get(key);
+
+    // level chuẩn hóa — luôn ưu tiên từ bảng khách hàng
+    if (info.level && info.level !== bucket.level) bucket.level = info.level;
+
+    // Cộng dồn món
+    for (const it of (o.items || [])) {
+      const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+      const g = deriveItemGroup(it, k);
+
+      // Lọc theo nhóm hàng nếu có
+      if (selectedGroups.size && !selectedGroups.has(g)) continue;
+
+      hit = true;
+      const name = resolveItemName(it);
+      const { qty, revenue } = getLineRevenue(it);
+
+      bucket.qty += qty;
+      bucket.revenue += revenue;
+      out.totalRevenue += revenue;
+
+      if (!bucket.items.has(name)) bucket.items.set(name, { qty: 0, revenue: 0 });
+      const irow = bucket.items.get(name);
+      irow.qty += qty;
+      irow.revenue += revenue;
+    }
+
+    if (hit) acceptedOrderIds.add(o.id || o._id || JSON.stringify(o));
+  }
+
+  out.totalOrders = acceptedOrderIds.size;
+
+  if (type === 'khachhang_tomtat') {
+    out.rows = Array.from(cust.values()).map(v => ({
+      id: v.id, code: v.code, name: v.name, level: v.level, qty: v.qty, revenue: v.revenue
+    }));
+  } else {
+    out.customers = Array.from(cust.values()).map(v => ({
+      ...v,
+      items: Array.from(v.items, ([n, val]) => ({ name: n, qty: val.qty, revenue: val.revenue })),
+    }));
+  }
+  return out;
+}
+
+
+    return out;
+  }, [
+  selectedGroups,
+  deriveItemGroup,
+  resolveItemName,
+  resolveItemCode,
+  getLineRevenue,
+
+  lookupCustomerByCode,
+]);
+
+  // ====== Fetch orders & build report ======
+// thêm state cache orders ở trên:
+const [reportOrders, setReportOrders] = React.useState([]); // đặt ngay dưới reportData
+
+// eslint-disable-next-line react-hooks/exhaustive-deps
+const fetchReport = React.useCallback(async () => {
+  setLoading(true);
+  try {
+    const toYmd = (s) => (s ? String(s).slice(0, 10) : '');
+    const r = await axios.get(apiUrl('/api/orders/report'), {
+      params: { from: toYmd(isoRange.from), to: toYmd(isoRange.to) },
+    });
+    const orders = Array.isArray(r.data) ? r.data : [];
+    setReportOrders(orders);                    // lưu lại raw orders
+    setReportData(buildReport(orders, reportType)); // build 1 lần khi fetch
+  } catch (e) {
+    alert('Không tải được báo cáo: ' + (e?.response?.data?.error || e?.message || ''));
+    setReportData(null);
+  } finally {
+    setLoading(false);
+  }
+}, [apiUrl, isoRange.from, isoRange.to, reportType]); // ❌ KHÔNG đưa buildReport vào đây
+
+// === Guard: tránh bắn request chồng nhau ===
+const reportBusyRef = React.useRef(false);
+
+const safeFetchReport = React.useCallback(async () => {
+  if (reportBusyRef.current) return;     // đang bận thì bỏ qua
+  reportBusyRef.current = true;
+  try {
+    await fetchReport();                  // gọi hàm fetchReport có sẵn
+  } finally {
+    reportBusyRef.current = false;
+  }
+}, [fetchReport]);
+
+// Khi maps (codeMap, groupMap, nameMap...) hoặc bộ lọc nhóm đổi,
+// buildReport sẽ đổi -> ta chỉ build lại từ reportOrders, KHÔNG gọi API nữa.
+React.useEffect(() => {
+  if (!reportOrders || reportOrders.length === 0) return;
+  setReportData(buildReport(reportOrders, reportType));
+}, [buildReport, reportOrders, reportType]);
+
+
+// Debounce nhẹ để gom thay đổi filter, đồng thời dùng guard để tránh overlap
+React.useEffect(() => {
+  const t = setTimeout(safeFetchReport, 120);
+  return () => clearTimeout(t);
+}, [safeFetchReport, isoRange.from, isoRange.to, reportType]);
+
+  // ====== Export Excel (.xlsx) ======
+  const exportReportXlsx = () => {
     if (!reportData) return;
+
     const rows = [];
-    rows.push(['Item','Qty']);
-    Object.entries(reportData.itemCounts).forEach(([name, qty]) => rows.push([name, qty]));
-    const csv = rows.map(r => r.join(',')).join('\n');
-    const url = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    const push = (arr) => rows.push(arr);
+
+    const presetLabel = (() => {
+      if (preset === 'custom') return `${fromDate || '…'} → ${toDate || '…'}`;
+      if (preset === 'today') return 'today';
+      if (preset === 'yesterday') return 'yesterday';
+      if (preset === 'last7') return 'last7';
+      if (preset === 'last30') return 'last30';
+      if (preset === 'thisWeek') return 'thisWeek';
+      if (preset === 'lastWeek') return 'lastWeek';
+      if (preset === 'thisMonth') return 'thisMonth';
+      if (preset === 'lastMonth') return 'lastMonth';
+      if (preset === 'thisYear') return 'thisYear';
+      if (preset === 'lastYear') return 'lastYear';
+      return preset;
+    })();
+
+    const typeLabel = (() => {
+      if (reportType === 'hanghoa_mon') return 'BÁO CÁO HÀNG HÓA — THEO MÓN';
+      if (reportType === 'hanghoa_nhom') return 'BÁO CÁO HÀNG HÓA — THEO NHÓM HÀNG';
+      if (reportType === 'hanghoa_ban') return 'BÁO CÁO HÀNG HÓA — THEO BÀN';
+      if (reportType === 'khachhang_tomtat') return 'BÁO CÁO KHÁCH HÀNG — HÀNG BÁN THEO KHÁCH';
+      if (reportType === 'khachhang_chitiet') return 'BÁO CÁO KHÁCH HÀNG — CHI TIẾT KHÁCH ORDER';
+      return reportType || '';
+    })();
+
+    // Thông tin header
+    push([typeLabel]);
+    push([`Khoảng thời gian: ${presetLabel}`]);
+    push([]);
+
+    if (reportType === 'hanghoa_mon') {
+      push(['Tên món', 'Mã món', 'Nhóm hàng', 'Số lượng', 'Doanh thu']);
+      (reportData.rows || []).forEach(r =>
+        push([r.name, r.code, r.group, r.qty, r.revenue])
+      );
+    } else if (reportType === 'hanghoa_nhom') {
+      push(['Nhóm hàng', 'Số lượng món', 'Doanh thu']);
+      (reportData.rows || []).forEach(r =>
+        push([r.group, r.qty, r.revenue])
+      );
+    } else if (reportType === 'hanghoa_ban') {
+      push(['Bàn', 'Số lượng món', 'Doanh thu']);
+      (reportData.rows || []).forEach(r =>
+        push([r.table, r.qty, r.revenue])
+      );
+    } else if (reportType === 'khachhang_tomtat') {
+      push(['Mã khách hàng', 'Tên khách hàng', 'Level', 'Số lượng món đã order', 'Tổng doanh thu']);
+      (reportData.rows || []).forEach(r =>
+        push([r.code, r.name, r.level, r.qty, r.revenue])
+      );
+    } else if (reportType === 'khachhang_chitiet') {
+      push(['Mã KH', 'Tên KH', 'Level', 'Món', 'Số lượng', 'Doanh thu món']);
+      (reportData.customers || []).forEach(c => {
+        if (!c.items || c.items.length === 0) {
+          push([c.code, c.name, c.level, '', 0, 0]);
+        } else {
+          c.items.forEach(it =>
+            push([c.code, c.name, c.level, it.name, it.qty, it.revenue])
+          );
+        }
+      });
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Report');
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'report.csv';
+    a.download = `report-${reportType}-${Date.now()}.xlsx`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
+
+
+  const pageStyle = {
+    maxWidth: 920,
+    margin: '0 auto',
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: 12,
+    boxShadow: '0 10px 36px rgba(0,0,0,0.08)',
+  };
+
+  const handlePrint = () => {
+    const container = document.getElementById('report-print-area');
+    if (!container) {
+      window.print();
+      return;
+    }
+    const printContents = container.innerHTML;
+    const printWindow = window.open('', '', 'height=800,width=1000');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+    printWindow.document.write('<html><head><title>Báo cáo</title>');
+    // copy CSS hiện tại sang cửa sổ in
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'));
+    styles.forEach((node) => {
+      printWindow.document.write(node.outerHTML);
+    });
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContents);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
 
   return (
     <div style={{ padding: 16 }}>
-      <h2>Báo cáo</h2>
+      {/* Toolbar */}
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', marginBottom:12 }}>
+        <select value={reportType} onChange={e => setReportType(e.target.value)}>
+          <optgroup label="Hàng hóa">
+            <option value="hanghoa_mon">Theo Món</option>
+            <option value="hanghoa_nhom">Theo Nhóm hàng</option>
+            <option value="hanghoa_ban">Theo Bàn</option>
+          </optgroup>
+          <optgroup label="Khách hàng">
+            <option value="khachhang_tomtat">Hàng bán theo khách (tổng hợp)</option>
+            <option value="khachhang_chitiet">Khách order (chi tiết)</option>
+          </optgroup>
+        </select>
 
-      {/* Phần chọn thời gian */}
-      <div style={{ display:'flex', gap:8, marginBottom:16 }}>
         <select value={preset} onChange={e => setPreset(e.target.value)}>
+          <option value="today">Hôm nay</option>
+          <option value="yesterday">Hôm qua</option>
+          <option value="last7">7 ngày qua</option>
+          <option value="last30">30 ngày qua</option>
           <option value="thisWeek">Tuần này</option>
           <option value="lastWeek">Tuần trước</option>
           <option value="thisMonth">Tháng này</option>
           <option value="lastMonth">Tháng trước</option>
-          <option value="thisYear">Năm này</option>
+          <option value="thisYear">Năm nay</option>
           <option value="lastYear">Năm trước</option>
           <option value="custom">Tùy chọn…</option>
         </select>
+
         {preset === 'custom' && (
           <>
             <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
@@ -695,104 +1417,194 @@ const fetchMenuLevels = React.useCallback(async () => {
             <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
           </>
         )}
-        <button onClick={fetchReport} disabled={loading}>
-          {loading ? 'Đang tải…' : 'Xem báo cáo'}
-        </button>
+
+
+<button onClick={fetchReport} disabled={loading}>
+  {loading ? 'Đang tải…' : 'Xem báo cáo'}
+</button>
+<button onClick={exportReportXlsx} disabled={loading}>Export Excel</button>
+<button onClick={handlePrint} title="In / Lưu PDF">In</button>
+
       </div>
 
-      {/* Hiển thị dữ liệu báo cáo */}
-      {!reportData ? (
-        <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div>
-      ) : (
-        <div style={{ display:'grid', gap:16 }}>
-          <div><h3>Tổng số đơn: {reportData.totalOrders}</h3></div>
-
-          {/* Thống kê số lượng từng món */}
-          <div>
-            <h3>Món được gọi</h3>
-            <table border="1" cellPadding="4">
-              <thead><tr><th>Món</th><th>Số lượng</th></tr></thead>
-              <tbody>
-                {Object.entries(reportData.itemCounts).map(([name, qty]) => (
-                  <tr key={name}><td>{name}</td><td>{qty}</td></tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Khung như trang PDF */}
+      <div id="report-print-area" style={pageStyle}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>
+            {reportType === 'hanghoa_mon' && 'BÁO CÁO HÀNG HÓA — THEO MÓN'}
+            {reportType === 'hanghoa_nhom' && 'BÁO CÁO HÀNG HÓA — THEO NHÓM HÀNG'}
+            {reportType === 'hanghoa_ban' && 'BÁO CÁO HÀNG HÓA — THEO BÀN'}
+            {reportType === 'khachhang_tomtat' && 'BÁO CÁO KHÁCH HÀNG — HÀNG BÁN THEO KHÁCH'}
+            {reportType === 'khachhang_chitiet' && 'BÁO CÁO KHÁCH HÀNG — CHI TIẾT KHÁCH ORDER'}
           </div>
-
-          {/* Thống kê theo menu (itemsByMenu) */}
-          <div>
-            <h3>Theo menu</h3>
-            {Object.entries(reportData.itemsByMenu).map(([menu, items]) => (
-              <div key={menu} style={{ marginBottom: 12 }}>
-                <h4>{menu}</h4>
-                <table border="1" cellPadding="4">
-                  <thead><tr><th>Món</th><th>Số lượng</th></tr></thead>
-                  <tbody>
-                    {Object.entries(items).map(([name, qty]) => (
-                      <tr key={name}><td>{name}</td><td>{qty}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))}
-          </div>
-
-          {/* Thống kê theo khách hàng */}
-          <div>
-            <h3>Khách hàng</h3>
-            {Object.entries(reportData.customers).map(([card, info]) => (
-              <div key={card} style={{ marginBottom: 12 }}>
-                <b>{card}</b> – {info.name || '(không tên)'}
-                <table border="1" cellPadding="4">
-                  <thead><tr><th>Món</th><th>Số lượng</th></tr></thead>
-                  <tbody>
-                    {Object.entries(info.items).map(([name, qty]) => (
-                      <tr key={name}><td>{name}</td><td>{qty}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))}
-          </div>
-
-          {/* Nút xuất báo cáo */}
-          <div>
-            <button onClick={exportCsv}>Xuất CSV</button>
-            {/* Bạn có thể thêm nút Export PDF, Print tại đây */}
+          <div style={{ color:'#6b7280', marginTop:4 }}>
+            Phạm vi: {preset !== 'custom'
+              ? (preset === 'today' ? 'Hôm nay' :
+                 preset === 'yesterday' ? 'Hôm qua' :
+                 preset === 'last7' ? '7 ngày qua' :
+                 preset === 'last30' ? '30 ngày qua' : preset)
+              : `${fromDate || '…'} → ${toDate || '…'}`}
+            {' · '}Tổng đơn: <b>{reportData?.totalOrders || 0}</b>
+            {' · '}Tổng doanh thu: <b>{money(reportData?.totalRevenue || 0)}</b>
           </div>
         </div>
-      )}
+
+        <div style={{ padding: 16 }}>
+          {loading && <div>Đang tải dữ liệu…</div>}
+
+          {/* === Theo món === */}
+          {!loading && reportType === 'hanghoa_mon' && (
+            (() => {
+              const rows = (reportData?.rows || [])
+                .slice()
+                .sort((a,b)=> (b.revenue||0)-(a.revenue||0));
+              return rows.length === 0 ? (
+                <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div>
+              ) : (
+                <table border="1" cellPadding="6" style={{ width:'100%', borderCollapse:'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th>Tên món</th>
+                      <th>Mã món</th>
+                      <th style={{ textAlign:'right' }}>Số lượng</th>
+                      <th style={{ textAlign:'right' }}>Doanh thu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, idx) => (
+                      <tr key={r.code || r.name || idx}>
+                        <td>{r.name}</td>
+                        <td>{r.code}</td>
+                        <td style={{ textAlign:'right' }}>{money(r.qty)}</td>
+                        <td style={{ textAlign:'right' }}>{money(r.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()
+          )}
+
+          {/* === Theo nhóm hàng === */}
+          {!loading && reportType === 'hanghoa_nhom' && (
+            (() => {
+              const rows = (reportData?.rows || []).slice().sort((a,b)=> (b.revenue||0)-(a.revenue||0));
+              return rows.length === 0 ? <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div> : (
+                <table border="1" cellPadding="6" style={{ width:'100%', borderCollapse:'collapse' }}>
+                  <thead><tr><th>Nhóm hàng</th><th style={{textAlign:'right'}}>Số lượng</th><th style={{textAlign:'right'}}>Doanh thu</th></tr></thead>
+                  <tbody>
+                    {rows.map(r => (
+                      <tr key={r.group}>
+                        <td>{r.group}</td>
+                        <td style={{ textAlign:'right' }}>{money(r.qty)}</td>
+                        <td style={{ textAlign:'right' }}>{money(r.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()
+          )}
+
+          {/* === Theo bàn === */}
+          {!loading && reportType === 'hanghoa_ban' && (
+            (() => {
+              const rows = (reportData?.rows || []).slice().sort((a,b)=> (b.revenue||0)-(a.revenue||0));
+              return rows.length === 0 ? <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div> : (
+                <table border="1" cellPadding="6" style={{ width:'100%', borderCollapse:'collapse' }}>
+                  <thead><tr><th>Bàn</th><th style={{textAlign:'right'}}>Số lượng món</th><th style={{textAlign:'right'}}>Doanh thu</th></tr></thead>
+                  <tbody>
+                    {rows.map(r => (
+                      <tr key={r.table}>
+                        <td>{r.table}</td>
+                        <td style={{ textAlign:'right' }}>{money(r.qty)}</td>
+                        <td style={{ textAlign:'right' }}>{money(r.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()
+          )}
+
+          {/* === KH tổng hợp === */}
+          {!loading && reportType === 'khachhang_tomtat' && (
+            (() => {
+              const rows = (reportData?.rows || []).slice().sort((a,b)=> (b.revenue||0)-(a.revenue||0));
+              return rows.length === 0 ? <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div> : (
+                <table border="1" cellPadding="6" style={{ width:'100%', borderCollapse:'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th>Mã khách hàng</th>
+                      <th>Tên khách hàng</th>
+                      <th>Level</th>
+                      <th style={{ textAlign:'right' }}>Số lượng món đã order</th>
+                      <th style={{ textAlign:'right' }}>Tổng doanh thu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(r => (
+                      <tr key={r.id || r.code || r.name}>
+                        <td>{r.code || ''}</td>
+                        <td>{r.name || ''}</td>
+                        <td>{r.level || ''}</td>
+                        <td style={{ textAlign:'right' }}>{money(r.qty)}</td>
+                        <td style={{ textAlign:'right' }}>{money(r.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()
+          )}
+
+          {/* === KH chi tiết === */}
+          {!loading && reportType === 'khachhang_chitiet' && (
+            (() => {
+              const customers = Array.isArray(reportData?.customers) ? reportData.customers : [];
+              if (customers.length === 0) return <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div>;
+              return (
+                <div style={{ display:'grid', gap:16 }}>
+                  {customers.map(c => (
+                    <div key={c.id || c.code} style={{ border:'1px solid #e5e7eb', borderRadius:10 }}>
+                      <div style={{ padding:10, background:'#f9fafb', borderBottom:'1px solid #e5e7eb' }}>
+                        <b>{c.code || '(Chưa có mã)'}</b> — {c.name || '(không tên)'} &nbsp; | &nbsp; Level: {c.level || '—'}
+                        <span style={{ float:'right' }}>Tổng SL: <b>{money(c.qty)}</b> · Doanh thu: <b>{money(c.revenue)}</b></span>
+                      </div>
+                      <div style={{ padding:10 }}>
+                        {(!c.items || c.items.length === 0) ? (
+                          <div style={{ color:'#6b7280' }}>(Chưa gọi món)</div>
+                        ) : (
+                          <table border="1" cellPadding="6" style={{ width:'100%', borderCollapse:'collapse' }}>
+                            <thead><tr><th>Món</th><th style={{ textAlign:'right' }}>Số lượng</th><th style={{ textAlign:'right' }}>Doanh thu món</th></tr></thead>
+                            <tbody>
+                              {c.items.slice().sort((a,b)=> (b.revenue||0)-(a.revenue||0)).map(it => (
+                                <tr key={it.name}>
+                                  <td>{it.name}</td>
+                                  <td style={{ textAlign:'right' }}>{money(it.qty)}</td>
+                                  <td style={{ textAlign:'right' }}>{money(it.revenue)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-  function parseCsvLine(line, expectCols) {
-    const out = [];
-    let cur = '',
-      inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (inQ) {
-        if (ch === '"') {
-          if (line[i + 1] === '"') {
-            cur += '"';
-            i++;
-          } else inQ = false;
-        } else cur += ch;
-      } else {
-        if (ch === '"') inQ = true;
-        else if (ch === ',') {
-          out.push(cur);
-          cur = '';
-        } else cur += ch;
-      }
-    }
-    out.push(cur);
-    if (expectCols && out.length !== expectCols) return out;
-    return out;
-  }
-  const safeCell = v => (v == null ? '' : String(v).trim());
+
+
+
+
 
   async function removeImageFromAllMenusByKey(imgKey) {
     const menus = Array.from(menusOfImage.get(imgKey) || []);
@@ -1299,7 +2111,7 @@ const fetchMenuLevels = React.useCallback(async () => {
     );
   }
 
-  function EditMenusModal({ product, onClose, getCurrentMenus, resolveImageUrl, foodsIndex, allMenus = [] }) {
+  function EditMenusModal({ apiUrl, product, onClose, getCurrentMenus, resolveImageUrl, foodsIndex, allMenus = [] }) {
     const [saving, setSaving] = React.useState(false);
     const cur = React.useMemo(() => new Set(getCurrentMenus(product)), [product, getCurrentMenus]);
     const [sel, setSel] = React.useState(new Set(cur));
@@ -1483,9 +2295,9 @@ const fetchMenuLevels = React.useCallback(async () => {
     );
   }
   // =============== Customers (Khách hàng) ===============
-  function AddCustomerModal({ ALL_LEVELS, onDone, onCancel, apiUrl, existing = [] }) {
+  function AddCustomerModal({ LEVELS = ['P','I','I+','V','One','One+','EC'], onDone, onCancel, apiUrl, existing = [] }) {
     const [saving, setSaving] = React.useState(false);
-    const [form, setForm] = React.useState({ code: '', name: '', level: ALL_LEVELS[0] || 'P' });
+    const [form, setForm] = React.useState({ code: '', name: '', level: LEVELS[0] || 'P' });
     const codeExists = React.useMemo(() => {
       const c = (form.code || '').trim().toLowerCase();
       return !!c && existing.some(x => String(x.code || '').trim().toLowerCase() === c);
@@ -1501,7 +2313,7 @@ const fetchMenuLevels = React.useCallback(async () => {
         try { await axios.post(apiUrl('/api/customers'), payload); }
         catch { await axios.post(apiUrl('/api/members'), payload); }
         onDone?.(true);
-        if (!closeAfter) setForm({ code: '', name: '', level: ALL_LEVELS[0] || 'P' });
+        if (!closeAfter) setForm({ code: '', name: '', level: LEVELS[0] || 'P' });
       } catch (e) {
         alert('Thêm khách hàng thất bại: ' + (e?.response?.data?.error || e?.message || ''));
       } finally {
@@ -1527,9 +2339,10 @@ const fetchMenuLevels = React.useCallback(async () => {
             </div>
             <div>
               <label style={{ fontSize:12, color:'#6b7280' }}>Level</label>
-              <select value={form.level} onChange={e=>setForm(f=>({ ...f, level:e.target.value }))}
-                      style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:6, padding:'8px 10px' }}>
-                {(ALL_LEVELS||[]).map(lv=> <option key={lv} value={lv}>{lv}</option>)}
+              <select value={form.level} onChange={e=>setForm(f=>({ ...f, level:e.target.value }))}>
+                {/* nếu LEVELS chưa có nhưng form.level có giá trị lạ, vẫn render được */}
+                {!LEVELS.includes(form.level) && form.level ? <option value={form.level}>{form.level}</option> : null}
+                {LEVELS.map(lv=> <option key={lv} value={lv}>{lv}</option>)}
               </select>
             </div>
           </div>
@@ -1614,7 +2427,7 @@ out.push(...rows2.map(o => ({
     );
   }
 
-  function CustomersPanel({ apiUrl, ALL_LEVELS, socket }) {
+  function CustomersPanel({ apiUrl, LEVELS, onAddLevel, onDeleteLevel, onDiscoverLevels, socket }) {
     const [loading, setLoading] = React.useState(false);
     const [rawRows, setRawRows] = React.useState([]);
     const [rows, setRows] = React.useState([]);
@@ -1626,11 +2439,19 @@ out.push(...rows2.map(o => ({
     const [showAdd, setShowAdd] = React.useState(false);
     const [savingId, setSavingId] = React.useState(null);
     const [historyOf, setHistoryOf] = React.useState(null); // {id, code, name}
-const [page, setPage] = React.useState(1);
-const [totalCustomers, setTotalCustomers] = React.useState(0);
-// Danh sách file backup và modal hiển thị
-const [backupList, setBackupList] = React.useState([]);
-const [showBackupModal, setShowBackupModal] = React.useState(false);
+    const [page, setPage] = React.useState(1);
+    const [totalCustomers, setTotalCustomers] = React.useState(0);
+    
+
+    // Danh sách file backup và modal hiển thị
+    const [backupList, setBackupList] = React.useState([]);
+    const [showBackupModal, setShowBackupModal] = React.useState(false);
+    const loadLock = React.useRef(false); // chặn bắn trùng
+    // === Customers fetch control ===
+const PAGE_SIZE = 50;                // số bản ghi mỗi trang (có thể tăng 80/100 nếu máy khỏe)
+const cancelRef = React.useRef(null); // axios cancel cho request hiện tại
+const reloadTimerRef = React.useRef(null); // debounce cho socket customersUpdated
+
 
 // Lấy danh sách backup từ server
 async function listBackups() {
@@ -1663,19 +2484,26 @@ async function restoreBackup(file) {
     const allSelected = rows.length > 0 && selectedIds.size === rows.length;
 
 const fetchCustomersApi = React.useCallback(async (q = '', page = 1) => {
+  // huỷ request trước nếu còn
+  if (cancelRef.current) { try { cancelRef.current(); } catch {} }
+  const source = axios.CancelToken.source();
+  cancelRef.current = source.cancel;
+
+  const common = {
+    cancelToken: source.token,
+    timeout: 10000, // 10s
+    params: { q, limit: PAGE_SIZE, page, _ts: Date.now() } // _ts chống cache
+  };
+
   try {
-    // Gọi API mới có hỗ trợ phân trang (backend trả về total, page, limit, items)
-    const r = await axios.get(apiUrl('/api/customers'), {
-      params: { q, limit: 100, page }
-    });
+    const r = await axios.get(apiUrl('/api/customers'), common);
     return r.data;
-  } catch (e) {
-    // Fallback sang /api/members rồi /api/clients nếu /api/customers lỗi
+  } catch (_) {
     try {
-      const r2 = await axios.get(apiUrl('/api/members'), { params: { q, limit: 100, page } });
+      const r2 = await axios.get(apiUrl('/api/members'), common);
       return r2.data;
     } catch {
-      const r3 = await axios.get(apiUrl('/api/clients'), { params: { q, limit: 100, page } });
+      const r3 = await axios.get(apiUrl('/api/clients'), common);
       return r3.data;
     }
   }
@@ -1683,23 +2511,55 @@ const fetchCustomersApi = React.useCallback(async (q = '', page = 1) => {
 
 
 
+
 const loadCustomers = React.useCallback(async ({ q = kSearch, page = 1 } = {}) => {
+  if (loadLock.current) return;          // 🔒 đang tải thì bỏ qua
+  loadLock.current = true;
   setLoading(true);
   try {
     const data = await fetchCustomersApi(q, page);
-    // data = { items, total, page, limit } từ backend
-    const items = data.items || [];
+
+    let items = [];
+    let total = 0;
+    let curPage = page;
+
+    if (Array.isArray(data)) {
+      items = data;
+      total = data.length;
+      curPage = 1;
+    } else {
+      const rows = data.items || data.rows || [];
+      items = rows;
+      total = Number(data.total ?? rows.length ?? 0);
+      curPage = Number(data.page ?? page);
+    }
+
     setRawRows(items);
-    setRows(normalizeCustomers(items)); // hoặc setRows(items) nếu đã chuẩn
-    setPage(data.page);
-    setTotalCustomers(data.total);
+    setRows(normalizeCustomers(items));
+    setPage(curPage);
+    setTotalCustomers(total);
+
+    // 🔎 Chỉ gửi lên cha khi thực sự có level mới chưa có trong LEVELS
+    try {
+      if (onDiscoverLevels) {
+        const found = new Set(
+          (items || [])
+            .map(c => (c.level ?? c.memberLevel ?? '').toString().trim())
+            .filter(Boolean)
+        );
+        const missing = [...found].filter(lv => !(LEVELS || []).includes(lv));
+        if (missing.length) onDiscoverLevels(new Set(missing));
+      }
+    } catch {}
   } catch (e) {
     console.error(e);
     alert('Không tải được danh sách khách hàng.');
   } finally {
     setLoading(false);
+    loadLock.current = false;            // 🔓 mở khóa
   }
-}, [fetchCustomersApi, kSearch]);
+}, [fetchCustomersApi, kSearch, LEVELS, onDiscoverLevels]);
+
 
 
     // Nhận sự kiện filter từ Sidebar trái (để không phải truyền props quá sâu)
@@ -1723,11 +2583,20 @@ const loadCustomers = React.useCallback(async ({ q = kSearch, page = 1 } = {}) =
     }, []);
 
     React.useEffect(()=>{ loadCustomers(); }, [loadCustomers]);
-    React.useEffect(() => {
-      const onChange = () => loadCustomers();
-      socket?.on?.('customersUpdated', onChange);
-      return ()=> socket?.off?.('customersUpdated', onChange);
-    }, [socket, loadCustomers]);
+React.useEffect(() => {
+  const onChange = () => {
+    if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+    reloadTimerRef.current = setTimeout(() => {
+      loadCustomers();
+    }, 300); // debounce 300ms
+  };
+  socket?.on?.('customersUpdated', onChange);
+  return () => {
+    clearTimeout(reloadTimerRef.current);
+    socket?.off?.('customersUpdated', onChange);
+  };
+}, [socket, loadCustomers]);
+
 
     React.useEffect(() => {
       const lset = selectedLevels;
@@ -1792,12 +2661,21 @@ const loadCustomers = React.useCallback(async ({ q = kSearch, page = 1 } = {}) =
       }
     }
 function normalizeCustomers(items) {
-  return (items || []).map(c => ({
-    id: c.id ?? c.code ?? '',
-    code: c.code ?? c.customerCode ?? '',
-    name: c.name ?? c.customerName ?? '',
-    level: c.level ?? c.memberLevel ?? ''
-  }));
+  const pullCard = (s) => {
+    const m = String(s || '').match(/(?:-|#|\(|\s)(\d{2,})\)?\s*$/);
+    return m ? m[1] : '';
+  };
+  return (items || []).map(c => {
+    const name = c.name ?? c.customerName ?? '';
+    const inferred = pullCard(name);
+    const code = c.code ?? c.customerCode ?? inferred ?? '';
+    return {
+      id: c.id ?? code ?? '',
+      code,
+      name,
+      level: c.level ?? c.memberLevel ?? ''
+    };
+  });
 }
 
     function download(filename, text) {
@@ -1832,7 +2710,7 @@ function normalizeCustomers(items) {
         let ok=0, fail=0;
         for (let i=1; i<lines.length; i++){
           const cols = parseCsvLine(lines[i], header.length);
-          const payload = { code: safeCell(cols[codeIdx]), name: safeCell(cols[nameIdx]), level: safeCell(cols[levelIdx]) || (ALL_LEVELS[0]||'P') };
+          const payload = { code: safeCell(cols[codeIdx]), name: safeCell(cols[nameIdx]), level: safeCell(cols[levelIdx]) || (LEVELS?.[0] || 'P') };
                 // Bỏ qua nếu thiếu mã hoặc tên
       if (!payload.code || !payload.name) {
         fail++;
@@ -1858,40 +2736,8 @@ function normalizeCustomers(items) {
     }
 
     const importRef = React.useRef(null);
-    const allLevels = ALL_LEVELS || [];
-{showBackupModal && ReactDOM.createPortal(
-  <div
-    onClick={() => setShowBackupModal(false)}
-    style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'grid', placeItems:'center', zIndex:20010 }}
-  >
-    <div
-      onClick={e => e.stopPropagation()}
-      style={{ width:480, maxHeight:'80vh', overflow:'auto', background:'#fff', borderRadius:10, boxShadow:'0 20px 60px rgba(0,0,0,0.35)', padding:16 }}
-    >
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-        <div style={{ fontWeight:700 }}>Danh sách bản sao lưu</div>
-        <button onClick={() => setShowBackupModal(false)} style={{ border:'none', background:'#ef4444', color:'#fff', padding:'6px 10px', borderRadius:6, cursor:'pointer' }}>
-          Đóng
-        </button>
-      </div>
-      backupList.length === 0 ? (
-        <div style={{ color:'#6b7280' }}>(Chưa có bản backup nào)</div>
-      ) : (
-        <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
-          {backupList.map(f => (
-            <li key={f} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 10px' }}>
-              <span>{f}</span>
-              <button onClick={() => restoreBackup(f)} style={{ border:'1px solid #10b981', color:'#10b981', borderRadius:6, background:'#fff', padding:'4px 8px' }}>
-                Restore
-              </button>
-            </li>
-          ))}
-        </ul>
-      )
-    </div>
-  </div>,
-  document.body
-)}
+     const allLevels = LEVELS || [];
+
 
     return (
       <div style={{ background:'#fff', borderTopLeftRadius:12, padding:12, overflow:'auto' }}>
@@ -1920,18 +2766,50 @@ function normalizeCustomers(items) {
 </button>
 
 
-          <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6 }}>
-            <span style={{ fontSize:12, color:'#6b7280' }}>Sắp xếp:</span>
-            <select value={sortKey} onChange={e=>setSortKey(e.target.value)} style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 8px' }}>
-              <option value="code">Mã KH</option>
-              <option value="name">Tên KH</option>
-              <option value="level">Level</option>
-            </select>
-            <select value={sortDir} onChange={e=>setSortDir(e.target.value)} style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 8px' }}>
-              <option value="asc">Tăng dần</option>
-              <option value="desc">Giảm dần</option>
-            </select>
-          </div>
+<div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+  <span style={{ fontSize:12, color:'#6b7280' }}>Sắp xếp:</span>
+  <select
+    value={sortKey}
+    onChange={e=>setSortKey(e.target.value)}
+    style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 8px' }}
+  >
+    <option value="code">Mã KH</option>
+    <option value="name">Tên KH</option>
+    <option value="level">Level</option>
+  </select>
+
+  <select
+    value={sortDir}
+    onChange={e=>setSortDir(e.target.value)}
+    style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 8px' }}
+  >
+    <option value="asc">Tăng dần</option>
+    <option value="desc">Giảm dần</option>
+  </select>
+
+  <div style={{ width:1, height:20, background:'#e5e7eb', margin:'0 8px' }} />
+
+  {/* Phân trang */}
+  <span style={{ fontSize:12, color:'#6b7280' }}>Trang:</span>
+  <button
+    disabled={page <= 1 || loading}
+    onClick={() => loadCustomers({ q: kSearch, page: Math.max(1, page - 1) })}
+    style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 10px', background:'#fff' }}
+    title="Trang trước"
+  >‹</button>
+
+  <span style={{ minWidth: 52, textAlign:'center' }}>
+    <b>{page}</b> / {Math.max(1, Math.ceil(totalCustomers / PAGE_SIZE))}
+  </span>
+
+  <button
+    disabled={page >= Math.ceil(totalCustomers / PAGE_SIZE) || loading}
+    onClick={() => loadCustomers({ q: kSearch, page: page + 1 })}
+    style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 10px', background:'#fff' }}
+    title="Trang sau"
+  >›</button>
+</div>
+
         </div>
 
         {/* Bulk actions */}
@@ -1942,11 +2820,17 @@ function normalizeCustomers(items) {
           </div>
         )}
 
-        {/* Table */}
-        {loading ? (
-          <div style={{ padding:12 }}>Loading…</div>
-        ) : (
-          <div style={{ border:'1px solid #e5e7eb', borderRadius:10, overflow:'hidden' }}>
+{/* Table */}
+<div style={{ position:'relative' }}>
+  {loading && (
+    <div style={{
+      position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
+      pointerEvents:'none', fontStyle:'italic'
+    }}>
+      Loading…
+    </div>
+  )}
+  <div style={{ border:'1px solid #e5e7eb', borderRadius:10, overflow:'hidden' }}>
             <table style={{ width:'100%', fontSize:14, borderCollapse:'collapse' }}>
               <thead>
                 <tr style={{ background:'#f9fafb' }}>
@@ -1976,10 +2860,12 @@ function normalizeCustomers(items) {
                              style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 8px', width:260 }} />
                     </td>
                     <td style={{ padding:8 }}>
-                      <select value={r.level||allLevels[0]||'P'} onChange={e=>setRows(prev=>prev.map(x=>x.id===r.id?{...x, level:e.target.value}:x))}
+                      <select value={r.level || (allLevels[0] || 'P')} onChange={e=>setRows(prev=>prev.map(x=>x.id===r.id?{...x, level:e.target.value}:x))}
                               style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 8px' }}>
-                        {allLevels.map(lv=>(<option key={lv} value={lv}>{lv}</option>))}
-                      </select>
+   {/* nếu dữ liệu đang có level lạ (vd: "V-One") mà chưa kịp thêm vào list — vẫn hiển thị được */}
+   {!allLevels.includes(r.level) && r.level ? <option value={r.level}>{r.level}</option> : null}
+   {allLevels.map(lv=>(<option key={lv} value={lv}>{lv}</option>))}
+ </select>
                     </td>
                     <td style={{ textAlign:'center', padding:8 }}>
                       <button onClick={()=>setHistoryOf({ id:r.id, code:r.code, name:r.name })} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'6px 8px' }}>Xem</button>
@@ -2019,11 +2905,12 @@ function normalizeCustomers(items) {
 </div>
 
           </div>
-        )}
+          
+        </div>
 
         {showAdd && (
-          <AddCustomerModal
-            ALL_LEVELS={ALL_LEVELS}
+ <AddCustomerModal
+   LEVELS={allLevels}
             onDone={async ok=>{ setShowAdd(false); if(ok) await loadCustomers(); }}
             onCancel={()=>setShowAdd(false)}
             apiUrl={apiUrl}
@@ -2033,6 +2920,40 @@ function normalizeCustomers(items) {
         {historyOf && (
           <CustomerHistoryModal apiUrl={apiUrl} customer={historyOf} onClose={()=>setHistoryOf(null)} />
         )}
+        {showBackupModal && ReactDOM.createPortal(
+   <div
+     onClick={() => setShowBackupModal(false)}
+     style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'grid', placeItems:'center', zIndex:20010 }}
+   >
+     <div
+       onClick={e => e.stopPropagation()}
+       style={{ width:480, maxHeight:'80vh', overflow:'auto', background:'#fff', borderRadius:10, boxShadow:'0 20px 60px rgba(0,0,0,0.35)', padding:16 }}
+     >
+       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+         <div style={{ fontWeight:700 }}>Danh sách bản sao lưu</div>
+         <button onClick={() => setShowBackupModal(false)} style={{ border:'none', background:'#ef4444', color:'#fff', padding:'6px 10px', borderRadius:6, cursor:'pointer' }}>
+           Đóng
+         </button>
+       </div>
+       {backupList.length === 0 ? (
+         <div style={{ color:'#6b7280' }}>(Chưa có bản backup nào)</div>
+       ) : (
+         <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
+           {backupList.map(f => (
+             <li key={f} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid #e5e7eb', borderRadius:6, padding:'6px 10px' }}>
+               <span>{f}</span>
+               <button onClick={() => restoreBackup(f)} style={{ border:'1px solid #10b981', color:'#10b981', borderRadius:6, background:'#fff', padding:'4px 8px' }}>
+                 Restore
+               </button>
+             </li>
+           ))}
+         </ul>
+       )}
+     </div>
+   </div>,
+   document.body
+ )}
+
       </div>
     );
   }
@@ -2070,9 +2991,9 @@ function normalizeCustomers(items) {
         Khách hàng
       </button>
             <button
-        onClick={()=>setActiveTab('customers')}
+        onClick={()=>setActiveTab('report')}
         style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 10px', cursor:'pointer',
-                 background: activeTab==='customers' ? '#fff' : '#334155', color: activeTab==='customers' ? '#111' : '#fff', fontSize:12 }}>
+                 background: activeTab==='report' ? '#fff' : '#334155', color: activeTab==='report' ? '#111' : '#fff', fontSize:12 }}>
         Báo cáo
       </button>
     </div>
@@ -2259,24 +3180,25 @@ function normalizeCustomers(items) {
 
               {selectedMenu && (
                 <>
-                  <div style={{ display: 'flex', gap: 10, color: '#e5e7eb' }}>
-                    {ALL_LEVELS.map(lv => (
-                      <label key={lv} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <input
-                          type="checkbox"
-                          checked={levelsSel.has(lv)}
-                          onChange={() =>
-                            setLevelsSel(prev => {
-                              const s = new Set(prev);
-                              s.has(lv) ? s.delete(lv) : s.add(lv);
-                              return s;
-                            })
-                          }
-                        />
-                        {lv}
-                      </label>
-                    ))}
-                  </div>
+        <div style={{ display: 'flex', gap: 10, color: '#e5e7eb' }}>
+          {USER_MENU_LEVELS.map(lv => (
+            <label key={lv} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={levelsSel.has(lv)}
+                onChange={() =>
+                  setLevelsSel(prev => {
+                    const s = new Set(prev);
+                    s.has(lv) ? s.delete(lv) : s.add(lv);
+                    return s;
+                  })
+                }
+              />
+              {lv}
+            </label>
+          ))}
+        </div>
+
 
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button type="button" onClick={saveDefaultLevels} style={{ border: 'none', background: '#334155', color: '#fff', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
@@ -2304,81 +3226,187 @@ function normalizeCustomers(items) {
                 )}    
                  {activeTab === 'customers' && (
   <div>
-     <input
-       placeholder="Tìm KH (mã, tên, level)…"
-       onChange={(e)=>{
-         // bắn custom event để panel phải nhận kSearch (dùng window event cho gọn, tránh prop drilling lớn)
-         const ev = new CustomEvent('CUSTOMERS_SEARCH', { detail: { q: e.target.value }});
-         window.dispatchEvent(ev);
-       }}
-       style={{ width:'100%', border:'1px solid #374151', borderRadius:8, padding:'8px 10px', background:'#1f2937', color:'#fff', marginBottom:12 }}
-     />
-     <div style={{ background:'#1f2937', borderRadius:10, marginBottom:12, overflow:'hidden' }}>
-       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 10px' }}>
-         <div style={{ fontWeight:700 }}>Level</div>
-       </div>
-       <div style={{ padding:'0 10px 10px', display:'flex', gap:10, flexWrap:'wrap' }}>
-         {ALL_LEVELS.map(lv=>(
-           <label key={lv} style={{ display:'flex', alignItems:'center', gap:8 }}>
-             <input type="checkbox"
-               onChange={(e)=>{
-                 const ev = new CustomEvent('CUSTOMERS_LEVEL_TOGGLE', { detail: { level: lv }});
-                 window.dispatchEvent(ev);
-               }} />
-             <span>{lv}</span>
-           </label>
-         ))}
-       </div>
-     </div>
-     <div style={{ fontSize:12, color:'#9ca3af' }}>
-       Tip: Import/Export CSV thao tác ở toolbar bên phải.
-     </div>
-   </div>
- )}
-{activeTab === 'report' && (
-  <div style={{ flex:1, overflow:'auto' }}>
-    <ReportPanel apiUrl={apiUrl} />
+    <input
+  placeholder="Tìm KH (mã, tên, level)…"
+  onChange={(e) => {
+    // Thay toàn bộ handler hiện tại bằng khối dưới:
+    const v = e.target.value;
+    clearTimeout(custSearchTimer.current);
+    custSearchTimer.current = setTimeout(() => {
+      const ev = new CustomEvent('CUSTOMERS_SEARCH', { detail: { q: v } });
+      window.dispatchEvent(ev);
+    }, 300); // 300ms cho mượt, có thể chỉnh 200–400ms
+  }}
+  
+      style={{
+        width: '100%',
+        border: '1px solid #374151',
+        borderRadius: 8,
+        padding: '8px 10px',
+        background: '#1f2937',
+        color: '#fff',
+        marginBottom: 12,
+      }}
+    />
+
+    <div style={{ background: '#1f2937', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px' }}
+      >
+        <div style={{ fontWeight: 700 }}>Level</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {/* SỬA: dùng addLevelOption thay vì onAddLevel */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              addLevelOption();
+            }}
+            title="Thêm level"
+            style={{
+              border: 'none',
+              background: '#334155',
+              color: '#fff',
+              padding: '4px 8px',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: 12,
+            }}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 10px 10px', display: 'grid', gap: 8 }}>
+        {/* SỬA: dùng levelOptions thay vì allLevels */}
+        {levelOptions.map((lv) => (
+          <label key={lv} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              onChange={() => {
+                const ev = new CustomEvent('CUSTOMERS_LEVEL_TOGGLE', { detail: { level: lv } });
+                window.dispatchEvent(ev);
+              }}
+            />
+            <span>{lv}</span>
+
+            {/* SỬA: dùng deleteLevelOption thay vì onDeleteLevel */}
+            {!['P', 'I', 'I+', 'V', 'One', 'One+', 'EC'].includes(lv) && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  deleteLevelOption(lv);
+                }}
+                title={`Xoá level "${lv}"`}
+                style={{
+                  marginLeft: 'auto',
+                  border: '1px solid #ef4444',
+                  color: '#ef4444',
+                  background: '#111',
+                  borderRadius: 6,
+                  padding: '2px 6px',
+                  fontSize: 12,
+                }}
+              >
+                🗑
+              </button>
+            )}
+          </label>
+        ))}
+      </div>
+    </div>
+
+<div style={{ fontSize: 12, color: '#9ca3af' }}>
+  Tip: Export Excel thao tác ở toolbar bên phải.
+</div>
+
   </div>
 )}
+
+
 
       </div>
 
       {/* RIGHT: Main list */}
-      {activeTab === 'products' ? (
+      {activeTab === 'products' && (
         <div style={{ background: '#fff', borderTopLeftRadius: 12, padding: 12, overflow: 'auto' }} ref={rightPaneRef}>
-        {/* Toolbar (Hàng hóa) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-          <button onClick={() => setShowAdd(true)} style={{ border: '1px solid #e5e7eb', borderRadius: 6, background: '#111', color: '#fff', padding: '8px 12px', fontSize: 12 }}>
-            + Thêm mới
-          </button>
+{/* Toolbar (Hàng hóa) */}
+<div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    marginBottom: 10,
+  }}
+>
+  <button
+    onClick={() => setShowAdd(true)}
+    style={{
+      border: '1px solid #111',
+      borderRadius: 6,
+      background: '#111',
+      color: '#fff',
+      padding: '8px 12px',
+      fontSize: 12,
+    }}
+  >
+    + Thêm mới
+  </button>
 
-          <button type="button" onClick={exportCsv} style={{ border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', padding: '8px 12px', fontSize: 12 }}>
-            Export CSV
-          </button>
+  {/* Chỉ còn Export Excel, không còn Import/Tải mẫu */}
+  <button
+    type="button"
+    onClick={exportProductsXlsx}
+    style={{
+      border: '1px solid #e5e7eb',
+      borderRadius: 6,
+      background: '#fff',
+      padding: '8px 12px',
+      fontSize: 12,
+    }}
+  >
+    Export Excel
+  </button>
 
-          <input ref={importRef} type="file" accept=".csv" hidden onChange={e => { if (e.target.files?.[0]) importCsv(e.target.files[0]); e.target.value = ''; }} />
-          <button type="button" onClick={() => importRef.current?.click()} style={{ border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', padding: '8px 12px', fontSize: 12 }}>
-            Import CSV
-          </button>
+  <div
+    style={{
+      marginLeft: 'auto',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+    }}
+  >
+    <span style={{ fontSize: 12, color: '#6b7280' }}>Sắp xếp:</span>
+    <select
+      value={sortKey}
+      onChange={e => setSortKey(e.target.value)}
+      style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: 6,
+        padding: '6px 8px',
+      }}
+    >
+      <option value="code">Mã</option>
+      <option value="name">Tên</option>
+      <option value="price">Giá</option>
+    </select>
+    <select
+      value={sortDir}
+      onChange={e => setSortDir(e.target.value)}
+      style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: 6,
+        padding: '6px 8px',
+      }}
+    >
+      <option value="asc">Từ thấp → cao</option>
+      <option value="desc">Từ cao → thấp</option>
+    </select>
+  </div>
+</div>
 
-          <button type="button" onClick={downloadTemplate} style={{ border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', padding: '8px 12px', fontSize: 12 }}>
-            Tải mẫu
-          </button>
-
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, color: '#6b7280' }}>Sắp xếp:</span>
-            <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '6px 8px' }}>
-              <option value="code">Mã</option>
-              <option value="name">Tên</option>
-              <option value="price">Giá</option>
-            </select>
-            <select value={sortDir} onChange={e => setSortDir(e.target.value)} style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '6px 8px' }}>
-              <option value="asc">Từ thấp → cao</option>
-              <option value="desc">Từ cao → thấp</option>
-            </select>
-          </div>
-          
-        </div>
 
         {/* Bulk actions */}
         {selectedIds.size > 0 && (
@@ -2453,19 +3481,83 @@ function normalizeCustomers(items) {
       }}
     />
   </td>
-                      {/* Ảnh */}
-                      <td style={{ padding: 8 }}>
-                         {(() => {
+{/* Ảnh */}
+<td style={{ padding: 8 }}>
+  {(() => {
+    const imgKey = imageKeyFromUrlOrName(r.imageUrl, r.imageName);
     const thumb = r.imageUrl || resolveImageUrlForProduct(r);
-    return thumb ? (
-      <img src={resolveImg(thumb)} alt=""
-        onClick={() => setPreview(thumb)}
-        style={{ width:96, height:96, objectFit:'contain', border:'1px solid #e5e7eb', borderRadius:8, cursor:'zoom-in', background:'#fff' }} />
-    ) : (
-      <span style={{ color:'#9ca3af' }}>{r.imageName || '(chưa có)'}</span>
+    const ver = imageVersions[imgKey];
+
+    const handleChangeImage = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (!imgKey) {
+        alert('Không xác định được imageName để cập nhật.');
+        return;
+      }
+      try {
+        const fd = new FormData();
+        fd.append('image', file);
+        fd.append('imageName', imgKey); // giữ nguyên imageName, chỉ đổi nội dung file
+        await axios.post(apiUrl('/api/upload/replace'), fd);
+        // Cập nhật version để tránh cache
+        setImageVersions(prev => ({ ...prev, [imgKey]: Date.now() }));
+        alert('Đổi ảnh thành công.');
+      } catch (err) {
+        alert('Đổi ảnh thất bại: ' + (err?.response?.data?.error || err?.message || ''));
+      } finally {
+        e.target.value = '';
+      }
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {thumb ? (
+          <img
+            src={resolveImg(ver ? `${thumb}?v=${ver}` : thumb)}
+            alt=""
+            onClick={() => setPreview(thumb)}
+            style={{
+              width: 96,
+              height: 96,
+              objectFit: 'contain',
+              border: '1px solid #e5e7eb',
+              borderRadius: 8,
+              cursor: 'zoom-in',
+              background: '#fff',
+            }}
+          />
+        ) : (
+          <span style={{ color: '#9ca3af' }}>{r.imageName || '(chưa có)'}</span>
+        )}
+
+        {/* Nút đổi ảnh */}
+        <label
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px 8px',
+            borderRadius: 6,
+            border: '1px solid #e5e7eb',
+            fontSize: 12,
+            cursor: 'pointer',
+            background: '#f9fafb',
+          }}
+        >
+          Đổi ảnh
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleChangeImage}
+          />
+        </label>
+      </div>
     );
- })()}
-                      </td>
+  })()}
+</td>
+
 
                       <td style={{ padding: 8 }}>
                         <input
@@ -2639,23 +3731,26 @@ function normalizeCustomers(items) {
           />
         )}
 
-        {/* Edit Menus modal */}
-        {menuEditor.open && (
-          <EditMenusModal
-            product={menuEditor.product}
-            onClose={async changed => {
-              setMenuEditor({ open: false, product: null });
-              if (changed) await loadFoodsLite();
-            }}
-            getCurrentMenus={p => {
-              const key = imageKeyFromUrlOrName(p.imageUrl, p.imageName);
-              return Array.from(menusOfImage.get(key) || new Set());
-            }}
-            resolveImageUrl={() => resolveImageUrlForProduct(menuEditor.product)}
-            foodsIndex={foodsIndex}
-            allMenus={menuOptions}
-          />
-        )}
+
+{/* Edit Menus modal */}
+{menuEditor.open && (
+  <EditMenusModal
+    apiUrl={apiUrl}
+    product={menuEditor.product}
+    onClose={(changed) => {
+      setMenuEditor({ open: false, product: null });
+      if (changed) loadFoodsLite();
+    }}
+    getCurrentMenus={(p) => {
+      const key = imageKeyFromUrlOrName(p?.imageUrl, p?.imageName);
+      return Array.from(menusOfImage.get(key) || []);
+    }}
+    resolveImageUrl={resolveImageUrlForProduct}
+    foodsIndex={foodsIndex}
+    allMenus={menuOptions}
+  />
+)}
+
 
         {/* Preview ảnh full-screen */}
         {previewUrl && (
@@ -2700,9 +3795,41 @@ function normalizeCustomers(items) {
             document.body,
           )}
       </div>
-      ) : (
-        <CustomersPanel apiUrl={apiUrl} ALL_LEVELS={ALL_LEVELS} socket={socket} />
       )}
+
+
+
+ {activeTab === 'customers' && (
+<CustomersPanel
+  apiUrl={apiUrl}
+  LEVELS={levelOptions}
+  onAddLevel={addLevelOption}
+  onDeleteLevel={deleteLevelOption}
+  onDiscoverLevels={(found) => {
+    if (!found || !found.size) return;                 // không làm gì khi rỗng
+    setLevelOptions(prev => {
+      const union = new Set(prev);
+      let changed = false;
+      for (const lv of found) {
+        if (!union.has(lv)) { union.add(lv); changed = true; }
+      }
+      return changed ? Array.from(union) : prev;       // ⚠️ chỉ return mảng mới khi có thay đổi
+    });
+  }}
+  socket={socket}
+/>
+
+ )}
+{activeTab === 'report' && (
+  <div style={{ background:'#fff', borderTopLeftRadius: 12, padding: 12, overflow: 'auto' }} ref={rightPaneRef}>
+    <ReportPanel
+      apiUrl={apiUrl}
+      membersMap={membersMap}     // 🚩 PHẢI truyền
+      ALL_LEVELS={levelOptions}
+    />
+  </div>
+)}
+
       {/* Overlay preview ảnh (click-zoom) */}
       {preview && (
         <div

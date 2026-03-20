@@ -16,10 +16,20 @@ import io from 'socket.io-client';
 import axios from 'axios';
 
 // ===== Limit concurrent axios requests to avoid net::ERR_INSUFFICIENT_RESOURCES =====
+// ===== Limit concurrent axios requests to avoid net::ERR_INSUFFICIENT_RESOURCES =====
 const MAX_CONCURRENT = 4;
 let __axios_pending = 0;
 const __axios_queue = [];
-function __axios_release() { const next = __axios_queue.shift(); if (next) next(); }
+
+function __axios_release() {
+  const next = __axios_queue.shift();
+  if (next) next();
+}
+
+function __axios_done() {
+  __axios_pending = Math.max(0, __axios_pending - 1);
+  __axios_release();
+}
 
 axios.interceptors.request.use(async (config) => {
   if (__axios_pending >= MAX_CONCURRENT) {
@@ -29,10 +39,27 @@ axios.interceptors.request.use(async (config) => {
   return config;
 });
 
+const TOKEN_KEY = 'food-admin-token';
+
 axios.interceptors.response.use(
-  (resp) => { __axios_pending--; __axios_release(); return resp; },
-  (err)  => { __axios_pending--; __axios_release(); return Promise.reject(err); }
+  (res) => {
+    __axios_done();
+    return res;
+  },
+  (error) => {
+    __axios_done();
+    const status = error?.response?.status;
+    if (status === 401) {
+      // Phiên đăng nhập hết hạn / token hỏng
+      localStorage.removeItem(TOKEN_KEY);
+      alert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
 );
+
+
 
 
 
@@ -277,7 +304,7 @@ const printDialog = useCallback((o) => {
       .replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     const rows = (o.items || [])
-      .map(it => `<tr><td style="padding:4px 0; width:32px;">x${it.qty}</td><td style="padding:4px 0;">${esc(humanizeName(it.imageName))}</td></tr>`)
+      .map(it => `<tr><td style="padding:4px 0; width:32px;">x${it.qty}</td><td style="padding:4px 0;">${esc(humanizeName(it.name || it.imageName || it.imageKey))}</td></tr>`)
       .join('');
       const html = `
 <!doctype html>
@@ -388,11 +415,68 @@ const printDialog = useCallback((o) => {
   const [toDate, setToDate]       = useState('');
   const [activeTable, setActiveTable] = useState(null);
   const [orderSort, setOrderSort] = useState('time_desc');
+  const [productCodeByImage, setProductCodeByImage] = useState({});
   const [autoPrint, setAutoPrint] = useState(() => {
     const raw = localStorage.getItem('autoPrint');
     return raw ? raw === 'true' : true;
   });
   useEffect(() => { localStorage.setItem('autoPrint', String(autoPrint)); }, [autoPrint]);
+    // Load danh sách sản phẩm để map imageName -> mã món (productCode)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await axios.get(apiUrl('/api/products'), {
+          params: { limit: 70000 },
+        });
+
+        const rows = Array.isArray(res.data?.rows)
+          ? res.data.rows
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
+
+        const map = {};
+        for (const p of rows) {
+          const img = getImageName(p.imageUrl || p.imageName || '');
+          if (!img) continue;
+
+          const code = (p.productCode || p.code || '').toString().trim();
+          if (!code) continue;
+
+          map[img] = code;
+        }
+
+        if (!cancelled) setProductCodeByImage(map);
+      } catch (e) {
+        console.warn('Load product codes for Orders view failed:', e?.message || e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn]);
+  const resolveItemCode = useCallback(
+    (item) => {
+      if (!item) return '';
+
+      // Nếu backend sau này có trả sẵn productCode / code thì ưu tiên dùng
+      const direct = (item.productCode || item.code || '').toString().trim();
+      if (direct) return direct;
+
+      // Map theo imageName
+      const img = getImageName(item.imageUrl || item.imageName || item.imageKey || '');
+      if (img && productCodeByImage[img]) return productCodeByImage[img];
+
+      return '';
+    },
+    [productCodeByImage]
+  );
+
 
   const buildRange = useCallback(() => {
     const startOfDay = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
@@ -495,10 +579,16 @@ socket.on('menuLevelsUpdated', onMenuLevelsUpdated);
     const onOrderPlaced = async ({ order }) => {
       const normalize = (o = {}) => ({ ...o, cancelReason: o.cancelReason ?? o.reason ?? o?.meta?.cancelReason ?? o?.statusReason ?? null });
       const ord = normalize(order || {});
-      setOrders(prev => [ord, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+       setOrders(prev => {
+   const map = new Map(prev.map(o => [o.id, o]));
+   map.set(ord.id, { ...(map.get(ord.id) || {}), ...ord });
+   const arr = Array.from(map.values());
+   arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+   return arr;
+ });
 
       const staff = (ord?.staff || '').toUpperCase();
-      const dishNames = (ord?.items || []).map(i => speakName(i.imageName));
+      const dishNames = (ord?.items || []).map(i => speakName(i.name || i.imageName || i.imageKey));
       speakSequence([staff, ...dishNames], 1000);
 
       if (autoPrint) {
@@ -522,8 +612,7 @@ socket.on('menuLevelsUpdated', onMenuLevelsUpdated);
       );
     };
 
-    socket.on('orderPlaced', onOrderPlaced);
-    socket.on('orderUpdated', onOrderUpdated);
+
 
     return () => {
       socket.off('foodAdded', debounceFetch);
@@ -547,39 +636,121 @@ socket.on('menuLevelsUpdated', onMenuLevelsUpdated);
 ]);
 
   useEffect(() => {
-const onVersion = (ver) => {
-    // Đã từng nhận version trước đó và khác ⇒ có bản cập nhật
-    if (versionRef.current && versionRef.current !== ver) {
+ const normVer = (v) => String(v ?? '');
+ const onVersion = (ver) => {
+   const cur = normVer(versionRef.current);
+   const next = normVer(ver);
+   if (cur && cur !== next) {
       // Nếu đang mở trang Quản lý thì không reload vội
       if (showManageRef.current) {
 
         setReloadPending(true);
       } else {
-        window.location.reload();
+       if (!window.__reloadedOnce) {
+         window.__reloadedOnce = true;
+         window.location.reload();
       }
-    } else {
-      versionRef.current = ver; // ghi nhớ lần đầu
+    }
+   } else {
+     versionRef.current = next; // ghi nhớ lần đầu (đã chuẩn hoá)
     }
   };
     socket.on('appVersion', onVersion);
     return () => socket.off('appVersion', onVersion);
   }, []);
 
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    const onConnect = () => {
-      fetchFoods();
-      if (tab === 'orders') fetchOrders();
-    };
-    socket.on('connect', onConnect);
-    return () => socket.off('connect', onConnect);
-  }, [isLoggedIn, fetchFoods, fetchOrders, tab]);
+// 1) Effect chỉ lo sự kiện "connect" thôi
+useEffect(() => {
+  if (!isLoggedIn) return;
+  const onConnect = () => {
+    fetchFoods();
+    if (tab === 'orders') fetchOrders();
+  };
+  socket.on('connect', onConnect);
+  return () => {
+    socket.off('connect', onConnect);
+  };
+}, [isLoggedIn, fetchFoods, fetchOrders, tab]);
+
+// 2) Effect riêng cho "reconnect"
+useEffect(() => {
+  if (!isLoggedIn) return;
+  const onReconnect = () => { if (tab === 'orders') fetchOrders(); };
+  socket.on('reconnect', onReconnect);
+  return () => socket.off('reconnect', onReconnect);
+}, [isLoggedIn, tab, fetchOrders]);
+
 
   useEffect(() => {
     if (!isLoggedIn) return;
     socket.on('foodRenamed', debounceFetch);
     return () => socket.off('foodRenamed', debounceFetch);
   }, [isLoggedIn, debounceFetch]);
+// Luôn gắn listener cho đơn hàng, không phụ thuộc didInitRef
+useEffect(() => {
+  if (!isLoggedIn) return;
+
+  const normalize = (o = {}) => ({
+    ...o,
+    cancelReason: o.cancelReason ?? o.reason ?? o?.meta?.cancelReason ?? o?.statusReason ?? null,
+  });
+
+  // Dùng Set để tránh auto-print lặp nếu nhận trùng event
+  const printedRef = window.__printedOnce || (window.__printedOnce = new Set());
+
+  const onOrderPlaced = async ({ order }) => {
+    const ord = normalize(order || {});
+
+    // Cập nhật danh sách đơn (dedupe + sort)
+    setOrders((prev) => {
+      const map = new Map(prev.map((o) => [o.id, o]));
+      map.set(ord.id, { ...(map.get(ord.id) || {}), ...ord });
+      const arr = Array.from(map.values());
+      arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return arr;
+    });
+
+    // Đọc tên món an toàn (name || imageName || imageKey)
+    const staff = (ord?.staff || '').toUpperCase();
+    const dishNames = (ord?.items || []).map((i) =>
+      speakName(i?.name || i?.imageName || i?.imageKey)
+    );
+    speakSequence([staff, ...dishNames], 1000);
+
+    // Tự in nếu bật Auto print + chưa in lần nào
+    if (autoPrint && !printedRef.has(ord.id)) {
+      try {
+        await printOrderSmart(ord);
+        printedRef.add(ord.id);
+      } catch (e) {
+        console.warn('Auto print failed:', e?.message || e);
+      }
+    }
+  };
+
+  const onOrderUpdated = (payload = {}) => {
+    const { orderId, status, order, reason, cancelReason, area: areaHint, tableNo: tableHint } = payload;
+    const reasonFinal = cancelReason ?? reason ?? order?.cancelReason ?? order?.reason ?? null;
+
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== orderId) return o;
+        const merged = { ...o, ...(order || {}), status };
+        if (reasonFinal) merged.cancelReason = reasonFinal;
+        merged.area = merged.area ?? areaHint ?? o.area;
+        merged.tableNo = merged.tableNo ?? tableHint ?? o.tableNo;
+        return merged;
+      })
+    );
+  };
+
+  socket.on('orderPlaced', onOrderPlaced);
+  socket.on('orderUpdated', onOrderUpdated);
+  return () => {
+    socket.off('orderPlaced', onOrderPlaced);
+    socket.off('orderUpdated', onOrderUpdated);
+  };
+}, [isLoggedIn, autoPrint, printOrderSmart, speakName, speakSequence]);
 
 
 
@@ -743,66 +914,9 @@ const handleAddMenu = async () => {
 };
 
 
-  const handleAddFood = async (forceType) => {
-    if (!isAdmin) return alert('Admin only.');
-    const chosenType = forceType || selectedType;
-    if (!chosenType || chosenType === SOLD_OUT_KEY) return alert('Select a valid menu first.');
-    const chosenLevels = levelConfig[chosenType] || [];
+  
 
-    const input = document.createElement('input');
-    input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
-    input.onchange = async (e) => {
-      const files = Array.from(e.target.files || []);
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('type', chosenType);
-        try {
-          const uploadRes = await axios.post(apiUrl('/api/upload'), formData);
-const { imageUrl, hash } = uploadRes.data || {};
-const body = { imageUrl, type: chosenType, hash };
 
-// ✅ BẮT BUỘC có levelAccess cho món mới
-const fallbackMenuLv = levelConfig[chosenType];
-const effectiveLv = (Array.isArray(chosenLevels) && chosenLevels.length > 0)
-  ? chosenLevels
-  : (Array.isArray(fallbackMenuLv) && fallbackMenuLv.length > 0 ? fallbackMenuLv : ['V-One']);
-body.levelAccess = effectiveLv;
-
-try { await axios.post(apiUrl('/api/foods'), body); }
-
-          catch (err) { if (err.response?.status === 409) alert('Item already exists in this menu.'); else alert('Add failed: ' + (err?.message || '')); }
-        } catch (err) {
-          alert('Upload failed: ' + (err?.message || ''));
-        }
-      }
-      await fetchFoods();
-    };
-    input.click();
-  };
-
-// 3) --- handleApplyLevels: đổi path cho POST menu-levels ---
-const handleApplyLevels = async () => {
-  if (!isAdmin) return alert('Admin only.');
-  if (selectedType === SOLD_OUT_KEY) return;
-  const levels = levelConfig[selectedType] || [];
-  if (!window.confirm(`Apply levels [${levels.join(', ') || '—'}] to ALL items in "${selectedType}"?`)) return;
-  try {
-    // ĐÚNG: endpoint áp dụng xuống toàn bộ món theo type
-    await axios.post(apiUrl('/api/products/update-levels-by-type'), { type: selectedType, levelAccess: levels });
-  } catch (e1) {
-    // Fallback server cũ
-    try {
-      await axios.post(apiUrl('/api/update-levels-by-type'), { type: selectedType, levelAccess: levels });
-    } catch (e2) {
-      setApiError(e2?.message || 'API error');
-      return;
-    }
-  }
-  await fetchFoods();
-  setLevelConfig(await fetchMenuLevels());
-  alert('Levels applied.');
-};
 
   const handleDrop = async (targetId) => {
     if (!isAdmin) return;
@@ -919,7 +1033,7 @@ const foodsForDisplay = normQ
             Sign in
           </button>
           <div style={{ marginTop: 10, fontSize: 12, color: '#9ca3af' }}>
-            Default: <b>admin/admin123</b> or <b>kitchen/kitchen123</b>
+            Default: <b>kitchen / kitchen123</b>
           </div>
         </form>
       </div>
@@ -1124,85 +1238,83 @@ const foodsForDisplay = normQ
       </div>
 
       {/* Main */}
-      {tab === 'foods' ? (
-        <div style={{ padding: 16, background: '#fff8dc', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <h2 style={{ margin: 0 }}>{selectedType === SOLD_OUT_KEY ? SOLD_OUT_MENU : selectedType}</h2>
+{tab === 'foods' ? (
+  <div
+    style={{
+      padding: 16,
+      background: '#fff8dc',
+      overflowY: 'auto',
+      height: '100%',          // đảm bảo vùng này là vùng scroll
+    }}
+  >
+    {/* THANH TIÊU ĐỀ + SEARCH + QUẢN LÝ — STICKY */}
+    <div
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 12,
+        paddingBottom: 8,
+        background: '#fff8dc',  // cùng màu nền để không bị trong suốt
+      }}
+    >
+      <h2 style={{ margin: 0 }}>
+        {selectedType === SOLD_OUT_KEY ? SOLD_OUT_MENU : selectedType}
+      </h2>
 
-            {selectedType !== SOLD_OUT_KEY && isAdmin && (
-              <>
-              {false && (
-                <button
-                  onClick={() => handleAddFood()}
-                  title="Add images (items) into this menu"
-                  style={{ padding: '8px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
-                >
-                  + Add item
-                </button>
-              )}
-              {false && (
-                <button
-                  onClick={handleApplyLevels}
-                  title="Apply levels to all items in this menu"
-                  style={{ padding: '8px 12px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
-                >
-                  Apply levels
-                </button>
-                )}
-                {false && (
-                <button
-                  onClick={(e) => handleDeleteEntireMenu(selectedType, e)}
-                  disabled={bulkDeleting || !sidebarTypesWithFallback.includes(selectedType)}
-                  title="Delete the selected menu (all items & images)"
-                  style={{ padding: '8px 12px', background: bulkDeleting ? '#9ca3af' : '#dc2626', color: '#fff', border: 'none', borderRadius: 8, cursor: bulkDeleting ? 'not-allowed' : 'pointer' }}
-                >
-                  {bulkDeleting ? 'Deleting…' : '🗑️ Delete this menu'}
-                </button>
-                )}
-              </>
-            )}
+      {selectedType !== SOLD_OUT_KEY && isAdmin && (
+        <>
+          {/* các nút Add item / Apply levels / Delete menu đang để false nên không hiện */}
+        </>
+      )}
 
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search…"
-              style={{
-                marginLeft: 'auto',
-                width: 220,
-                padding: '6px 8px',
-                border: '1px solid #e5e7eb',
-                borderRadius: 6,
-                fontSize: 14,
-                background: '#fff',
-              }}
-            />
-            {isAdmin && <button
-              onClick={() => setShowManage(true)}
-              style={{
-                marginLeft: 8,
-                padding: '6px 8px',
-                border: '1px solid #e5e7eb',
-                borderRadius: 6,
-                background: '#fff',
-                fontSize: 14,
-                cursor: 'pointer',
-              }}
-              title="Quản lý hàng hóa"
-            >
-              Quản lý
-            </button>}
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search…"
+        style={{
+          flex: 1,
+          maxWidth: 260,
+          padding: '6px 8px',
+          borderRadius: 6,
+          border: '1px solid #d1d5db',
+          fontSize: 14,
+        }}
+      />
 
-          </div>
-          {showManage && (
-  <ManageProductsModal
-    onClose={() => setShowManage(false)}
-    apiUrl={apiUrl}
-    resolveImg={resolveImg}
-    socket={socket}
-    ALL_LEVELS={ALL_LEVELS}
-  />
-)}
+      {isAdmin && (
+        <button
+          onClick={() => setShowManage(true)}
+          style={{
+            marginLeft: 8,
+            padding: '6px 8px',
+            border: '1px solid #e5e7eb',
+            borderRadius: 6,
+            background: '#fff',
+            fontSize: 14,
+            cursor: 'pointer',
+          }}
+          title="Quản lý hàng hóa"
+        >
+          Quản lý
+        </button>
+      )}
+    </div>
+
+    {/* Phần dưới vẫn giữ nguyên: modal quản lý, level selector, grid món */}
+    {showManage && (
+      <ManageProductsModal
+        onClose={() => setShowManage(false)}
+        apiUrl={apiUrl}
+        resolveImg={resolveImg}
+        socket={socket}
+        ALL_LEVELS={ALL_LEVELS}
+      />
+    )}
 
 
           {/* LEVEL selector */}
@@ -1541,23 +1653,57 @@ const foodsForDisplay = normQ
 
                             <div style={{ padding: 10 }}>
                               {/* items */}
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 6, alignItems: 'center' }}>
-                                {o.items.map((it, idx) => {
-                                  const url = imageUrlByName(it.imageName);
-                                  return (
-                                    <React.Fragment key={idx}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        {url ? <img src={url} alt="" style={{ width: 38, height: 38, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee' }} /> : <div style={{ width: 38 }} />}
-                                         <div style={{ fontSize: 12 }}>
-   {it.imageName}
-   {it.note ? ` – ${it.note}` : ''}
- </div>
-                                      </div>
-                                      <div style={{ fontWeight: 700 }}>x{it.qty}</div>
-                                    </React.Fragment>
-                                  );
-                                })}
-                              </div>
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: '1fr auto',
+    rowGap: 6,
+    alignItems: 'center',
+  }}
+>
+  {o.items.map((it, idx) => {
+    // Lấy tên ảnh chuẩn
+    const imgName = getImageName(it.imageName || it.imageKey || '');
+    const url = imageUrlByName(imgName);
+
+    // Lấy mã món từ item / map products
+    const code = resolveItemCode(it); // <-- dùng helper
+
+    // Tên món hiển thị
+    const label = humanizeName(it.name || imgName);
+    const displayName = code ? `${code} - ${label}` : label;
+
+    return (
+      <React.Fragment key={idx}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {url ? (
+            <img
+              src={url}
+              alt=""
+              style={{
+                width: 38,
+                height: 38,
+                objectFit: 'cover',
+                borderRadius: 6,
+                border: '1px solid #eee',
+              }}
+            />
+          ) : (
+            <div style={{ width: 38 }} />
+          )}
+
+          <div style={{ fontSize: 12 }}>
+            {displayName}
+            {it.note ? ` – ${it.note}` : ''}
+          </div>
+        </div>
+
+        <div style={{ fontWeight: 700 }}>x{it.qty}</div>
+      </React.Fragment>
+    );
+  })}
+</div>
+
 
                               {o.note && <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>📝 {o.note}</div>}
                               {(o.status === ORDER_STATUS.CANCELLED && o.cancelReason) && (
