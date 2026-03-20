@@ -1,5 +1,5 @@
 param(
-  [string]$ApiUrl = "http://192.168.100.137:5000"
+  [string]$ApiUrl = "http://192.168.101.70:5000"
 )
 
 $ErrorActionPreference = "Stop"
@@ -62,6 +62,6 @@ pm2 save
 
 Write-Host "== Kiểm tra nhanh =="
 pm2 ls
-Write-Host "Admin:  http://192.168.100.137:3000"
-Write-Host "User:   http://192.168.100.137:3001"
+Write-Host "Admin:  http://192.168.101.70:3000"
+Write-Host "User:   http://192.168.101.70:3001"
 Write-Host "API:    $ApiUrl"

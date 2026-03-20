@@ -6,14 +6,15 @@ const router = express.Router();
 const { parseFromImageFile } = require('../utils/fileParsing');
 
 // ----- Auth stub (giữ như cũ — nếu có middleware riêng thì thay vào) -----
-const authenticateJWT = (req, res, next) => next();
-const authorizeRoles = (..._r) => (req, res, next) => next();
+
 
 // ----- Đường dẫn dữ liệu / thư mục -----
-const DATA_DIR          = path.join(__dirname, '..', 'data');
+const ROOT       = path.join(__dirname, '..');
+const DATA_DIR   = path.join(ROOT, 'data');
+const IMAGES_DIR = path.join(ROOT, 'public', 'images');
 const PRODUCTS_FILE     = path.join(DATA_DIR, 'products.json');
 const FOODS_FILE        = path.join(DATA_DIR, 'foods.json'); // dữ liệu User/Admin dùng
-const IMAGES_DIR        = path.join(__dirname, '..', 'public', 'images');
+
 const GROUPS_FILE       = path.join(DATA_DIR, 'groups.json'); // (legacy) — KHÔNG còn dùng làm Menu
 const ITEM_GROUPS_FILE  = path.join(DATA_DIR, 'item-groups.json'); // ★ mới
 const VERSION_FILE      = path.join(DATA_DIR, 'version.json');
@@ -276,7 +277,7 @@ function syncMenusForImage(req, imageName, targetMenus = []) {
 
 // ====== API gốc (giữ nguyên phần sản phẩm, bỏ “reportGroup”, thêm “itemGroup”) ======
 
-router.get('/', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.get('/', (req,res) => {
   let { q = '', type = '', group = '', itemGroup = '', sort = 'name', dir = 'asc', page = 1, limit = 200 } = req.query;
   page = +page; limit = +limit;
   const list = readJson(PRODUCTS_FILE, []);
@@ -304,7 +305,7 @@ router.get('/', authenticateJWT, authorizeRoles('admin'), (req, res) => {
 });
 
 // Thêm mới sản phẩm (bổ sung itemGroup; bỏ reportGroup)
-router.post('/', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/',  (req, res) => {
   const items = readJson(PRODUCTS_FILE, []);
   const p = { ...req.body }; // {productCode,name,menuType,groups,price,imageName,imageUrl, itemGroup?}
 
@@ -346,7 +347,7 @@ router.post('/', authenticateJWT, authorizeRoles('admin'), (req, res) => {
 });
 
 // Sửa sản phẩm (bổ sung itemGroup; bỏ reportGroup)
-router.put('/:id', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.put('/:id', (req, res) => {
   const items = readJson(PRODUCTS_FILE, []);
   const id = req.params.id;
   const i = items.findIndex(x => x.id === id);
@@ -377,7 +378,7 @@ router.put('/:id', authenticateJWT, authorizeRoles('admin'), (req, res) => {
 });
 
 // Quét ảnh có sẵn (giữ nguyên)
-router.post('/bootstrap-from-images', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/bootstrap-from-images', (req, res) => {
   const { defaultMenuType = '', defaultGroup = '' } = req.body || {};
   const items = readJson(PRODUCTS_FILE, []);
   const exists = new Map(items.map(x => [x.id, x]));
@@ -417,7 +418,7 @@ router.post('/bootstrap-from-images', authenticateJWT, authorizeRoles('admin'), 
 });
 
 // Refresh codes (giữ nguyên)
-router.post('/refresh-codes', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/refresh-codes',  (req, res) => {
   const items = readJson(PRODUCTS_FILE, []);
   let updated = 0, filled = 0;
   for (const it of items) {
@@ -432,7 +433,7 @@ router.post('/refresh-codes', authenticateJWT, authorizeRoles('admin'), (req, re
 });
 
 // Ảnh chưa gắn product (giữ nguyên)
-router.get('/list-images', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.get('/list-images',(req, res) => {
   const items = readJson(PRODUCTS_FILE, []);
   const exists = new Set(items.map(x => (x.imageName || '').toLowerCase()));
   const out = [];
@@ -453,11 +454,11 @@ router.get('/list-images', authenticateJWT, authorizeRoles('admin'), (req, res) 
 });
 
 // (legacy) Groups API — vẫn để nguyên cho ai đang dùng, nhưng KHÔNG còn là “Menu”
-router.get('/groups', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.get('/groups', (req, res) => {
   const groups = readGroups().sort((a, b) => (a.order || 999) - (b.order || 999) || a.name.localeCompare(b.name));
   res.json(groups);
 });
-router.post('/groups', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/groups', (req, res) => {
   let { name } = req.body || {};
   try { name = assertSafeGroup(name || ''); } catch (err) { return res.status(400).json({ error: err.message }); }
   if (!name) return res.status(400).json({ error: 'Tên nhóm không được trống' });
@@ -480,7 +481,7 @@ router.post('/groups', authenticateJWT, authorizeRoles('admin'), (req, res) => {
 // ===== ITEM-GROUPS (Nhóm hàng) =====
 
 // GET /api/products/item-groups
-router.get('/item-groups', authenticateJWT, authorizeRoles('admin'), (_req, res) => {
+router.get('/item-groups', (_req, res) => {
   try {
     const list = readItemGroups()
       .sort((a, b) => (a.order || 999) - (b.order || 999) || a.name.localeCompare(b.name));
@@ -491,7 +492,7 @@ router.get('/item-groups', authenticateJWT, authorizeRoles('admin'), (_req, res)
 });
 
 // POST /api/products/item-groups {name}
-router.post('/item-groups', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/item-groups', (req, res) => {
   try {
     let { name } = req.body || {};
     name = assertSafeGroup(name || '');
@@ -518,7 +519,7 @@ router.post('/item-groups', authenticateJWT, authorizeRoles('admin'), (req, res)
 });
 
 // DELETE /api/products/item-groups/:name?reassign=
-router.delete('/item-groups/:name', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.delete('/item-groups/:name', (req, res) => {
   try {
     const raw = req.params.name || '';
     const name = assertSafeGroup(raw);
@@ -556,7 +557,7 @@ router.delete('/item-groups/:name', authenticateJWT, authorizeRoles('admin'), (r
 });
 
 // Bulk update/delete (giữ nguyên; không đụng itemGroup ngoài patch trực tiếp)
-router.post('/bulk-update', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/bulk-update', (req, res) => {
   const { ids = [], patch = {} } = req.body || {};
   if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids rỗng' });
 
@@ -586,7 +587,7 @@ router.post('/bulk-update', authenticateJWT, authorizeRoles('admin'), (req, res)
   res.json({ ok: true, updated });
 });
 
-router.post('/bulk-delete', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/bulk-delete', (req, res) => {
   const { ids = [], removeFood = false } = req.body || {};
   if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids rỗng' });
 
@@ -618,7 +619,7 @@ router.post('/bulk-delete', authenticateJWT, authorizeRoles('admin'), (req, res)
 // ====== NEW: MENU MEMBERSHIP APIs (giữ nguyên để không ảnh hưởng UI cũ) ======
 
 // Map toàn cục imageName -> [menus]
-router.get('/menu-map', authenticateJWT, authorizeRoles('admin'), (_req, res) => {
+router.get('/menu-map', (_req, res) => {
   const foods = readFoods();
   const map = {};
   for (const f of foods) {
@@ -632,7 +633,7 @@ if (t && !map[img].includes(t)) map[img].push(t);
 });
 
 // Lấy menu của 1 ảnh
-router.get('/menu-memberships', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.get('/menu-memberships', (req, res) => {
   const imageName = assertSafeImageName(req.query.imageName || '');
   if (!imageName) return res.status(400).json({ error: 'Thiếu imageName' });
   const menus = getMenusOfImage(imageName);
@@ -640,7 +641,7 @@ router.get('/menu-memberships', authenticateJWT, authorizeRoles('admin'), (req, 
 });
 
 // Gán/bỏ menu cho 1 ảnh
-router.post('/menu-memberships', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/menu-memberships', (req, res) => {
   try {
     let { imageName, menus } = req.body || {};
     if (!imageName) return res.status(400).json({ error: 'Thiếu imageName' });
@@ -674,7 +675,7 @@ function applyLevelsToFoodsAndBroadcast(req, canonType, finalLevels) {
 }
 
 // === UPDATE LEVELS BY TYPE === (giữ nguyên)
-router.post('/update-levels-by-type', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/update-levels-by-type',(req, res) => {
   const { type, levelAccess } = req.body || {};
   if (!type || !Array.isArray(levelAccess)) {
     return res.status(400).json({ error: 'Thiếu type hoặc levelAccess' });
@@ -698,7 +699,7 @@ const finalLevels = [...new Set((levelAccess || []).filter(lv => VALID_LEVELS.in
 
 
 // === REPAIR: copy ảnh còn thiếu sang thư mục menu tương ứng ===
-router.post('/repair-food-images', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/repair-food-images', (req, res) => {
   const foods = readFoods();
   const products = readJson(PRODUCTS_FILE, []);
   let fixed = 0;
@@ -728,7 +729,7 @@ router.post('/repair-food-images', authenticateJWT, authorizeRoles('admin'), (re
 });
 
 // === REPAIR (1): chuẩn hoá type/imageUrl và bảo đảm ảnh nằm đúng thư mục menu ===
-router.post('/repair-food-records', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/repair-food-records', (req, res) => {
   const foods = readFoods();
   const products = readJson(PRODUCTS_FILE, []);
   let fixed = 0, moved = 0;
@@ -785,12 +786,12 @@ function getAllMenuTypesProducts() {
 }
 
 // GET /api/products/menu-types
-router.get('/menu-types', authenticateJWT, authorizeRoles('admin'), (_req, res) => {
+router.get('/menu-types', (_req, res) => {
   res.json(getAllMenuTypesProducts());
 });
 
 // GET /api/products/menu-levels
-router.get('/menu-levels', authenticateJWT, authorizeRoles('admin'), (_req, res) => {
+router.get('/menu-levels', (_req, res) => {
     const raw = readMenuLevels() || {};
   const out = {};
   for (const k of Object.keys(raw)) out[canonicalMenuName(k)] = raw[k];
@@ -798,7 +799,7 @@ router.get('/menu-levels', authenticateJWT, authorizeRoles('admin'), (_req, res)
 });
 
 // POST /api/products/menu-levels
-router.post('/menu-levels', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/menu-levels',  (req, res) => {
   try {
     const { type, levelAccess } = req.body || {};
     if (!type) return res.status(400).json({ error: 'Thiếu type' });
@@ -820,7 +821,7 @@ const cleaned = [...new Set((levelAccess || []).filter(lv => VALID_LEVELS.includ
 });
 // === CREATE MENU TYPE ===
 // POST /api/products/menu-types { type, levelAccess? }
-router.post('/menu-types', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.post('/menu-types',  (req, res) => {
   try {
     const { type, levelAccess } = req.body || {};
     if (!type) return res.status(400).json({ error: 'Thiếu type' });
@@ -856,7 +857,7 @@ router.post('/menu-types', authenticateJWT, authorizeRoles('admin'), (req, res) 
 // === DELETE MENU TYPE ===
 // DELETE /api/products/menu-types/:type
 // Chỉ cho xóa khi chưa có bất kỳ food nào thuộc type này (tránh rác dữ liệu/ảnh)
-router.delete('/menu-types/:type', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+router.delete('/menu-types/:type', (req, res) => {
   try {
     const raw = req.params.type || '';
     const typeKey = canonicalMenuName(raw);

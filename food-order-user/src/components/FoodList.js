@@ -166,7 +166,7 @@ const [carts, setCarts] = useState(() => {
   const [orderForm, setOrderForm] = useState(() => {
     try {
       const last = JSON.parse(localStorage.getItem('lastOrderInfo') || '{}');
-      return { staff: last.staff || '', memberCard: '', customerName: '', level: '', note: '' };
+      return { staff: last.staff || '', memberCard: '', customerCode: '', customerName: '', level: '', note: '' };
 
     } catch { return { staff: '', memberCard: '', customerName: '', note: '' }; }
   });
@@ -667,10 +667,12 @@ const lookupMember = useCallback(async (memberCard) => {
   try {
     if (!memberCard) return;
     const res = await axios.get(apiUrl('/api/member-lookup'), { params: { memberCard } });
-    const name = res?.data?.customerName || '';
-    const lv   = res?.data?.level || '';
+ const code = res?.data?.code || res?.data?.customerCode || '';
+ const name = res?.data?.customerName || res?.data?.name || '';
+ const lv   = res?.data?.level || res?.data?.tier || '';
     setOrderForm(f => ({
       ...f,
+      customerCode: code || '',
       customerName: name || 'Chưa có thông tin',
       level: lv || 'Chưa có thông tin'
     }));
@@ -694,7 +696,7 @@ const lookupMember = useCallback(async (memberCard) => {
       setToast('Nhập Nhân viên & Member'); return;
     }
     const items = Object.entries(currentCart).map(([imageName, item]) => ({
-  imageName,
+  imageKey: imageName, // <— chuẩn hoá key ảnh
   qty: item.qty,
   note: item.note || ''
 }));
@@ -704,8 +706,12 @@ const lookupMember = useCallback(async (memberCard) => {
         area: selectedTable.area,
         tableNo: selectedTable.tableNo,
         staff: orderForm.staff.trim(),
-        memberCard: orderForm.memberCard.trim(),
-        customerName: orderForm.customerName?.trim() || null,
+     memberCard: orderForm.memberCard.trim(), // để server đối chiếu nếu cần
+     customer: {                              // <— SNAPSHOT ngay tại thời điểm gửi
+       code: (orderForm.customerCode || '').trim() || null,
+      name: (orderForm.customerName || '').trim() || null,
+       level: (orderForm.level || '').trim() || null
+    },
         note: orderForm.note || '',
         items,
         consumeStock: false,
@@ -1183,14 +1189,20 @@ const lookupMember = useCallback(async (memberCard) => {
       {/* Hiển thị hình ảnh và tên món */}
       {f ? (
         <>
-          <img
-            src={f.imageUrl}
-            alt={f.name}
+<img src={withBase(f.imageUrl)} alt={f.name}
             style={{ width: 40, height: 40, marginRight: 8, borderRadius: 4 }}
           />
-          <div style={{ flex: 1 }}>
-            <div>{f.name}</div>
-          </div>
+<div style={{ flex: 1 }}>
+  <div>
+    {(f.productCode || f.code) && (
+      <span style={{ fontWeight: 600, marginRight: 4 }}>
+        [{f.productCode || f.code}]
+      </span>
+    )}
+    {f.productName || f.name}
+  </div>
+</div>
+
         </>
       ) : (
         <div style={{ flex: 1 }}>
@@ -1237,42 +1249,55 @@ const lookupMember = useCallback(async (memberCard) => {
                         <div style={{ color: '#6b7280' }}>Chưa có đơn nào hoặc đã đóng bàn.</div>
                       ) : (
                         <div style={{ display: 'grid', gap: 10 }}>
+
                           {tableOrders.filter(o => !o.tableClosed).map((o) => {
-                            const pill = {
-                              PENDING:    { bg:'#fee2e2', fg:'#991b1b', label:'PENDING' },
-                              IN_PROGRESS:{ bg:'#dbeafe', fg:'#1d4ed8', label:'IN PROGRESS' },
-                              DONE:       { bg:'#dcfce7', fg:'#065f46', label:'DONE' },
-                              CANCELLED:  { bg:'#f3f4f6', fg:'#374151', label:'CANCELLED' },
-                            }[o.status] || { bg:'#eee', fg:'#333', label:o.status };
+  const pill = {
+    PENDING:    { bg:'#fee2e2', fg:'#991b1b', label:'PENDING' },
+    IN_PROGRESS:{ bg:'#dbeafe', fg:'#1d4ed8', label:'IN PROGRESS' },
+    DONE:       { bg:'#dcfce7', fg:'#065f46', label:'DONE' },
+    CANCELLED:  { bg:'#f3f4f6', fg:'#374151', label:'CANCELLED' },
+  }[o.status] || { bg:'#eee', fg:'#333', label:o.status };
 
-                            return (
-                              <div key={o.id} style={{ border:'1px solid #eee', borderRadius:8, overflow:'hidden' }}>
-                                <div style={{ padding:10, background:'#f9fafb', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                                    <div style={{ fontWeight:700 }}>Order #{o.id}</div>
-                                    <div style={{ fontSize:12, color:'#6b7280' }}>{new Date(o.createdAt).toLocaleString()}</div>
-                                    <div style={{ fontSize:12, background:pill.bg, color:pill.fg, padding:'2px 8px', borderRadius:999 }}>{pill.label}</div>
-                                  </div>
-                                  <div style={{ fontSize:12, color:'#6b7280' }}>
-                                    STAFF: <b>{o.staff}</b>{o.customerName ? <> · CUSTOMER: <b>{o.customerName}</b></> : null}
-                                  </div>
-                                </div>
+  return (
+    <div key={o.id} style={{ border:'1px solid #eee', borderRadius:8, overflow:'hidden' }}>
+      {/* phần header giữ nguyên */}
 
-                                <div style={{ padding:10 }}>
-                                  <div style={{ display:'grid', gridTemplateColumns:'1fr auto', rowGap:6, alignItems:'center' }}>
-                                    {o.items.map((it, idx) => {
-                                      const f = findFoodByImageName(it.imageName);
-                                      return (
-                                        <React.Fragment key={idx}>
-                                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                                            {f ? <img src={withBase(f.imageUrl)} alt="" style={{ width:38, height:38, objectFit:'cover', borderRadius:6, border:'1px solid #eee' }} /> : <div style={{ width:38 }} />}
-                                            <div style={{ fontSize:12 }}>{it.imageName}</div>
-                                          </div>
-                                          <div style={{ fontWeight:700 }}>x{it.qty}</div>
-                                        </React.Fragment>
-                                      );
-                                    })}
-                                  </div>
+      <div style={{ padding:10 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr auto', rowGap:6, alignItems:'center' }}>
+          {o.items.map((it, idx) => {
+            // Ưu tiên dùng imageKey (do backend enrichItem tạo ra)
+            const key = it.imageKey || it.imageName;
+            const f = findFoodByImageName(key);
+            const label = (f?.productName || f?.name || it.name || key || '').trim();
+
+            return (
+              <React.Fragment key={idx}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  {f ? (
+                    <img
+                      src={withBase(f.imageUrl)}
+                      alt={f.name}
+                      style={{ width: 40, height: 40, borderRadius: 6, border:'1px solid #eee' }}
+                    />
+                  ) : (
+                    <div style={{ width: 40, height: 40 }} />
+                  )}
+
+                  <div style={{ fontSize: 12 }}>
+                    {(f?.productCode || f?.code) && (
+                      <span style={{ fontWeight: 600, marginRight: 4 }}>
+                        [{f.productCode || f.code}]
+                      </span>
+                    )}
+                    {label}
+                  </div>
+                </div>
+
+                <div style={{ fontWeight: 700 }}>x{it.qty}</div>
+              </React.Fragment>
+            );
+          })}
+        </div>
 
                                   {o.note && (
                                     <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>📝 {o.note}</div>
@@ -1464,6 +1489,7 @@ const lookupMember = useCallback(async (memberCard) => {
   placeholder="Chưa có thông tin"
   style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6, background:'#f3f4f6' }}
 />
+
 
               </div>
               <div>

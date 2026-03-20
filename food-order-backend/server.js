@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const productsRouter = require('./routes/products');
+const ordersRouter = require('./routes/orders');
 const rateLimit = require('express-rate-limit');
 
 
@@ -90,8 +91,17 @@ const MULTER_TMP = path.join(ROOT, 'temp_uploads');
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_ME_DEV_SECRET';
-const TOKEN_TTL = '7d';
+const JWT_SECRET = process.env.JWT_SECRET || 'change-this-in-env';
+const JWT_TTL    = process.env.JWT_TTL    || '7d';
+
+function signToken(user) {
+  return jwt.sign(
+    { sub: user.id, username: user.username, role: user.role },
+    JWT_SECRET,
+    { expiresIn: JWT_TTL }
+  );
+}
+
 
 // ====== CORS + Socket.IO ======
 const allowOrigins = (() => {
@@ -112,7 +122,7 @@ app.use(cors({
 app.use(express.json({ limit: '4mb' }));
 app.use('/images', express.static(path.join(PUBLIC_DIR, 'images')));
 app.use('/api/products', productsRouter);
-
+app.use('/api/orders',   ordersRouter);
 // ===================================================================
 // ======================  QZ SIGNING (NEW)  ==========================
 // ===================================================================
@@ -462,15 +472,21 @@ function saveMembers() {
 
 // ====== Auth helpers ======
 function authenticateJWT(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  const auth = req.headers['authorization'] || '';
+  if (!auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing token' });
+  }
   const token = auth.slice(7);
   jwt.verify(token, JWT_SECRET, (err, payload) => {
-    if (err) return res.status(401).json({ error: 'Invalid token' });
-    req.user = payload; // { sub, role }
+    if (err) {
+      // Token hết hạn / sai key
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    req.user = payload;
     next();
   });
 }
+
 function authorizeRoles(...roles) {
   return (req, _res, next) => {
     if (!req.user) return next({ status: 401, message: 'Unauthorized' });
@@ -498,6 +514,39 @@ const APP_VERSION =
 io.on('connection', (socket) => {
   socket.emit('appVersion', APP_VERSION);
 });
+
+
+// Danh sách khách hàng có phân trang + tìm kiếm
+app.get('/api/customers', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+  const norm = (s) => String(s || '').toLowerCase();
+  const q = norm(req.query.q || '');
+  const page = Math.max(1, parseInt(req.query.page || '1', 10));
+
+  // Tăng giới hạn để Báo cáo join đủ Tên KH + Level cho tất cả mã KH
+  const MAX_LIMIT = 70000;
+  const limit = Math.max(1, Math.min(MAX_LIMIT, parseInt(req.query.limit || '50', 10)));
+
+  const all = Object.entries(members || {}).map(([code, m]) => {
+    const name  = m?.name || m?.customerName || '';
+    const level = m?.level || m?.memberLevel || m?.tier || '';
+    return { id: code, code, name, level };
+  });
+
+  const filtered = q
+    ? all.filter(it => [it.code, it.name, it.level].some(v => norm(v).includes(q)))
+    : all;
+
+  const start = (page - 1) * limit;
+  const items = filtered.slice(start, start + limit);
+  res.json({ items, total: filtered.length, page, limit });
+});
+
+
+ // Alias để FE fallback: giữ đúng output & phân trang như /api/customers
+ app.get('/api/members', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+   req.url = req.url.replace('/api/members', '/api/customers');
+   app._router.handle(req, res);
+ });
 
 app.get('/api/version', (_req, res) => res.json({ version: APP_VERSION }));
 
@@ -586,7 +635,12 @@ app.post('/api/login', (req, res) => {
     if (!user) return res.status(401).json({ error: 'Sai thông tin đăng nhập' });
     const ok = bcrypt.compareSync(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'Sai thông tin đăng nhập' });
-    const token = jwt.sign({ sub: user.username, role: user.role }, JWT_SECRET, { expiresIn: TOKEN_TTL });
+    const token = jwt.sign(
+  { sub: user.username, role: user.role },
+  JWT_SECRET,
+  { expiresIn: JWT_TTL }
+);
+
     res.json({ token, role: user.role, username: user.username });
   } catch (e) {
     console.error('Login error:', e);
@@ -650,7 +704,10 @@ app.get('/api/foods', (_req, res) => {
       // KHÔNG trả reportGroup nữa
       itemGroup: itemGroup || null,
       name: p?.name || null,
-      productCode: p?.productCode || p?.code || null,
+      productCode: (p && p.productCode) ? String(p.productCode).trim() :
+             (p && p.code) ? String(p.code).trim() :
+             null,
+
       menuType: p?.menuType || null,
       price: priceNum,
     };
@@ -934,6 +991,75 @@ app.post('/api/upload', authenticateJWT, authorizeRoles('admin'), multerUpload.s
     res.status(500).json({ error: 'Upload thất bại' });
   }
 });
+// --- Đổi ảnh cho món (ghi đè theo imageName hiện có) ---
+app.post(
+  '/api/upload/replace',
+  authenticateJWT,
+  authorizeRoles('admin'),
+  multerUpload.single('image'),
+  (req, res) => {
+    const tmpPath = req.file?.path;
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'Không có ảnh được gửi' });
+      }
+
+      const rawName = String(req.body.imageName || '').trim();
+      if (!rawName) {
+        return res.status(400).json({ message: 'Thiếu imageName' });
+      }
+
+      // Chỉ lấy tên file, chặn path lạ
+      const imageName = path.basename(rawName);
+      if (/[\/\\]/.test(imageName) || imageName.includes('..')) {
+        return res.status(400).json({ message: 'imageName không hợp lệ' });
+      }
+
+      const imgLower = imageName.toLowerCase();
+      const buf = fs.readFileSync(tmpPath);
+      const hash = crypto.createHash('md5').update(buf).digest('hex');
+
+      // 1) Ghi đè bản gốc trong MASTER
+      ensureDir(MASTER_DIR);
+      const masterPath = path.join(MASTER_DIR, imgLower);
+      fs.writeFileSync(masterPath, buf);
+
+      // 2) Ghi đè (hoặc tạo mới) trong thư mục SOURCE cho tiện quản lý
+      const sourceDir = path.join(IMAGES_DIR, 'SOURCE');
+      ensureDir(sourceDir);
+      const sourcePath = path.join(sourceDir, imageName);
+      fs.writeFileSync(sourcePath, buf);
+
+      // 3) Ghi đè ảnh trong tất cả menu đang dùng image này
+      const menus = Array.from(
+        new Set(
+          foods
+            .filter(f => extractImageName(f.imageUrl) === imgLower)
+            .map(f => f.type)
+        )
+      );
+
+      for (const menu of menus) {
+        const dir = path.join(IMAGES_DIR, menu);
+        ensureDir(dir);
+        const existing = findCaseInsensitiveFile(dir, imgLower);
+        const dest = existing || path.join(dir, imageName.toLowerCase());
+        fs.writeFileSync(dest, buf);
+      }
+
+      res.json({ ok: true, hash });
+    } catch (e) {
+      console.error('Upload replace error:', e);
+      res.status(500).json({ error: 'Đổi ảnh thất bại' });
+    } finally {
+      if (tmpPath && fs.existsSync(tmpPath)) {
+        try {
+          fs.unlinkSync(tmpPath);
+        } catch {}
+      }
+    }
+  }
+);
 
 // --- Thêm món (Admin) ---
 app.post('/api/foods', authenticateJWT, authorizeRoles('admin'), (req, res) => {
@@ -1661,7 +1787,112 @@ app.get('/api/status-history', authenticateJWT, authorizeRoles('admin', 'kitchen
     res.status(500).json({ error: 'Không lấy được lịch sử' });
   }
 });
-// server.js
+
+// ========== Date helpers for REPORT (mốc 06:00) ==========
+function at06h(d) {
+  const x = new Date(d);
+  x.setHours(6, 0, 0, 0);
+  return x;
+}
+function endAt05h59m59s999(d) {
+  // kết thúc 05:59:59.999 của ngày kế tiếp so với mốc 06:00 ngày hiện tại
+  const x = at06h(d);
+  return new Date(x.getTime() - 1); // sẽ dùng với "mốc của NGÀY KẾ TIẾP"
+}
+function startOfMonth06(d) {
+  const x = new Date(d);
+  x.setDate(1);
+  return at06h(x);
+}
+function startOfYear06(d) {
+  const x = new Date(d);
+  x.setMonth(0, 1);
+  return at06h(x);
+}
+function mondayOfWeek06(d) {
+  // chuẩn hoá về thứ Hai 06:00 (week = Mon..Sun)
+  const x = at06h(d);
+  const day = x.getDay(); // 0=CN, 1=Mon,...6=Sun
+  const diffToMonday = (day === 0 ? -6 : (1 - day)); // đưa về thứ Hai
+  const monday = new Date(x);
+  monday.setDate(x.getDate() + diffToMonday);
+  monday.setHours(6, 0, 0, 0);
+  return monday;
+}
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function addMonths(d, n) {
+  const x = new Date(d);
+  x.setMonth(x.getMonth() + n);
+  return x;
+}
+function addYears(d, n) {
+  const x = new Date(d);
+  x.setFullYear(x.getFullYear() + n);
+  return x;
+}
+
+/**
+ * Trả về { fromTime, toTime } theo preset, với mốc NGÀY MỚI = 06:00
+ * - thisWeek:   Mon 06:00 tuần này → Mon 05:59:59.999 tuần sau
+ * - lastWeek:   Mon 06:00 tuần trước → Mon 05:59:59.999 tuần này
+ * - thisMonth:  ngày 1 06:00 tháng này → ngày 1 05:59:59.999 tháng sau
+ * - lastMonth:  ngày 1 06:00 tháng trước → ngày 1 05:59:59.999 tháng này
+ * - thisYear:   01/01 06:00 năm nay → 01/01 05:59:59.999 năm sau
+ * - lastYear:   01/01 06:00 năm trước → 01/01 05:59:59.999 năm nay
+ */
+function getDateRangeByPreset(preset) {
+  const now = new Date();
+
+  switch (String(preset || '').toLowerCase()) {
+    case 'thisweek': {
+      const mon = mondayOfWeek06(now);
+      const nextMon = addDays(mon, 7);      // thứ Hai tuần sau 06:00
+      const to = new Date(nextMon.getTime() - 1); // 05:59:59.999 trước đó
+      return { fromTime: mon, toTime: to };
+    }
+    case 'lastweek': {
+      const monThis = mondayOfWeek06(now);
+      const monPrev = addDays(monThis, -7); // thứ Hai tuần trước 06:00
+      const to = new Date(monThis.getTime() - 1);
+      return { fromTime: monPrev, toTime: to };
+    }
+    case 'thismonth': {
+      const start = startOfMonth06(now);      // 01 tháng này 06:00
+      const next  = startOfMonth06(addMonths(now, 1));
+      const to = new Date(next.getTime() - 1);
+      return { fromTime: start, toTime: to };
+    }
+    case 'lastmonth': {
+      const startThis = startOfMonth06(now);
+      const startPrev = startOfMonth06(addMonths(now, -1));
+      const to = new Date(startThis.getTime() - 1);
+      return { fromTime: startPrev, toTime: to };
+    }
+    case 'thisyear': {
+      const start = startOfYear06(now);       // 01/01 năm nay 06:00
+      const next  = startOfYear06(addYears(now, 1));
+      const to = new Date(next.getTime() - 1);
+      return { fromTime: start, toTime: to };
+    }
+    case 'lastyear': {
+      const startThis = startOfYear06(now);
+      const startPrev = startOfYear06(addYears(now, -1));
+      const to = new Date(startThis.getTime() - 1);
+      return { fromTime: startPrev, toTime: to };
+    }
+    default: {
+      // Fallback: coi như "thisWeek"
+      const mon = mondayOfWeek06(now);
+      const nextMon = addDays(mon, 7);
+      const to = new Date(nextMon.getTime() - 1);
+      return { fromTime: mon, toTime: to };
+    }
+  }
+}
 
 app.get('/api/report', authenticateJWT, authorizeRoles('admin'), (req, res) => {
   // from/to dạng ISO, hoặc dùng “week”, “lastWeek”, “month”, “lastMonth”, “year”, “lastYear”
@@ -1698,7 +1929,7 @@ app.get('/api/report', authenticateJWT, authorizeRoles('admin'), (req, res) => {
   const itemsByMenu = {};
   selectedOrders.forEach(o => {
     o.items.forEach(it => {
-      const f = foods.find(x => getImageName(x.imageUrl) === String(it.imageName || '').toLowerCase());
+      const f = foods.find(x => extractImageName(x.imageUrl) === String(it.imageName || '').toLowerCase());
       const menu = f?.type || 'OTHER';
       if (!itemsByMenu[menu]) itemsByMenu[menu] = {};
       const name = it.imageName || it.name;
@@ -1707,16 +1938,32 @@ app.get('/api/report', authenticateJWT, authorizeRoles('admin'), (req, res) => {
   });
 
   // Khách hàng đã order
-  const customers = {};
-  selectedOrders.forEach(o => {
-    if (!o.memberCard) return;
-    const card = String(o.memberCard);
-    if (!customers[card]) customers[card] = { name: o.customerName || null, items: {} };
-    o.items.forEach(it => {
-      const key = it.imageName || it.name;
-      customers[card].items[key] = (customers[card].items[key] || 0) + (Number(it.qty) || 1);
-    });
+// Khách hàng đã order (kéo cả level từ members)
+const customers = {};
+selectedOrders.forEach(o => {
+  if (!o.memberCard) return;
+
+  const card = String(o.memberCard).trim();
+  const m = members[card] || {};                 // <-- dữ liệu mục Khách hàng
+  const level = m.level || m.memberLevel || null;
+
+  if (!customers[card]) {
+    customers[card] = {
+      code: card,                                 // mã khách (cho dễ dùng ở FE)
+      name: o.customerName || m.customerName || m.name || null,
+      level,                                      // <-- bổ sung cột Level
+      lastSeenAt: m.lastSeenAt || null,          // (tuỳ dùng)
+      ordersCount: m.ordersCount || 0,           // (tuỳ dùng)
+      items: {}
+    };
+  }
+
+  o.items.forEach(it => {
+    const key = it.imageName || it.name;
+    customers[card].items[key] = (customers[card].items[key] || 0) + (Number(it.qty) || 1);
   });
+});
+
 
   res.json({
     totalOrders,
