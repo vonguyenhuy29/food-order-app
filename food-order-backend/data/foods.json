@@ -73,7 +73,7 @@
     "id": 1753713777675,
     "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SUNDAE.jpg",
     "type": "SNACK MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "6fde2c412bb914d096aa0a3dd02283af",
     "levelAccess": [
       "P",
@@ -81,7 +81,7 @@
       "V-One"
     ],
     "order": 5,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777676,
@@ -143,7 +143,7 @@
     "id": 1753713777681,
     "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/FISH-CAKE.jpg",
     "type": "SNACK MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1a63508d547266288402f06122c23577",
     "levelAccess": [
       "P",
@@ -151,7 +151,7 @@
       "V-One"
     ],
     "order": 10,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777682,
@@ -171,7 +171,7 @@
     "id": 1755923952356,
     "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
     "type": "SNACK MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "9d6a6d92c00aa9f3037c1e2424daf8a8",
     "levelAccess": [
       "P",
@@ -179,7 +179,7 @@
       "V-One"
     ],
     "order": 12,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777683,
@@ -269,7 +269,7 @@
     "id": 1755923952357,
     "imageUrl": "http://192.168.101.70:5000/images/SNACK TRAVEL/C1.DIMSUM.jpg",
     "type": "SNACK TRAVEL",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "9d6a6d92c00aa9f3037c1e2424daf8a8",
     "levelAccess": [
       "P",
@@ -277,7 +277,7 @@
       "V-One"
     ],
     "order": 19,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777693,
@@ -339,7 +339,7 @@
     "id": 1755923952354,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "ab2d193ab7b55ac5690c5bc9a2790b1f",
     "levelAccess": [
       "P",
@@ -347,7 +347,7 @@
       "V-One"
     ],
     "order": 24,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777721,
@@ -367,7 +367,7 @@
     "id": 1753713777722,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1c1136053dbc00396cb7e15941089381",
     "levelAccess": [
       "P",
@@ -375,7 +375,7 @@
       "V-One"
     ],
     "order": 26,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777736,
@@ -479,7 +479,7 @@
     "id": 1753713777713,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "e4f4201261789ccf10a0cc39d60cbb3e",
     "levelAccess": [
       "P",
@@ -487,7 +487,7 @@
       "V-One"
     ],
     "order": 34,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777708,
@@ -535,7 +535,7 @@
     "id": 1753713777724,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K8.NAKJU-BOKKUM.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "b084e529039afea72a78c0626f4939d5",
     "levelAccess": [
       "P",
@@ -543,13 +543,13 @@
       "V-One"
     ],
     "order": 38,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777716,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K9.YANG-PYUNG-HAEJANGKUK.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "P",
@@ -557,13 +557,13 @@
       "V-One"
     ],
     "order": 39,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777702,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "8413689f1c0ee75adc70bde50b895129",
     "levelAccess": [
       "P",
@@ -571,7 +571,7 @@
       "V-One"
     ],
     "order": 40,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777729,
@@ -647,7 +647,7 @@
     "id": 1753713777709,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K16.SOGOGI-GUKBAP.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "68c0ab83c0151cb555c492c906dbdf09",
     "levelAccess": [
       "P",
@@ -655,7 +655,7 @@
       "V-One"
     ],
     "order": 46,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777735,
@@ -759,7 +759,7 @@
     "id": 1753713777712,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/SUNDAE.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "6fde2c412bb914d096aa0a3dd02283af",
     "levelAccess": [
       "P",
@@ -767,7 +767,7 @@
       "V-One"
     ],
     "order": 54,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777715,
@@ -829,7 +829,7 @@
     "id": 1753713777732,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/FISH-CAKE.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1a63508d547266288402f06122c23577",
     "levelAccess": [
       "P",
@@ -837,7 +837,7 @@
       "V-One"
     ],
     "order": 59,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777733,
@@ -910,14 +910,14 @@
     "id": 1755923952355,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C1.DIMSUM.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "ab2d193ab7b55ac5690c5bc9a2790b1f",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 65,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777763,
@@ -936,14 +936,14 @@
     "id": 1753713777764,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C3.FRIED-BEEF-NOODLES.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1c1136053dbc00396cb7e15941089381",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 67,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777778,
@@ -1040,14 +1040,14 @@
     "id": 1753713777755,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K4.SO-BULGOGI-JJIGAE.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "7375afe1b5651e274e8359d22bf16292",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 75,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777750,
@@ -1092,40 +1092,40 @@
     "id": 1753713777766,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K8.NAKJU-BOKKUM.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "b084e529039afea72a78c0626f4939d5",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 79,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777758,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K9.YANG-PYUNG-HAEJANGKUK.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 80,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777744,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K10.JJAJANGMYOEN.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "fac35cd567fa00941030e7ede1dd881d",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 81,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777771,
@@ -1196,14 +1196,14 @@
     "id": 1753713777751,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K16.SOGOGI-GUKBAP.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "68c0ab83c0151cb555c492c906dbdf09",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 87,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777777,
@@ -1300,14 +1300,14 @@
     "id": 1753713777754,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/SUNDAE.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "22984b864b472307c0fb668cc5b0bd97",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 95,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777757,
@@ -1365,14 +1365,14 @@
     "id": 1753713777774,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/FISH-CAKE.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "af9b96977c413e318050d4c1aff8d386",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 100,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777775,
@@ -1544,13 +1544,13 @@
     "id": 1755923952358,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/C1.DIMSUM.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "ab2d193ab7b55ac5690c5bc9a2790b1f",
     "levelAccess": [
       "V-One"
     ],
     "order": 114,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777864,
@@ -1568,13 +1568,13 @@
     "id": 1753713777865,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/C3.FRIED-BEEF-NOODLES.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "82eac03e733081c9566f35899f216436",
     "levelAccess": [
       "V-One"
     ],
     "order": 116,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777879,
@@ -1664,13 +1664,13 @@
     "id": 1753713777856,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K4.SO-BULGOGI-JJIGAE.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "e4f4201261789ccf10a0cc39d60cbb3e",
     "levelAccess": [
       "V-One"
     ],
     "order": 124,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777851,
@@ -1712,37 +1712,37 @@
     "id": 1753713777867,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K8.NAKJU-BOKKUM.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "b084e529039afea72a78c0626f4939d5",
     "levelAccess": [
       "V-One"
     ],
     "order": 128,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777859,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K9.YANG-PYUNG-HAEJANGKUK.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "V-One"
     ],
     "order": 129,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777845,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K10.JJAJANGMYOEN.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "8413689f1c0ee75adc70bde50b895129",
     "levelAccess": [
       "V-One"
     ],
     "order": 130,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777872,
@@ -1808,13 +1808,13 @@
     "id": 1753713777852,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K16.SOGOGI-GUKBAP.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "b105490701d4214523d2e853456280d8",
     "levelAccess": [
       "V-One"
     ],
     "order": 136,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777878,
@@ -1928,13 +1928,13 @@
     "id": 1753713777855,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/SUNDAE.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "22984b864b472307c0fb668cc5b0bd97",
     "levelAccess": [
       "V-One"
     ],
     "order": 146,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777858,
@@ -1988,13 +1988,13 @@
     "id": 1753713777875,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/FISH-CAKE.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1a63508d547266288402f06122c23577",
     "levelAccess": [
       "V-One"
     ],
     "order": 151,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777876,
@@ -2168,13 +2168,13 @@
     "id": 1753713777893,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/SEARED-HOOKAIDO-SCALLOP-&-FOIE-GRAS.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "9128d9af786e25683ffba44f307fb582",
     "levelAccess": [
       "V-One"
     ],
     "order": 166,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777894,
@@ -3230,7 +3230,7 @@
     "id": 1755923952368,
     "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/avocado-croissant.jpg",
     "type": "SNACK MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "acea09e446d4ae23c17f52659d683fd1",
     "levelAccess": [
       "P",
@@ -3238,7 +3238,7 @@
       "V-One"
     ],
     "order": 253,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1755923952369,

@@ -1,5 +1,201 @@
 [
   {
+    "id": "704",
+    "createdAt": "2026-03-22T13:17:02.937Z",
+    "status": "PENDING",
+    "area": "2 Floor",
+    "tableNo": 2024,
+    "staff": "Erina",
+    "memberCard": "30638",
+    "customer": {
+      "code": null,
+      "name": "Gyubo Seo",
+      "level": "V"
+    },
+    "note": "2pax - 2f",
+    "items": [
+      {
+        "imageKey": "k10.jjajangmyoen.jpg",
+        "name": "JJAJANGMYOEN",
+        "qty": 1,
+        "price": 131000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k17.dwaeji-gukbap.jpg",
+        "name": "DWAEJI GUKBAP",
+        "qty": 1,
+        "price": 110000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "703",
+    "createdAt": "2026-03-22T11:42:31.021Z",
+    "status": "PENDING",
+    "area": "2 Floor",
+    "tableNo": 2010,
+    "staff": "Erina",
+    "memberCard": "17750",
+    "customer": {
+      "code": null,
+      "name": "Hoa Binh Dang Bui",
+      "level": "I+"
+    },
+    "note": "Tra bill",
+    "items": [
+      {
+        "imageKey": "k1.galbi-tang.jpg",
+        "name": "GALBI TANG",
+        "qty": 1,
+        "price": 176000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k14.tong-samgyupsal.jpg",
+        "name": "TONG SAMGYUPSAL",
+        "qty": 1,
+        "price": 250000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "702",
+    "createdAt": "2026-03-21T10:20:01.045Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 106,
+    "staff": "Peter",
+    "memberCard": "59621",
+    "customer": {
+      "code": null,
+      "name": "New Customer",
+      "level": "P"
+    },
+    "note": "1pax inside",
+    "items": [
+      {
+        "imageKey": "passion fruit juice-1763840949129.jpg",
+        "name": "PASSION FRUIT JUICE",
+        "qty": 1,
+        "price": 35000,
+        "group": "Beverage",
+        "note": ""
+      },
+      {
+        "imageKey": "beef-pho.jpg",
+        "name": "BEEF PHO",
+        "qty": 1,
+        "price": 330000,
+        "group": "HOTEL",
+        "note": ""
+      },
+      {
+        "imageKey": "french-fried.jpg",
+        "name": "FRENCH FRIED",
+        "qty": 1,
+        "price": 95000,
+        "group": "HOTEL",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "701",
+    "createdAt": "2026-03-21T07:39:35.138Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "Andrea",
+    "memberCard": "13389",
+    "customer": {
+      "code": null,
+      "name": "Han Youngoog-13389",
+      "level": "P"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "fish-cake.jpg",
+        "name": "FISH CAKE",
+        "qty": 1,
+        "price": 30000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "700",
+    "createdAt": "2026-03-21T07:39:19.228Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "Andrea",
+    "memberCard": "13389",
+    "customer": {
+      "code": null,
+      "name": "Han Youngoog-13389",
+      "level": "P"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "c4.fried-seafood-noodles.jpg",
+        "name": "FRIED SEAFOOD NOODLES",
+        "qty": 1,
+        "price": 330000,
+        "group": "Chinese",
+        "note": ""
+      },
+      {
+        "imageKey": "k2.bibimbap.jpg",
+        "name": "BIBIMBAP",
+        "qty": 1,
+        "price": 117700,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "699",
+    "createdAt": "2026-03-21T05:40:52.362Z",
+    "status": "PENDING",
+    "area": "Reception 2",
+    "tableNo": 1013,
+    "staff": "Erina 33",
+    "memberCard": "37625",
+    "customer": {
+      "code": null,
+      "name": "Duy Bao Huynh",
+      "level": "P"
+    },
+    "note": "37625 mb - Chang Chung Yuan",
+    "items": [
+      {
+        "imageKey": "k1.galbi-tang.jpg",
+        "name": "GALBI TANG",
+        "qty": 1,
+        "price": 176000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
     "id": "698",
     "createdAt": "2026-03-20T09:43:29.977Z",
     "status": "PENDING",

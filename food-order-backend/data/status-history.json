@@ -1,2746 +1,5 @@
 [
   {
-    "id": 1764310946540.6152,
-    "at": "2025-11-28T06:22:26.540Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764311477160.1814,
-    "at": "2025-11-28T06:31:17.160Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k17.dwaeji-gukbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K17.DWAEJI-GUKBAP.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777735,
-      1753713777777,
-      1753713777878
-    ]
-  },
-  {
-    "id": 1764313065598.1555,
-    "at": "2025-11-28T06:57:45.598Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k8.nakju-bokkum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K8.NAKJU-BOKKUM.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777724,
-      1753713777766,
-      1753713777867
-    ]
-  },
-  {
-    "id": 1764313067328.8184,
-    "at": "2025-11-28T06:57:47.328Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777697,
-      1753713777739,
-      1753713777840
-    ]
-  },
-  {
-    "id": 1764313069159.184,
-    "at": "2025-11-28T06:57:49.159Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "ddok.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/DDOK.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1753713777679,
-      1753713777692,
-      1753713777726,
-      1753713777768,
-      1753713777869
-    ]
-  },
-  {
-    "id": 1764316606673.7454,
-    "at": "2025-11-28T07:56:46.673Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k19.jok-bal.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K19.JOK-BAL.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777714,
-      1753713777756,
-      1753713777857
-    ]
-  },
-  {
-    "id": 1764316610632.6191,
-    "at": "2025-11-28T07:56:50.631Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k4.so-bulgogi-jjigae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777713,
-      1753713777755,
-      1753713777856
-    ]
-  },
-  {
-    "id": 1764316619159.204,
-    "at": "2025-11-28T07:56:59.159Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764318215622.4465,
-    "at": "2025-11-28T08:23:35.622Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c4.fried-seafood-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777736,
-      1753713777778,
-      1753713777879
-    ]
-  },
-  {
-    "id": 1764326292433.4885,
-    "at": "2025-11-28T10:38:12.433Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c4.fried-seafood-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777736,
-      1753713777778,
-      1753713777879
-    ]
-  },
-  {
-    "id": 1764330207224.1392,
-    "at": "2025-11-28T11:43:27.224Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764330210292.7815,
-    "at": "2025-11-28T11:43:30.292Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764334880051.9434,
-    "at": "2025-11-28T13:01:20.051Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
-    "type": "SNACK MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764336474771.4873,
-    "at": "2025-11-28T13:27:54.771Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777697,
-      1753713777739,
-      1753713777840
-    ]
-  },
-  {
-    "id": 1764337255764.8196,
-    "at": "2025-11-28T13:40:55.764Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764338452931.819,
-    "at": "2025-11-28T14:00:52.931Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764338780236.6428,
-    "at": "2025-11-28T14:06:20.236Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764340266712.3706,
-    "at": "2025-11-28T14:31:06.712Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k2.bibimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K2.BIBIMBAP.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777734,
-      1753713777776,
-      1753713777877
-    ]
-  },
-  {
-    "id": 1764340950235.8857,
-    "at": "2025-11-28T14:42:30.235Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "hopang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/HOPANG.jpg",
-    "type": "SNACK MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1753713777672,
-      1753713777671,
-      1753713777704,
-      1753713777746,
-      1753713777847
-    ]
-  },
-  {
-    "id": 1764340990043.8948,
-    "at": "2025-11-28T14:43:10.043Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "hopang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/HOPANG.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1753713777672,
-      1753713777671,
-      1753713777704,
-      1753713777746,
-      1753713777847
-    ]
-  },
-  {
-    "id": 1764340994802.5283,
-    "at": "2025-11-28T14:43:14.802Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777720,
-      1753713777762,
-      1753713777863
-    ]
-  },
-  {
-    "id": 1764341428365.6567,
-    "at": "2025-11-28T14:50:28.365Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777720,
-      1753713777762,
-      1753713777863
-    ]
-  },
-  {
-    "id": 1764341429663.7366,
-    "at": "2025-11-28T14:50:29.663Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777700,
-      1753713777742,
-      1753713777843
-    ]
-  },
-  {
-    "id": 1764342002392.7822,
-    "at": "2025-11-28T15:00:02.392Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764342798737.7932,
-    "at": "2025-11-28T15:13:18.737Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c4.fried-seafood-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777736,
-      1753713777778,
-      1753713777879
-    ]
-  },
-  {
-    "id": 1764345222005.6821,
-    "at": "2025-11-28T15:53:42.005Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764345223338.78,
-    "at": "2025-11-28T15:53:43.338Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777720,
-      1753713777762,
-      1753713777863
-    ]
-  },
-  {
-    "id": 1764345223816.5488,
-    "at": "2025-11-28T15:53:43.816Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c6.baked-egg-tart.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777705,
-      1753713777747,
-      1753713777848
-    ]
-  },
-  {
-    "id": 1764345224359.5005,
-    "at": "2025-11-28T15:53:44.359Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777700,
-      1753713777742,
-      1753713777843
-    ]
-  },
-  {
-    "id": 1764345225102.7798,
-    "at": "2025-11-28T15:53:45.102Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777700,
-      1753713777742,
-      1753713777843
-    ]
-  },
-  {
-    "id": 1764345229505.2583,
-    "at": "2025-11-28T15:53:49.505Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "kimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/KIMBAP.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1753713777673,
-      1753713777689,
-      1753713777706,
-      1753713777748,
-      1753713777849
-    ]
-  },
-  {
-    "id": 1764345231302.0093,
-    "at": "2025-11-28T15:53:51.302Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "ddok.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/DDOK.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1753713777679,
-      1753713777692,
-      1753713777726,
-      1753713777768,
-      1753713777869
-    ]
-  },
-  {
-    "id": 1764347076872.5151,
-    "at": "2025-11-28T16:24:36.872Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c2.wonton-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777721,
-      1753713777763,
-      1753713777864
-    ]
-  },
-  {
-    "id": 1764349005291.2827,
-    "at": "2025-11-28T16:56:45.291Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "sundae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SUNDAE.jpg",
-    "type": "SNACK MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 4,
-    "affectedIds": [
-      1753713777675,
-      1753713777712,
-      1753713777754,
-      1753713777855
-    ]
-  },
-  {
-    "id": 1764349386456.3584,
-    "at": "2025-11-28T17:03:06.456Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "mango smoothie.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/mango smoothie.jpg",
-    "type": "DRINKS VIP",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 1,
-    "affectedIds": [
-      1755923952469
-    ]
-  },
-  {
-    "id": 1764349799273.7751,
-    "at": "2025-11-28T17:09:59.273Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k4.so-bulgogi-jjigae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777713,
-      1753713777755,
-      1753713777856
-    ]
-  },
-  {
-    "id": 1764355629160.2651,
-    "at": "2025-11-28T18:47:09.160Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764365049508.1243,
-    "at": "2025-11-28T21:24:09.508Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k20.seaok-sae-bulgogi.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777730,
-      1753713777772,
-      1753713777873
-    ]
-  },
-  {
-    "id": 1764378440687.5637,
-    "at": "2025-11-29T01:07:20.687Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k11.jjamppong.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K11.JJAMPPONG.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777729,
-      1753713777771,
-      1753713777872
-    ]
-  },
-  {
-    "id": 1764391378652.356,
-    "at": "2025-11-29T04:42:58.652Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k7.kimchi-jjikae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K7.KIMCHI-JJIKAE.jpg",
-    "type": "VIP MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777731,
-      1753713777773,
-      1753713777874
-    ]
-  },
-  {
-    "id": 1764392898414.8274,
-    "at": "2025-11-29T05:08:18.414Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "kimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/KIMBAP.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1753713777673,
-      1753713777689,
-      1753713777706,
-      1753713777748,
-      1753713777849
-    ]
-  },
-  {
-    "id": 1764392900875.292,
-    "at": "2025-11-29T05:08:20.875Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "ddok.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/DDOK.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1753713777679,
-      1753713777692,
-      1753713777726,
-      1753713777768,
-      1753713777869
-    ]
-  },
-  {
-    "id": 1764392902018.281,
-    "at": "2025-11-29T05:08:22.018Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764392903743.4353,
-    "at": "2025-11-29T05:08:23.743Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c2.wonton-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777721,
-      1753713777763,
-      1753713777864
-    ]
-  },
-  {
-    "id": 1764392904350.5579,
-    "at": "2025-11-29T05:08:24.350Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c4.fried-seafood-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777736,
-      1753713777778,
-      1753713777879
-    ]
-  },
-  {
-    "id": 1764392907891.1318,
-    "at": "2025-11-29T05:08:27.890Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777720,
-      1753713777762,
-      1753713777863
-    ]
-  },
-  {
-    "id": 1764392908419.8948,
-    "at": "2025-11-29T05:08:28.419Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c6.baked-egg-tart.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777705,
-      1753713777747,
-      1753713777848
-    ]
-  },
-  {
-    "id": 1764392909165.1743,
-    "at": "2025-11-29T05:08:29.165Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777700,
-      1753713777742,
-      1753713777843
-    ]
-  },
-  {
-    "id": 1764392917111.2449,
-    "at": "2025-11-29T05:08:37.111Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "mango smoothie.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/mango smoothie.jpg",
-    "type": "DRINKS VIP",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 1,
-    "affectedIds": [
-      1755923952469
-    ]
-  },
-  {
-    "id": 1764397542776.2148,
-    "at": "2025-11-29T06:25:42.776Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k3.jeyuk-bokkeum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K3.JEYUK-BOKKEUM.jpg",
-    "type": "VIP MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777698,
-      1753713777740,
-      1753713777841
-    ]
-  },
-  {
-    "id": 1764399343868.051,
-    "at": "2025-11-29T06:55:43.868Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "fish-cake.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/FISH-CAKE.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 4,
-    "affectedIds": [
-      1753713777681,
-      1753713777732,
-      1753713777774,
-      1753713777875
-    ]
-  },
-  {
-    "id": 1764400568603.9885,
-    "at": "2025-11-29T07:16:08.603Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "sundae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SUNDAE.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 4,
-    "affectedIds": [
-      1753713777675,
-      1753713777712,
-      1753713777754,
-      1753713777855
-    ]
-  },
-  {
-    "id": 1764400569955.1653,
-    "at": "2025-11-29T07:16:09.955Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k2.bibimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K2.BIBIMBAP.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777734,
-      1753713777776,
-      1753713777877
-    ]
-  },
-  {
-    "id": 1764400570755.806,
-    "at": "2025-11-29T07:16:10.755Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "fish-cake.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/FISH-CAKE.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 4,
-    "affectedIds": [
-      1753713777681,
-      1753713777732,
-      1753713777774,
-      1753713777875
-    ]
-  },
-  {
-    "id": 1764400572345.4236,
-    "at": "2025-11-29T07:16:12.344Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k3.jeyuk-bokkeum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K3.JEYUK-BOKKEUM.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777698,
-      1753713777740,
-      1753713777841
-    ]
-  },
-  {
-    "id": 1764400573026.2388,
-    "at": "2025-11-29T07:16:13.026Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k4.so-bulgogi-jjigae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777713,
-      1753713777755,
-      1753713777856
-    ]
-  },
-  {
-    "id": 1764400573975.327,
-    "at": "2025-11-29T07:16:13.975Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764400577648.3445,
-    "at": "2025-11-29T07:16:17.648Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k7.kimchi-jjikae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K7.KIMCHI-JJIKAE.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777731,
-      1753713777773,
-      1753713777874
-    ]
-  },
-  {
-    "id": 1764400578323.0168,
-    "at": "2025-11-29T07:16:18.323Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764400582979.8687,
-    "at": "2025-11-29T07:16:22.979Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777697,
-      1753713777739,
-      1753713777840
-    ]
-  },
-  {
-    "id": 1764400583727.7717,
-    "at": "2025-11-29T07:16:23.727Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k20.seaok-sae-bulgogi.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777730,
-      1753713777772,
-      1753713777873
-    ]
-  },
-  {
-    "id": 1764400591940.1497,
-    "at": "2025-11-29T07:16:31.940Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764403677787.5244,
-    "at": "2025-11-29T08:07:57.787Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764403678524.4805,
-    "at": "2025-11-29T08:07:58.524Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k11.jjamppong.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K11.JJAMPPONG.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777729,
-      1753713777771,
-      1753713777872
-    ]
-  },
-  {
-    "id": 1764411101574.6216,
-    "at": "2025-11-29T10:11:41.574Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k2.bibimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K2.BIBIMBAP.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777734,
-      1753713777776,
-      1753713777877
-    ]
-  },
-  {
-    "id": 1764415504769.2412,
-    "at": "2025-11-29T11:25:04.769Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764415506024.092,
-    "at": "2025-11-29T11:25:06.024Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k3.jeyuk-bokkeum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K3.JEYUK-BOKKEUM.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777698,
-      1753713777740,
-      1753713777841
-    ]
-  },
-  {
-    "id": 1764416874579.1423,
-    "at": "2025-11-29T11:47:54.579Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k20.seaok-sae-bulgogi.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777730,
-      1753713777772,
-      1753713777873
-    ]
-  },
-  {
-    "id": 1764417742951.359,
-    "at": "2025-11-29T12:02:22.951Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764418026642.8975,
-    "at": "2025-11-29T12:07:06.642Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777700,
-      1753713777742,
-      1753713777843
-    ]
-  },
-  {
-    "id": 1764418446511.7756,
-    "at": "2025-11-29T12:14:06.511Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777697,
-      1753713777739,
-      1753713777840
-    ]
-  },
-  {
-    "id": 1764423135490.2537,
-    "at": "2025-11-29T13:32:15.490Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777697,
-      1753713777739,
-      1753713777840
-    ]
-  },
-  {
-    "id": 1764424275854.8313,
-    "at": "2025-11-29T13:51:15.854Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k2.bibimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K2.BIBIMBAP.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777734,
-      1753713777776,
-      1753713777877
-    ]
-  },
-  {
-    "id": 1764424276632.1328,
-    "at": "2025-11-29T13:51:16.632Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k3.jeyuk-bokkeum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K3.JEYUK-BOKKEUM.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777698,
-      1753713777740,
-      1753713777841
-    ]
-  },
-  {
-    "id": 1764426439881.0835,
-    "at": "2025-11-29T14:27:19.881Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764426440721.3157,
-    "at": "2025-11-29T14:27:20.721Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k10.jjajangmyoen.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777702,
-      1753713777744,
-      1753713777845
-    ]
-  },
-  {
-    "id": 1764426441554.0442,
-    "at": "2025-11-29T14:27:21.554Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k20.seaok-sae-bulgogi.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777730,
-      1753713777772,
-      1753713777873
-    ]
-  },
-  {
-    "id": 1764433365569.3606,
-    "at": "2025-11-29T16:22:45.569Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k13.kimchi-dumping.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777719,
-      1753713777761,
-      1753713777862
-    ]
-  },
-  {
-    "id": 1764438875501.259,
-    "at": "2025-11-29T17:54:35.501Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764442180436.114,
-    "at": "2025-11-29T18:49:40.436Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764444861038.094,
-    "at": "2025-11-29T19:34:21.038Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "mango smoothie.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/mango smoothie.jpg",
-    "type": "DRINKS VIP",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 1,
-    "affectedIds": [
-      1755923952469
-    ]
-  },
-  {
-    "id": 1764450362685.368,
-    "at": "2025-11-29T21:06:02.685Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c6.baked-egg-tart.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777705,
-      1753713777747,
-      1753713777848
-    ]
-  },
-  {
-    "id": 1764450363743.8418,
-    "at": "2025-11-29T21:06:03.743Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777720,
-      1753713777762,
-      1753713777863
-    ]
-  },
-  {
-    "id": 1764450370653.988,
-    "at": "2025-11-29T21:06:10.653Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "kimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/KIMBAP.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1753713777673,
-      1753713777689,
-      1753713777706,
-      1753713777748,
-      1753713777849
-    ]
-  },
-  {
-    "id": 1764450373009.5476,
-    "at": "2025-11-29T21:06:13.008Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "ddok.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/DDOK.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1753713777679,
-      1753713777692,
-      1753713777726,
-      1753713777768,
-      1753713777869
-    ]
-  },
-  {
-    "id": 1764450385751.3218,
-    "at": "2025-11-29T21:06:25.751Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c2.wonton-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777721,
-      1753713777763,
-      1753713777864
-    ]
-  },
-  {
-    "id": 1764453765459.1094,
-    "at": "2025-11-29T22:02:45.459Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c2.wonton-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777721,
-      1753713777763,
-      1753713777864
-    ]
-  },
-  {
-    "id": 1764479228948.2136,
-    "at": "2025-11-30T05:07:08.948Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "sundae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SUNDAE.jpg",
-    "type": "SNACK MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 4,
-    "affectedIds": [
-      1753713777675,
-      1753713777712,
-      1753713777754,
-      1753713777855
-    ]
-  },
-  {
-    "id": 1764479238702.3328,
-    "at": "2025-11-30T05:07:18.702Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "kimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/KIMBAP.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1753713777673,
-      1753713777689,
-      1753713777706,
-      1753713777748,
-      1753713777849
-    ]
-  },
-  {
-    "id": 1764479277401.0159,
-    "at": "2025-11-30T05:07:57.401Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "sundae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SUNDAE.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 4,
-    "affectedIds": [
-      1753713777675,
-      1753713777712,
-      1753713777754,
-      1753713777855
-    ]
-  },
-  {
-    "id": 1764480582933.8157,
-    "at": "2025-11-30T05:29:42.933Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777697,
-      1753713777739,
-      1753713777840
-    ]
-  },
-  {
-    "id": 1764487335809.3262,
-    "at": "2025-11-30T07:22:15.809Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764487338438.4785,
-    "at": "2025-11-30T07:22:18.438Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c6.baked-egg-tart.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777705,
-      1753713777747,
-      1753713777848
-    ]
-  },
-  {
-    "id": 1764487338926.0215,
-    "at": "2025-11-30T07:22:18.926Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777720,
-      1753713777762,
-      1753713777863
-    ]
-  },
-  {
-    "id": 1764487340315.1133,
-    "at": "2025-11-30T07:22:20.315Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777700,
-      1753713777742,
-      1753713777843
-    ]
-  },
-  {
-    "id": 1764487340924.674,
-    "at": "2025-11-30T07:22:20.924Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "ddok.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/DDOK.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1753713777679,
-      1753713777692,
-      1753713777726,
-      1753713777768,
-      1753713777869
-    ]
-  },
-  {
-    "id": 1764487342341.7263,
-    "at": "2025-11-30T07:22:22.341Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764487343122.9873,
-    "at": "2025-11-30T07:22:23.122Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k13.kimchi-dumping.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777719,
-      1753713777761,
-      1753713777862
-    ]
-  },
-  {
-    "id": 1764487347066.2507,
-    "at": "2025-11-30T07:22:27.066Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "mango smoothie.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/mango smoothie.jpg",
-    "type": "DRINKS VIP",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 1,
-    "affectedIds": [
-      1755923952469
-    ]
-  },
-  {
-    "id": 1764489216661.8894,
-    "at": "2025-11-30T07:53:36.661Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k6.sogogi-miyukguk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K6.SOGOGI-MIYUKGUK.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777718,
-      1753713777760,
-      1753713777861
-    ]
-  },
-  {
-    "id": 1764490956297.4434,
-    "at": "2025-11-30T08:22:36.297Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c2.wonton-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777721,
-      1753713777763,
-      1753713777864
-    ]
-  },
-  {
-    "id": 1764495112040.4912,
-    "at": "2025-11-30T09:31:52.040Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
-    "type": "SNACK MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764496592552.5742,
-    "at": "2025-11-30T09:56:32.551Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "avocado smoothie.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/avocado smoothie.jpg",
-    "type": "DRINKS VIP",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 1,
-    "affectedIds": [
-      1755923952468
-    ]
-  },
-  {
-    "id": 1764499182907.7693,
-    "at": "2025-11-30T10:39:42.907Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777720,
-      1753713777762,
-      1753713777863
-    ]
-  },
-  {
-    "id": 1764499378150.9404,
-    "at": "2025-11-30T10:42:58.150Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777700,
-      1753713777742,
-      1753713777843
-    ]
-  },
-  {
-    "id": 1764499711303.025,
-    "at": "2025-11-30T10:48:31.303Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c2.wonton-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777721,
-      1753713777763,
-      1753713777864
-    ]
-  },
-  {
-    "id": 1764499712254.6448,
-    "at": "2025-11-30T10:48:32.254Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764500305509.004,
-    "at": "2025-11-30T10:58:25.509Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k4.so-bulgogi-jjigae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777713,
-      1753713777755,
-      1753713777856
-    ]
-  },
-  {
-    "id": 1764500306263.1262,
-    "at": "2025-11-30T10:58:26.263Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k4.so-bulgogi-jjigae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777713,
-      1753713777755,
-      1753713777856
-    ]
-  },
-  {
-    "id": 1764500306983.1252,
-    "at": "2025-11-30T10:58:26.983Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764503062405.0671,
-    "at": "2025-11-30T11:44:22.405Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k7.kimchi-jjikae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K7.KIMCHI-JJIKAE.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777731,
-      1753713777773,
-      1753713777874
-    ]
-  },
-  {
-    "id": 1764503067478.2412,
-    "at": "2025-11-30T11:44:27.478Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k14.tong-samgyupsal.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K14.TONG-SAMGYUPSAL.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777703,
-      1753713777745,
-      1753713777846
-    ]
-  },
-  {
-    "id": 1764503410707.7803,
-    "at": "2025-11-30T11:50:10.707Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764504038507.3335,
-    "at": "2025-11-30T12:00:38.507Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k19.jok-bal.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K19.JOK-BAL.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777714,
-      1753713777756,
-      1753713777857
-    ]
-  },
-  {
-    "id": 1764504041485.447,
-    "at": "2025-11-30T12:00:41.485Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "avocado smoothie.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/avocado smoothie.jpg",
-    "type": "DRINKS VIP",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 1,
-    "affectedIds": [
-      1755923952468
-    ]
-  },
-  {
-    "id": 1764506361088.181,
-    "at": "2025-11-30T12:39:21.088Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k20.seaok-sae-bulgogi.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777730,
-      1753713777772,
-      1753713777873
-    ]
-  },
-  {
-    "id": 1764509591924.0938,
-    "at": "2025-11-30T13:33:11.924Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k20.seaok-sae-bulgogi.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777730,
-      1753713777772,
-      1753713777873
-    ]
-  },
-  {
-    "id": 1764509593300.3022,
-    "at": "2025-11-30T13:33:13.300Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k19.jok-bal.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K19.JOK-BAL.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777714,
-      1753713777756,
-      1753713777857
-    ]
-  },
-  {
-    "id": 1764509596056.7803,
-    "at": "2025-11-30T13:33:16.056Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k14.tong-samgyupsal.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K14.TONG-SAMGYUPSAL.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777703,
-      1753713777745,
-      1753713777846
-    ]
-  },
-  {
-    "id": 1764509597819.9656,
-    "at": "2025-11-30T13:33:17.819Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764511314849.718,
-    "at": "2025-11-30T14:01:54.849Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c1.dimsum.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1755923952356,
-      1755923952357,
-      1755923952354,
-      1755923952355,
-      1755923952358
-    ]
-  },
-  {
-    "id": 1764512366373.2637,
-    "at": "2025-11-30T14:19:26.373Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "avocado smoothie.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/avocado smoothie.jpg",
-    "type": "DRINKS VIP",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 1,
-    "affectedIds": [
-      1755923952468
-    ]
-  },
-  {
-    "id": 1764513927692.3289,
-    "at": "2025-11-30T14:45:27.692Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k20.seaok-sae-bulgogi.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777730,
-      1753713777772,
-      1753713777873
-    ]
-  },
-  {
-    "id": 1764517942387.0476,
-    "at": "2025-11-30T15:52:22.387Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c2.wonton-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C2.WONTON-NOODLES.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777721,
-      1753713777763,
-      1753713777864
-    ]
-  },
-  {
-    "id": 1764518207984.5261,
-    "at": "2025-11-30T15:56:47.984Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c6.baked-egg-tart.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C6.BAKED-EGG-TART.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777705,
-      1753713777747,
-      1753713777848
-    ]
-  },
-  {
-    "id": 1764518220926.7673,
-    "at": "2025-11-30T15:57:00.926Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "kimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/KIMBAP.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1753713777673,
-      1753713777689,
-      1753713777706,
-      1753713777748,
-      1753713777849
-    ]
-  },
-  {
-    "id": 1764518227079.769,
-    "at": "2025-11-30T15:57:07.079Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "ddok.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/DDOK.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 5,
-    "affectedIds": [
-      1753713777679,
-      1753713777692,
-      1753713777726,
-      1753713777768,
-      1753713777869
-    ]
-  },
-  {
-    "id": 1764519957242.3323,
-    "at": "2025-11-30T16:25:57.241Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c3.fried-beef-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777722,
-      1753713777764,
-      1753713777865
-    ]
-  },
-  {
-    "id": 1764520246131.386,
-    "at": "2025-11-30T16:30:46.131Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k11.jjamppong.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K11.JJAMPPONG.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777729,
-      1753713777771,
-      1753713777872
-    ]
-  },
-  {
-    "id": 1764520251258.141,
-    "at": "2025-11-30T16:30:51.258Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k2.bibimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K2.BIBIMBAP.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777734,
-      1753713777776,
-      1753713777877
-    ]
-  },
-  {
-    "id": 1764524691531.176,
-    "at": "2025-11-30T17:44:51.531Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "strawberry smoothie-1763843415030.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/strawberry smoothie-1763843415030.jpg",
-    "type": "DRINKS VIP",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 1,
-    "affectedIds": [
-      1755923952470
-    ]
-  },
-  {
-    "id": 1764527160997.9048,
-    "at": "2025-11-30T18:26:00.997Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "fish-cake.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/FISH-CAKE.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 4,
-    "affectedIds": [
-      1753713777681,
-      1753713777732,
-      1753713777774,
-      1753713777875
-    ]
-  },
-  {
-    "id": 1764533603657.6724,
-    "at": "2025-11-30T20:13:23.657Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764551088684.4126,
-    "at": "2025-12-01T01:04:48.684Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k13.kimchi-dumping.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K13.KIMCHI-DUMPING.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777719,
-      1753713777761,
-      1753713777862
-    ]
-  },
-  {
-    "id": 1764559512655.2139,
-    "at": "2025-12-01T03:25:12.655Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "strawberry smoothie-1763843415030.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/strawberry smoothie-1763843415030.jpg",
-    "type": "DRINKS VIP",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 1,
-    "affectedIds": [
-      1755923952470
-    ]
-  },
-  {
-    "id": 1764559513459.4172,
-    "at": "2025-12-01T03:25:13.459Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "avocado smoothie.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/avocado smoothie.jpg",
-    "type": "DRINKS VIP",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 1,
-    "affectedIds": [
-      1755923952468
-    ]
-  },
-  {
-    "id": 1764569415371.7722,
-    "at": "2025-12-01T06:10:15.371Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c2.wonton-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777721,
-      1753713777763,
-      1753713777864
-    ]
-  },
-  {
-    "id": 1764569417989.0916,
-    "at": "2025-12-01T06:10:17.989Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c3.fried-beef-noodles.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777722,
-      1753713777764,
-      1753713777865
-    ]
-  },
-  {
-    "id": 1764569419833.4922,
-    "at": "2025-12-01T06:10:19.833Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c6.baked-egg-tart.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777705,
-      1753713777747,
-      1753713777848
-    ]
-  },
-  {
-    "id": 1764569421150.51,
-    "at": "2025-12-01T06:10:21.150Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777700,
-      1753713777742,
-      1753713777843
-    ]
-  },
-  {
-    "id": 1764569422453.1736,
-    "at": "2025-12-01T06:10:22.453Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777720,
-      1753713777762,
-      1753713777863
-    ]
-  },
-  {
-    "id": 1764569428885.2366,
-    "at": "2025-12-01T06:10:28.885Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "kimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/KIMBAP.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1753713777673,
-      1753713777689,
-      1753713777706,
-      1753713777748,
-      1753713777849
-    ]
-  },
-  {
-    "id": 1764569429989.1948,
-    "at": "2025-12-01T06:10:29.989Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "ddok.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/DDOK.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 5,
-    "affectedIds": [
-      1753713777679,
-      1753713777692,
-      1753713777726,
-      1753713777768,
-      1753713777869
-    ]
-  },
-  {
-    "id": 1764570700491.2603,
-    "at": "2025-12-01T06:31:40.491Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k6.sogogi-miyukguk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K6.SOGOGI-MIYUKGUK.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777718,
-      1753713777760,
-      1753713777861
-    ]
-  },
-  {
-    "id": 1764570701209.3538,
-    "at": "2025-12-01T06:31:41.209Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764570705498.4307,
-    "at": "2025-12-01T06:31:45.498Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764570709235.7483,
-    "at": "2025-12-01T06:31:49.235Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k7.kimchi-jjikae.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K7.KIMCHI-JJIKAE.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777731,
-      1753713777773,
-      1753713777874
-    ]
-  },
-  {
-    "id": 1764570713304.622,
-    "at": "2025-12-01T06:31:53.304Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777697,
-      1753713777739,
-      1753713777840
-    ]
-  },
-  {
-    "id": 1764574933675.8384,
-    "at": "2025-12-01T07:42:13.675Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k20.seaok-sae-bulgogi.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777730,
-      1753713777772,
-      1753713777873
-    ]
-  },
-  {
-    "id": 1764574934663.8257,
-    "at": "2025-12-01T07:42:14.663Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k13.kimchi-dumping.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777719,
-      1753713777761,
-      1753713777862
-    ]
-  },
-  {
-    "id": 1764574935490.4182,
-    "at": "2025-12-01T07:42:15.490Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k11.jjamppong.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K11.JJAMPPONG.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777729,
-      1753713777771,
-      1753713777872
-    ]
-  },
-  {
-    "id": 1764574936331.5938,
-    "at": "2025-12-01T07:42:16.331Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k5.ggori-gom-tang.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777708,
-      1753713777750,
-      1753713777851
-    ]
-  },
-  {
-    "id": 1764574937301.82,
-    "at": "2025-12-01T07:42:17.301Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k2.bibimbap.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K2.BIBIMBAP.jpg",
-    "type": "CLUB MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777734,
-      1753713777776,
-      1753713777877
-    ]
-  },
-  {
-    "id": 1764574938333.4336,
-    "at": "2025-12-01T07:42:18.333Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "fish-cake.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/FISH-CAKE.jpg",
-    "type": "SNACK MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 4,
-    "affectedIds": [
-      1753713777681,
-      1753713777732,
-      1753713777774,
-      1753713777875
-    ]
-  },
-  {
-    "id": 1764579212348.1633,
-    "at": "2025-12-01T08:53:32.348Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k11.jjamppong.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K11.JJAMPPONG.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777729,
-      1753713777771,
-      1753713777872
-    ]
-  },
-  {
-    "id": 1764579238974.8364,
-    "at": "2025-12-01T08:53:58.974Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k11.jjamppong.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K11.JJAMPPONG.jpg",
-    "type": "HOTEL MENU",
-    "from": "Sold Out",
-    "to": "Available",
-    "count": 3,
-    "affectedIds": [
-      1753713777729,
-      1753713777771,
-      1753713777872
-    ]
-  },
-  {
-    "id": 1764579345483.0652,
-    "at": "2025-12-01T08:55:45.483Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k11.jjamppong.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K11.JJAMPPONG.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777729,
-      1753713777771,
-      1753713777872
-    ]
-  },
-  {
-    "id": 1764582566986.874,
-    "at": "2025-12-01T09:49:26.986Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "k6.sogogi-miyukguk.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K6.SOGOGI-MIYUKGUK.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777718,
-      1753713777760,
-      1753713777861
-    ]
-  },
-  {
-    "id": 1764582699218.0718,
-    "at": "2025-12-01T09:51:39.218Z",
-    "by": "kitchen",
-    "role": "kitchen",
-    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
-    "type": "HOTEL MENU",
-    "from": "Available",
-    "to": "Sold Out",
-    "count": 3,
-    "affectedIds": [
-      1753713777720,
-      1753713777762,
-      1753713777863
-    ]
-  },
-  {
     "id": 1764582870798.3743,
     "at": "2025-12-01T09:54:30.798Z",
     "by": "kitchen",
@@ -86368,6 +83627,2719 @@
       1753713777702,
       1753713777744,
       1753713777845
+    ]
+  },
+  {
+    "id": 1774005210277.156,
+    "at": "2026-03-20T11:13:30.277Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k19.jok-bal.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K19.JOK-BAL.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777714,
+      1753713777756,
+      1753713777857
+    ]
+  },
+  {
+    "id": 1774009201684.0183,
+    "at": "2026-03-20T12:20:01.684Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "sundae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/SUNDAE.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 4,
+    "affectedIds": [
+      1753713777675,
+      1753713777712,
+      1753713777754,
+      1753713777855
+    ]
+  },
+  {
+    "id": 1774015243872.4065,
+    "at": "2026-03-20T14:00:43.872Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774015245908.6812,
+    "at": "2026-03-20T14:00:45.908Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k10.jjajangmyoen.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777702,
+      1753713777744,
+      1753713777845
+    ]
+  },
+  {
+    "id": 1774015246625.9685,
+    "at": "2026-03-20T14:00:46.625Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k19.jok-bal.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K19.JOK-BAL.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777714,
+      1753713777756,
+      1753713777857
+    ]
+  },
+  {
+    "id": 1774020990431.9216,
+    "at": "2026-03-20T15:36:30.431Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774021044370.1729,
+    "at": "2026-03-20T15:37:24.370Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "ddok.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/DDOK.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1753713777679,
+      1753713777692,
+      1753713777726,
+      1753713777768,
+      1753713777869
+    ]
+  },
+  {
+    "id": 1774022863810.8022,
+    "at": "2026-03-20T16:07:43.810Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774022867530.662,
+    "at": "2026-03-20T16:07:47.530Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777720,
+      1753713777762,
+      1753713777863
+    ]
+  },
+  {
+    "id": 1774022869325.8623,
+    "at": "2026-03-20T16:07:49.325Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777700,
+      1753713777742,
+      1753713777843
+    ]
+  },
+  {
+    "id": 1774022869846.2805,
+    "at": "2026-03-20T16:07:49.846Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c6.baked-egg-tart.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777705,
+      1753713777747,
+      1753713777848
+    ]
+  },
+  {
+    "id": 1774025841081.525,
+    "at": "2026-03-20T16:57:21.081Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777697,
+      1753713777739,
+      1753713777840
+    ]
+  },
+  {
+    "id": 1774030525159.5266,
+    "at": "2026-03-20T18:15:25.159Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "fish-cake.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/FISH-CAKE.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 4,
+    "affectedIds": [
+      1753713777681,
+      1753713777732,
+      1753713777774,
+      1753713777875
+    ]
+  },
+  {
+    "id": 1774038993348.01,
+    "at": "2026-03-20T20:36:33.348Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774039962667.9817,
+    "at": "2026-03-20T20:52:42.667Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k11.jjamppong.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K11.JJAMPPONG.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777729,
+      1753713777771,
+      1753713777872
+    ]
+  },
+  {
+    "id": 1774067772061.8254,
+    "at": "2026-03-21T04:36:12.061Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774067774410.3376,
+    "at": "2026-03-21T04:36:14.410Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774067775572.467,
+    "at": "2026-03-21T04:36:15.572Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774067776777.8018,
+    "at": "2026-03-21T04:36:16.777Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774067778300.1133,
+    "at": "2026-03-21T04:36:18.300Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777720,
+      1753713777762,
+      1753713777863
+    ]
+  },
+  {
+    "id": 1774067779253.5457,
+    "at": "2026-03-21T04:36:19.253Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c6.baked-egg-tart.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777705,
+      1753713777747,
+      1753713777848
+    ]
+  },
+  {
+    "id": 1774067780479.0261,
+    "at": "2026-03-21T04:36:20.479Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777700,
+      1753713777742,
+      1753713777843
+    ]
+  },
+  {
+    "id": 1774068044012.3325,
+    "at": "2026-03-21T04:40:44.012Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k3.jeyuk-bokkeum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K3.JEYUK-BOKKEUM.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777698,
+      1753713777740,
+      1753713777841
+    ]
+  },
+  {
+    "id": 1774073822257.812,
+    "at": "2026-03-21T06:17:02.257Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k10.jjajangmyoen.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777702,
+      1753713777744,
+      1753713777845
+    ]
+  },
+  {
+    "id": 1774073859364.2876,
+    "at": "2026-03-21T06:17:39.364Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k10.jjajangmyoen.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777702,
+      1753713777744,
+      1753713777845
+    ]
+  },
+  {
+    "id": 1774077709199.1465,
+    "at": "2026-03-21T07:21:49.199Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "sundae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SUNDAE.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 4,
+    "affectedIds": [
+      1753713777675,
+      1753713777712,
+      1753713777754,
+      1753713777855
+    ]
+  },
+  {
+    "id": 1774077710264.8982,
+    "at": "2026-03-21T07:21:50.264Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "ddok.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/DDOK.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1753713777679,
+      1753713777692,
+      1753713777726,
+      1753713777768,
+      1753713777869
+    ]
+  },
+  {
+    "id": 1774077712606.7507,
+    "at": "2026-03-21T07:21:52.605Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "fish-cake.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/FISH-CAKE.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 4,
+    "affectedIds": [
+      1753713777681,
+      1753713777732,
+      1753713777774,
+      1753713777875
+    ]
+  },
+  {
+    "id": 1774077713429.793,
+    "at": "2026-03-21T07:21:53.429Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k3.jeyuk-bokkeum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K3.JEYUK-BOKKEUM.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777698,
+      1753713777740,
+      1753713777841
+    ]
+  },
+  {
+    "id": 1774077714606.21,
+    "at": "2026-03-21T07:21:54.606Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k11.jjamppong.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K11.JJAMPPONG.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777729,
+      1753713777771,
+      1753713777872
+    ]
+  },
+  {
+    "id": 1774077715230.5334,
+    "at": "2026-03-21T07:21:55.230Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777697,
+      1753713777739,
+      1753713777840
+    ]
+  },
+  {
+    "id": 1774077720886.9731,
+    "at": "2026-03-21T07:22:00.886Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "seared-hookaido-scallop-&-foie-gras.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/SEARED-HOOKAIDO-SCALLOP-&-FOIE-GRAS.jpg",
+    "type": "VIP MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1753713777893
+    ]
+  },
+  {
+    "id": 1774091633261.6484,
+    "at": "2026-03-21T11:13:53.261Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777697,
+      1753713777739,
+      1753713777840
+    ]
+  },
+  {
+    "id": 1774095415805.3142,
+    "at": "2026-03-21T12:16:55.805Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774098486448.4175,
+    "at": "2026-03-21T13:08:06.448Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k19.jok-bal.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K19.JOK-BAL.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777714,
+      1753713777756,
+      1753713777857
+    ]
+  },
+  {
+    "id": 1774101646368.7737,
+    "at": "2026-03-21T14:00:46.368Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k20.seaok-sae-bulgogi.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K20.SEAOK-SAE-BULGOGI.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777730,
+      1753713777772,
+      1753713777873
+    ]
+  },
+  {
+    "id": 1774102343589.7925,
+    "at": "2026-03-21T14:12:23.589Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k6.sogogi-miyukguk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K6.SOGOGI-MIYUKGUK.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777718,
+      1753713777760,
+      1753713777861
+    ]
+  },
+  {
+    "id": 1774102518437.268,
+    "at": "2026-03-21T14:15:18.437Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774104940761.8513,
+    "at": "2026-03-21T14:55:40.761Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k6.sogogi-miyukguk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K6.SOGOGI-MIYUKGUK.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777718,
+      1753713777760,
+      1753713777861
+    ]
+  },
+  {
+    "id": 1774104941570.7305,
+    "at": "2026-03-21T14:55:41.570Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777697,
+      1753713777739,
+      1753713777840
+    ]
+  },
+  {
+    "id": 1774104942311.4968,
+    "at": "2026-03-21T14:55:42.311Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k19.jok-bal.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K19.JOK-BAL.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777714,
+      1753713777756,
+      1753713777857
+    ]
+  },
+  {
+    "id": 1774104942866.3877,
+    "at": "2026-03-21T14:55:42.866Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k20.seaok-sae-bulgogi.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777730,
+      1753713777772,
+      1753713777873
+    ]
+  },
+  {
+    "id": 1774108838583.1707,
+    "at": "2026-03-21T16:00:38.583Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "type": "VIP MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777720,
+      1753713777762,
+      1753713777863
+    ]
+  },
+  {
+    "id": 1774110484691.2017,
+    "at": "2026-03-21T16:28:04.691Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK TRAVEL/C1.DIMSUM.jpg",
+    "type": "SNACK TRAVEL",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774110486349.5227,
+    "at": "2026-03-21T16:28:06.349Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "ddok.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK TRAVEL/DDOK.jpg",
+    "type": "SNACK TRAVEL",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1753713777679,
+      1753713777692,
+      1753713777726,
+      1753713777768,
+      1753713777869
+    ]
+  },
+  {
+    "id": 1774110496337.9365,
+    "at": "2026-03-21T16:28:16.337Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "fish-cake.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/FISH-CAKE.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 4,
+    "affectedIds": [
+      1753713777681,
+      1753713777732,
+      1753713777774,
+      1753713777875
+    ]
+  },
+  {
+    "id": 1774133029249.9697,
+    "at": "2026-03-21T22:43:49.249Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774147409875.9126,
+    "at": "2026-03-22T02:43:29.875Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k2.bibimbap.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K2.BIBIMBAP.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777734,
+      1753713777776,
+      1753713777877
+    ]
+  },
+  {
+    "id": 1774155479770.1167,
+    "at": "2026-03-22T04:57:59.769Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "ddok.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/DDOK.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1753713777679,
+      1753713777692,
+      1753713777726,
+      1753713777768,
+      1753713777869
+    ]
+  },
+  {
+    "id": 1774155481542.0583,
+    "at": "2026-03-22T04:58:01.542Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774155482880.6917,
+    "at": "2026-03-22T04:58:02.880Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774155483597.7473,
+    "at": "2026-03-22T04:58:03.597Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774155484277.571,
+    "at": "2026-03-22T04:58:04.277Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774155484886.8127,
+    "at": "2026-03-22T04:58:04.886Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777720,
+      1753713777762,
+      1753713777863
+    ]
+  },
+  {
+    "id": 1774155493662.5378,
+    "at": "2026-03-22T04:58:13.662Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k13.kimchi-dumping.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777719,
+      1753713777761,
+      1753713777862
+    ]
+  },
+  {
+    "id": 1774155574432.9104,
+    "at": "2026-03-22T04:59:34.432Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k20.seaok-sae-bulgogi.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777730,
+      1753713777772,
+      1753713777873
+    ]
+  },
+  {
+    "id": 1774163523826.688,
+    "at": "2026-03-22T07:12:03.826Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k13.kimchi-dumping.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777719,
+      1753713777761,
+      1753713777862
+    ]
+  },
+  {
+    "id": 1774163527260.459,
+    "at": "2026-03-22T07:12:07.260Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k20.seaok-sae-bulgogi.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777730,
+      1753713777772,
+      1753713777873
+    ]
+  },
+  {
+    "id": 1774163528448.656,
+    "at": "2026-03-22T07:12:08.448Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "fish-cake.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/FISH-CAKE.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 4,
+    "affectedIds": [
+      1753713777681,
+      1753713777732,
+      1753713777774,
+      1753713777875
+    ]
+  },
+  {
+    "id": 1774164217290.5056,
+    "at": "2026-03-22T07:23:37.290Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k2.bibimbap.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K2.BIBIMBAP.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777734,
+      1753713777776,
+      1753713777877
+    ]
+  },
+  {
+    "id": 1774165919515.4526,
+    "at": "2026-03-22T07:51:59.515Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k2.bibimbap.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K2.BIBIMBAP.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777734,
+      1753713777776,
+      1753713777877
+    ]
+  },
+  {
+    "id": 1774168319001.5837,
+    "at": "2026-03-22T08:31:59.001Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774171519149.4072,
+    "at": "2026-03-22T09:25:19.149Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774171519562.495,
+    "at": "2026-03-22T09:25:19.562Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774171545413.556,
+    "at": "2026-03-22T09:25:45.413Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774172975096.096,
+    "at": "2026-03-22T09:49:35.096Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "cream-croissant.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/CREAM-CROISSANT.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952347
+    ]
+  },
+  {
+    "id": 1774172977665.7773,
+    "at": "2026-03-22T09:49:37.665Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "croiss-ant-ham-cheese.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/CROISS-ANT-HAM-CHEESE.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952350
+    ]
+  },
+  {
+    "id": 1774172984864.3865,
+    "at": "2026-03-22T09:49:44.864Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "e75e22755482dedc87933.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/e75e22755482dedc87933.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952369
+    ]
+  },
+  {
+    "id": 1774173245021.0771,
+    "at": "2026-03-22T09:54:05.021Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774176840776.6982,
+    "at": "2026-03-22T10:54:00.776Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774176841213.048,
+    "at": "2026-03-22T10:54:01.212Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774176842715.1504,
+    "at": "2026-03-22T10:54:02.715Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774178341115.1072,
+    "at": "2026-03-22T11:19:01.115Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "strawberry smoothie-1763843415030.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/strawberry smoothie-1763843415030.jpg",
+    "type": "DRINKS VIP",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952470
+    ]
+  },
+  {
+    "id": 1774179406228.4983,
+    "at": "2026-03-22T11:36:46.228Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774180266835.2341,
+    "at": "2026-03-22T11:51:06.834Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774181387292.0388,
+    "at": "2026-03-22T12:09:47.292Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k5.ggori-gom-tang.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777708,
+      1753713777750,
+      1753713777851
+    ]
+  },
+  {
+    "id": 1774182382723.7979,
+    "at": "2026-03-22T12:26:22.723Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777700,
+      1753713777742,
+      1753713777843
+    ]
+  },
+  {
+    "id": 1774186987138.5483,
+    "at": "2026-03-22T13:43:07.138Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "kimbap.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/KIMBAP.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1753713777673,
+      1753713777689,
+      1753713777706,
+      1753713777748,
+      1753713777849
+    ]
+  },
+  {
+    "id": 1774189508858.0303,
+    "at": "2026-03-22T14:25:08.858Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777697,
+      1753713777739,
+      1753713777840
+    ]
+  },
+  {
+    "id": 1774190723574.6272,
+    "at": "2026-03-22T14:45:23.574Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "coconut juice.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/coconut juice.jpg",
+    "type": "DRINKS VIP",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952465
+    ]
+  },
+  {
+    "id": 1774190896124.8887,
+    "at": "2026-03-22T14:48:16.124Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "fish-cake.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/FISH-CAKE.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 4,
+    "affectedIds": [
+      1753713777681,
+      1753713777732,
+      1753713777774,
+      1753713777875
+    ]
+  },
+  {
+    "id": 1774194595668.553,
+    "at": "2026-03-22T15:49:55.668Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k10.jjajangmyoen.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777702,
+      1753713777744,
+      1753713777845
+    ]
+  },
+  {
+    "id": 1774194595855.451,
+    "at": "2026-03-22T15:49:55.855Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k10.jjajangmyoen.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777702,
+      1753713777744,
+      1753713777845
+    ]
+  },
+  {
+    "id": 1774194596499.4248,
+    "at": "2026-03-22T15:49:56.499Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k10.jjajangmyoen.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777702,
+      1753713777744,
+      1753713777845
+    ]
+  },
+  {
+    "id": 1774194597182.6777,
+    "at": "2026-03-22T15:49:57.182Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k11.jjamppong.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K11.JJAMPPONG.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777729,
+      1753713777771,
+      1753713777872
+    ]
+  },
+  {
+    "id": 1774194598599.6013,
+    "at": "2026-03-22T15:49:58.599Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k13.kimchi-dumping.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777719,
+      1753713777761,
+      1753713777862
+    ]
+  },
+  {
+    "id": 1774195015228.0527,
+    "at": "2026-03-22T15:56:55.228Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777720,
+      1753713777762,
+      1753713777863
+    ]
+  },
+  {
+    "id": 1774195016271.8015,
+    "at": "2026-03-22T15:56:56.271Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c6.baked-egg-tart.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777705,
+      1753713777747,
+      1753713777848
+    ]
+  },
+  {
+    "id": 1774195018340.4023,
+    "at": "2026-03-22T15:56:58.340Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774195026220.1765,
+    "at": "2026-03-22T15:57:06.220Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "ddok.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/DDOK.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1753713777679,
+      1753713777692,
+      1753713777726,
+      1753713777768,
+      1753713777869
+    ]
+  },
+  {
+    "id": 1774207681030.9968,
+    "at": "2026-03-22T19:28:01.030Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "coconut juice.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/coconut juice.jpg",
+    "type": "DRINKS VIP",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952465
+    ]
+  },
+  {
+    "id": 1774207681656.172,
+    "at": "2026-03-22T19:28:01.656Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "coconut juice.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/coconut juice.jpg",
+    "type": "DRINKS VIP",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952465
+    ]
+  },
+  {
+    "id": 1774207684349.17,
+    "at": "2026-03-22T19:28:04.349Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "watermelon juice-1763841450075.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/watermelon juice-1763841450075.jpg",
+    "type": "DRINKS VIP",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952477
+    ]
+  },
+  {
+    "id": 1774207685352.7756,
+    "at": "2026-03-22T19:28:05.352Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "avocado smoothie.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/avocado smoothie.jpg",
+    "type": "DRINKS VIP",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952468
+    ]
+  },
+  {
+    "id": 1774224923548.3408,
+    "at": "2026-03-23T00:15:23.548Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "sundae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SUNDAE.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 4,
+    "affectedIds": [
+      1753713777675,
+      1753713777712,
+      1753713777754,
+      1753713777855
+    ]
+  },
+  {
+    "id": 1774232362648.9458,
+    "at": "2026-03-23T02:19:22.648Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "strawberry smoothie-1763843415030.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/strawberry smoothie-1763843415030.jpg",
+    "type": "DRINKS VIP",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952470
+    ]
+  },
+  {
+    "id": 1774232363734.7498,
+    "at": "2026-03-23T02:19:23.734Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "avocado smoothie.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/avocado smoothie.jpg",
+    "type": "DRINKS VIP",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952468
+    ]
+  },
+  {
+    "id": 1774232365670.3127,
+    "at": "2026-03-23T02:19:25.670Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "watermelon juice-1763841450075.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/watermelon juice-1763841450075.jpg",
+    "type": "DRINKS VIP",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952477
+    ]
+  },
+  {
+    "id": 1774232366537.1938,
+    "at": "2026-03-23T02:19:26.537Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "coconut juice.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/DRINKS VIP/coconut juice.jpg",
+    "type": "DRINKS VIP",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952465
+    ]
+  },
+  {
+    "id": 1774238044357.457,
+    "at": "2026-03-23T03:54:04.357Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774238044989.601,
+    "at": "2026-03-23T03:54:04.989Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774238045704.568,
+    "at": "2026-03-23T03:54:05.704Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c4.fried-seafood-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C4.FRIED-SEAFOOD-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777736,
+      1753713777778,
+      1753713777879
+    ]
+  },
+  {
+    "id": 1774238046382.4,
+    "at": "2026-03-23T03:54:06.382Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777720,
+      1753713777762,
+      1753713777863
+    ]
+  },
+  {
+    "id": 1774238047042.4097,
+    "at": "2026-03-23T03:54:07.042Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c6.baked-egg-tart.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777705,
+      1753713777747,
+      1753713777848
+    ]
+  },
+  {
+    "id": 1774238047817.7283,
+    "at": "2026-03-23T03:54:07.817Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777700,
+      1753713777742,
+      1753713777843
+    ]
+  },
+  {
+    "id": 1774242903441.66,
+    "at": "2026-03-23T05:15:03.441Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k20.seaok-sae-bulgogi.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777730,
+      1753713777772,
+      1753713777873
+    ]
+  },
+  {
+    "id": 1774242906094.768,
+    "at": "2026-03-23T05:15:06.094Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "ddok.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/DDOK.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1753713777679,
+      1753713777692,
+      1753713777726,
+      1753713777768,
+      1753713777869
+    ]
+  },
+  {
+    "id": 1774242907522.0178,
+    "at": "2026-03-23T05:15:07.522Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "kimbap.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/KIMBAP.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1753713777673,
+      1753713777689,
+      1753713777706,
+      1753713777748,
+      1753713777849
+    ]
+  },
+  {
+    "id": 1774245409837.0562,
+    "at": "2026-03-23T05:56:49.837Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k7.kimchi-jjikae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K7.KIMCHI-JJIKAE.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777731,
+      1753713777773,
+      1753713777874
+    ]
+  },
+  {
+    "id": 1774245410928.1414,
+    "at": "2026-03-23T05:56:50.928Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k6.sogogi-miyukguk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K6.SOGOGI-MIYUKGUK.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777718,
+      1753713777760,
+      1753713777861
+    ]
+  },
+  {
+    "id": 1774246167878.3586,
+    "at": "2026-03-23T06:09:27.878Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k4.so-bulgogi-jjigae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777713,
+      1753713777755,
+      1753713777856
+    ]
+  },
+  {
+    "id": 1774250684713.4734,
+    "at": "2026-03-23T07:24:44.713Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "sundae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SUNDAE.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 4,
+    "affectedIds": [
+      1753713777675,
+      1753713777712,
+      1753713777754,
+      1753713777855
+    ]
+  },
+  {
+    "id": 1774250685048.9956,
+    "at": "2026-03-23T07:24:45.048Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "fish-cake.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/FISH-CAKE.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 4,
+    "affectedIds": [
+      1753713777681,
+      1753713777732,
+      1753713777774,
+      1753713777875
+    ]
+  },
+  {
+    "id": 1774250685939.3008,
+    "at": "2026-03-23T07:24:45.939Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k2.bibimbap.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K2.BIBIMBAP.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777734,
+      1753713777776,
+      1753713777877
+    ]
+  },
+  {
+    "id": 1774250686374.9749,
+    "at": "2026-03-23T07:24:46.374Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k4.so-bulgogi-jjigae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777713,
+      1753713777755,
+      1753713777856
+    ]
+  },
+  {
+    "id": 1774250687416.9238,
+    "at": "2026-03-23T07:24:47.416Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k5.ggori-gom-tang.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777708,
+      1753713777750,
+      1753713777851
+    ]
+  },
+  {
+    "id": 1774250687600.2693,
+    "at": "2026-03-23T07:24:47.600Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k6.sogogi-miyukguk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K6.SOGOGI-MIYUKGUK.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777718,
+      1753713777760,
+      1753713777861
+    ]
+  },
+  {
+    "id": 1774250688356.7273,
+    "at": "2026-03-23T07:24:48.356Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k7.kimchi-jjikae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K7.KIMCHI-JJIKAE.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777731,
+      1753713777773,
+      1753713777874
+    ]
+  },
+  {
+    "id": 1774250689463.3267,
+    "at": "2026-03-23T07:24:49.463Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k10.jjajangmyoen.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777702,
+      1753713777744,
+      1753713777845
+    ]
+  },
+  {
+    "id": 1774250689811.5088,
+    "at": "2026-03-23T07:24:49.811Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k11.jjamppong.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K11.JJAMPPONG.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777729,
+      1753713777771,
+      1753713777872
+    ]
+  },
+  {
+    "id": 1774250691245.7827,
+    "at": "2026-03-23T07:24:51.245Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k18.hwang-tae-hae-jang-guk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K18.HWANG-TAE-HAE-JANG-GUK.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777697,
+      1753713777739,
+      1753713777840
+    ]
+  },
+  {
+    "id": 1774250698064.9702,
+    "at": "2026-03-23T07:24:58.064Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k5.ggori-gom-tang.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K5.GGORI-GOM-TANG.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777708,
+      1753713777750,
+      1753713777851
+    ]
+  },
+  {
+    "id": 1774251573530.6113,
+    "at": "2026-03-23T07:39:33.530Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k5.ggori-gom-tang.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K5.GGORI-GOM-TANG.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777708,
+      1753713777750,
+      1753713777851
+    ]
+  },
+  {
+    "id": 1774251573834.556,
+    "at": "2026-03-23T07:39:33.834Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k13.kimchi-dumping.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K13.KIMCHI-DUMPING.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777719,
+      1753713777761,
+      1753713777862
+    ]
+  },
+  {
+    "id": 1774251576356.2542,
+    "at": "2026-03-23T07:39:36.356Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k20.seaok-sae-bulgogi.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777730,
+      1753713777772,
+      1753713777873
+    ]
+  },
+  {
+    "id": 1774257651289.5298,
+    "at": "2026-03-23T09:20:51.289Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774262990185.3984,
+    "at": "2026-03-23T10:49:50.185Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774267565854.3694,
+    "at": "2026-03-23T12:06:05.854Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774276302092.795,
+    "at": "2026-03-23T14:31:42.092Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k4.so-bulgogi-jjigae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777713,
+      1753713777755,
+      1753713777856
+    ]
+  },
+  {
+    "id": 1774278299322.8699,
+    "at": "2026-03-23T15:04:59.322Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k9.yang-pyung-haejangkuk.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K9.YANG-PYUNG-HAEJANGKUK.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777716,
+      1753713777758,
+      1753713777859
+    ]
+  },
+  {
+    "id": 1774278474753.9448,
+    "at": "2026-03-23T15:07:54.753Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774280049262.8352,
+    "at": "2026-03-23T15:34:09.262Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "sundae.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/SUNDAE.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 4,
+    "affectedIds": [
+      1753713777675,
+      1753713777712,
+      1753713777754,
+      1753713777855
+    ]
+  },
+  {
+    "id": 1774281382183.726,
+    "at": "2026-03-23T15:56:22.182Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777720,
+      1753713777762,
+      1753713777863
+    ]
+  },
+  {
+    "id": 1774281382792.3955,
+    "at": "2026-03-23T15:56:22.792Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c6.baked-egg-tart.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C6.BAKED-EGG-TART.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777705,
+      1753713777747,
+      1753713777848
+    ]
+  },
+  {
+    "id": 1774281383714.4065,
+    "at": "2026-03-23T15:56:23.714Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777700,
+      1753713777742,
+      1753713777843
+    ]
+  },
+  {
+    "id": 1774286941730.0237,
+    "at": "2026-03-23T17:29:01.730Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774286974181.8005,
+    "at": "2026-03-23T17:29:34.181Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "fish-cake.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/FISH-CAKE.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 4,
+    "affectedIds": [
+      1753713777681,
+      1753713777732,
+      1753713777774,
+      1753713777875
+    ]
+  },
+  {
+    "id": 1774288879213.0173,
+    "at": "2026-03-23T18:01:19.213Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k8.nakju-bokkum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K8.NAKJU-BOKKUM.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777724,
+      1753713777766,
+      1753713777867
+    ]
+  },
+  {
+    "id": 1774291988437.612,
+    "at": "2026-03-23T18:53:08.437Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "red-velvet-croissant.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/RED-VELVET-CROISSANT.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952346
+    ]
+  },
+  {
+    "id": 1774291990701.1516,
+    "at": "2026-03-23T18:53:10.701Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "salted-egg-croissant.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SALTED-EGG-CROISSANT.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 1,
+    "affectedIds": [
+      1755923952360
+    ]
+  },
+  {
+    "id": 1774292105555.9421,
+    "at": "2026-03-23T18:55:05.555Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "hopang.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/HOPANG.jpg",
+    "type": "SNACK MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1753713777672,
+      1753713777671,
+      1753713777704,
+      1753713777746,
+      1753713777847
+    ]
+  },
+  {
+    "id": 1774326073164.8118,
+    "at": "2026-03-24T04:21:13.164Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "hopang.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/HOPANG.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1753713777672,
+      1753713777671,
+      1753713777704,
+      1753713777746,
+      1753713777847
+    ]
+  },
+  {
+    "id": 1774326075050.4011,
+    "at": "2026-03-24T04:21:15.050Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
+    ]
+  },
+  {
+    "id": 1774326075920.9897,
+    "at": "2026-03-24T04:21:15.920Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c2.wonton-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C2.WONTON-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777721,
+      1753713777763,
+      1753713777864
+    ]
+  },
+  {
+    "id": 1774326076556.763,
+    "at": "2026-03-24T04:21:16.556Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774326077279.2888,
+    "at": "2026-03-24T04:21:17.279Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777720,
+      1753713777762,
+      1753713777863
+    ]
+  },
+  {
+    "id": 1774326077915.9504,
+    "at": "2026-03-24T04:21:17.915Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c6.baked-egg-tart.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C6.BAKED-EGG-TART.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777705,
+      1753713777747,
+      1753713777848
+    ]
+  },
+  {
+    "id": 1774326078580.794,
+    "at": "2026-03-24T04:21:18.580Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777700,
+      1753713777742,
+      1753713777843
+    ]
+  },
+  {
+    "id": 1774326082553.2485,
+    "at": "2026-03-24T04:21:22.553Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "red-velvet-croissant.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/RED-VELVET-CROISSANT.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952346
+    ]
+  },
+  {
+    "id": 1774326084696.482,
+    "at": "2026-03-24T04:21:24.696Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "cream-croissant.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/CREAM-CROISSANT.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952347
+    ]
+  },
+  {
+    "id": 1774326085620.6252,
+    "at": "2026-03-24T04:21:25.620Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "salted-egg-croissant.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/SALTED-EGG-CROISSANT.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952360
+    ]
+  },
+  {
+    "id": 1774326087677.836,
+    "at": "2026-03-24T04:21:27.677Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "croiss-ant-ham-cheese.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/CROISS-ANT-HAM-CHEESE.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952350
+    ]
+  },
+  {
+    "id": 1774326089148.0103,
+    "at": "2026-03-24T04:21:29.148Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "avocado-croissant.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/avocado-croissant.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952368
+    ]
+  },
+  {
+    "id": 1774326089953.0303,
+    "at": "2026-03-24T04:21:29.953Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "e75e22755482dedc87933.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/e75e22755482dedc87933.jpg",
+    "type": "SNACK MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 1,
+    "affectedIds": [
+      1755923952369
+    ]
+  },
+  {
+    "id": 1774326095849.848,
+    "at": "2026-03-24T04:21:35.849Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "k16.sogogi-gukbap.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K16.SOGOGI-GUKBAP.jpg",
+    "type": "HOTEL MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777709,
+      1753713777751,
+      1753713777852
+    ]
+  },
+  {
+    "id": 1774328746319.9727,
+    "at": "2026-03-24T05:05:46.319Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774328782807.5354,
+    "at": "2026-03-24T05:06:22.807Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Sold Out",
+    "to": "Available",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774328919912.7532,
+    "at": "2026-03-24T05:08:39.912Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c3.fried-beef-noodles.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C3.FRIED-BEEF-NOODLES.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 3,
+    "affectedIds": [
+      1753713777722,
+      1753713777764,
+      1753713777865
+    ]
+  },
+  {
+    "id": 1774334037224.8787,
+    "at": "2026-03-24T06:33:57.224Z",
+    "by": "kitchen",
+    "role": "kitchen",
+    "imageName": "c1.dimsum.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
+    "type": "CLUB MENU",
+    "from": "Available",
+    "to": "Sold Out",
+    "count": 5,
+    "affectedIds": [
+      1755923952356,
+      1755923952357,
+      1755923952354,
+      1755923952355,
+      1755923952358
     ]
   }
 ]
