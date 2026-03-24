@@ -1047,7 +1047,7 @@ const lookupCustomerByCode = React.useCallback((o) => {
     if (!Array.isArray(orders) || orders.length === 0) return out;
 
     const acceptedOrderIds = new Set();
-
+    
     if (type === 'hanghoa_mon') {
       const by = new Map(); // key -> {name, code, qty, revenue}
       for (const o of orders) {
@@ -1123,7 +1123,64 @@ const lookupCustomerByCode = React.useCallback((o) => {
       out.rows = Array.from(by, ([table, v]) => ({ table, qty: v.qty, revenue: v.revenue }));
       return out;
     }
+// === Đơn hàng chi tiết ===
+if (type === 'orders_detail') {
+  // Chuẩn hóa chuỗi (dạng chữ thường)
+  const norm = (s) => String(s || '').trim().toLowerCase();
+  const out = { totalOrders: 0, totalRevenue: 0, rows: [] };
+  const acceptedOrderIds = new Set();
+  for (const o of orders) {
+    let orderSum = 0;
+    const staff = o?.staff || '';
+    const dateTime = o?.createdAt || '';
+    const table = [o?.area, o?.tableNo].filter(Boolean).join('-') || '(Không rõ bàn)';
+    const customerInfo = lookupCustomerByCode(o) || {};
+    const member = customerInfo.code || '';
 
+    for (const it of (o.items || [])) {
+      const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+      const code = resolveItemCode(it);
+      const name = resolveItemName(it);
+      const group = deriveItemGroup(it, k);
+      // Lấy loại thực đơn từ foodsIndex (key dạng `${type}|${imgKey}`)
+      const types = new Set();
+      for (const key of foodsIndex.keys()) {
+        const parts = String(key).split('|');
+        if (parts.length === 2 && parts[1] === k) {
+          types.add(parts[0]);
+        }
+      }
+      // Lấy menu (Admin/User) theo image
+      const menuSet = menusOfImage.get(k) || new Set();
+      // Ghép nhóm hàng, loại thực đơn và menu thành 1 chuỗi
+      const categoryParts = new Set();
+      if (group) categoryParts.add(group);
+      types.forEach((t) => { if (t) categoryParts.add(t); });
+      menuSet.forEach((m) => { if (m) categoryParts.add(m); });
+      const category = Array.from(categoryParts).join(', ');
+
+      const qty = Number(it?.qty || 0);
+      // Giá: ưu tiên từ it.price, fallback qua priceMap
+      let price = Number(it?.price || 0);
+      if (!price && priceMap) {
+        const pImg  = priceMap.get(`img:${k}`);
+        const pCode = priceMap.get(`code:${norm(code)}`);
+        const pName = priceMap.get(`name:${norm(name)}`);
+        price = pImg || pCode || pName || 0;
+      }
+
+      orderSum += qty * price;
+      out.rows.push({ staff, code, name, category, member, qty, price, dateTime, table });
+    }
+
+    if (orderSum) {
+      acceptedOrderIds.add(o.id || o._id || JSON.stringify(o));
+      out.totalRevenue += orderSum;
+    }
+  }
+  out.totalOrders = acceptedOrderIds.size;
+  return out;
+}
 if (type === 'khachhang_tomtat' || type === 'khachhang_chitiet') {
   const cust = new Map(); // key = code:<MÃ>, hoặc fallback unique theo order nếu không có mã
   for (const o of orders) {
@@ -1196,14 +1253,16 @@ if (type === 'khachhang_tomtat' || type === 'khachhang_chitiet') {
 
 
     return out;
-  }, [
+}, [
   selectedGroups,
   deriveItemGroup,
   resolveItemName,
   resolveItemCode,
   getLineRevenue,
-
   lookupCustomerByCode,
+  menusOfImage,
+  foodsIndex,
+  priceMap,
 ]);
 
   // ====== Fetch orders & build report ======
@@ -1279,6 +1338,7 @@ React.useEffect(() => {
     })();
 
     const typeLabel = (() => {
+      if (reportType === 'orders_detail') return 'BÁO CÁO ĐƠN HÀNG — CHI TIẾT';
       if (reportType === 'hanghoa_mon') return 'BÁO CÁO HÀNG HÓA — THEO MÓN';
       if (reportType === 'hanghoa_nhom') return 'BÁO CÁO HÀNG HÓA — THEO NHÓM HÀNG';
       if (reportType === 'hanghoa_ban') return 'BÁO CÁO HÀNG HÓA — THEO BÀN';
@@ -1323,8 +1383,15 @@ React.useEffect(() => {
           );
         }
       });
+      } else if (reportType === 'orders_detail') {
+  // Header for detailed orders
+  push(['Nhân viên', 'Mã món', 'Tên món', 'Menu Category', 'Member', 'Số lượng', 'Giá', 'Ngày & giờ Order', 'Bàn']);
+  (reportData.rows || []).forEach(r =>
+    push([r.staff, r.code, r.name, r.category, r.member, r.qty, r.price, r.dateTime, r.table])
+  );
+}
     }
-
+    
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Report');
@@ -1384,17 +1451,21 @@ React.useEffect(() => {
     <div style={{ padding: 16 }}>
       {/* Toolbar */}
       <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', marginBottom:12 }}>
-        <select value={reportType} onChange={e => setReportType(e.target.value)}>
-          <optgroup label="Hàng hóa">
-            <option value="hanghoa_mon">Theo Món</option>
-            <option value="hanghoa_nhom">Theo Nhóm hàng</option>
-            <option value="hanghoa_ban">Theo Bàn</option>
-          </optgroup>
-          <optgroup label="Khách hàng">
-            <option value="khachhang_tomtat">Hàng bán theo khách (tổng hợp)</option>
-            <option value="khachhang_chitiet">Khách order (chi tiết)</option>
-          </optgroup>
-        </select>
+<select value={reportType} onChange={e => setReportType(e.target.value)}>
+  <optgroup label="Hàng hóa">
+    <option value="hanghoa_mon">Theo Món</option>
+    <option value="hanghoa_nhom">Theo Nhóm hàng</option>
+    <option value="hanghoa_ban">Theo Bàn</option>
+  </optgroup>
+  <optgroup label="Khách hàng">
+    <option value="khachhang_tomtat">Hàng bán theo khách (tổng hợp)</option>
+    <option value="khachhang_chitiet">Khách order (chi tiết)</option>
+  </optgroup>
+  {/* New: Chi tiết đơn hàng */}
+  <optgroup label="Đơn hàng">
+    <option value="orders_detail">Đơn hàng chi tiết</option>
+  </optgroup>
+</select>
 
         <select value={preset} onChange={e => setPreset(e.target.value)}>
           <option value="today">Hôm nay</option>
@@ -1431,6 +1502,7 @@ React.useEffect(() => {
       <div id="report-print-area" style={pageStyle}>
         <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
           <div style={{ fontSize: 18, fontWeight: 800 }}>
+            {reportType === 'orders_detail' && 'BÁO CÁO ĐƠN HÀNG — CHI TIẾT'}
             {reportType === 'hanghoa_mon' && 'BÁO CÁO HÀNG HÓA — THEO MÓN'}
             {reportType === 'hanghoa_nhom' && 'BÁO CÁO HÀNG HÓA — THEO NHÓM HÀNG'}
             {reportType === 'hanghoa_ban' && 'BÁO CÁO HÀNG HÓA — THEO BÀN'}
@@ -1595,6 +1667,45 @@ React.useEffect(() => {
               );
             })()
           )}
+          {/* === Đơn hàng chi tiết === */}
+{!loading && reportType === 'orders_detail' && (
+  (() => {
+    const rows = Array.isArray(reportData?.rows) ? reportData.rows : [];
+    if (!rows || rows.length === 0) return <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div>;
+    return (
+      <table border="1" cellPadding="6" style={{ width:'100%', borderCollapse:'collapse' }}>
+        <thead>
+          <tr>
+            <th>Nhân viên</th>
+            <th>Mã món</th>
+            <th>Tên món</th>
+            <th>Menu Category</th>
+            <th>Member</th>
+            <th style={{ textAlign:'right' }}>Số lượng</th>
+            <th style={{ textAlign:'right' }}>Giá</th>
+            <th>Ngày &amp; giờ Order</th>
+            <th>Bàn</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, idx) => (
+            <tr key={idx}>
+              <td>{r.staff}</td>
+              <td>{r.code}</td>
+              <td>{r.name}</td>
+              <td>{r.category}</td>
+              <td>{r.member}</td>
+              <td style={{ textAlign:'right' }}>{money(r.qty)}</td>
+              <td style={{ textAlign:'right' }}>{money(r.price)}</td>
+              <td>{r.dateTime}</td>
+              <td>{r.table}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  })()
+)}
         </div>
       </div>
     </div>
@@ -3861,4 +3972,4 @@ function normalizeCustomers(items) {
       )}
     </div>
   );
-}
+

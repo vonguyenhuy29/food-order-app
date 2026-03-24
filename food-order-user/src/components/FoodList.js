@@ -690,11 +690,19 @@ const lookupMember = useCallback(async (memberCard) => {
 
   // Submit order
   const placeOrder = async () => {
-    if (!selectedTable) return setToast('Hãy chọn bàn');
-    if (totalItems <= 0) return setToast('Giỏ trống');
-    if (!orderForm.staff?.trim() || !orderForm.memberCard?.trim()) {
-      setToast('Nhập Nhân viên & Member'); return;
-    }
+if (!selectedTable) return setToast('Hãy chọn bàn');
+if (totalItems <= 0) return setToast('Giỏ trống');
+// Validate staff: phải có và là số
+const staffVal = (orderForm.staff || '').trim();
+if (!staffVal || !/^\d+$/.test(staffVal)) {
+  setToast('Mã nhân viên phải là số');
+  return;
+}
+// Validate member card
+if (!orderForm.memberCard?.trim()) {
+  setToast('Nhập Member');
+  return;
+}
     const items = Object.entries(currentCart).map(([imageName, item]) => ({
   imageKey: imageName, // <— chuẩn hoá key ảnh
   qty: item.qty,
@@ -1459,11 +1467,15 @@ const lookupMember = useCallback(async (memberCard) => {
             <div style={{ display:'grid', gap:10 }}>
               <div>
                 <label>Staff *</label>
-                <input
-                  value={orderForm.staff}
-                  onChange={e=>setOrderForm(f=>({...f, staff:e.target.value}))}
-                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
-                />
+<input
+  type="number"
+  pattern="[0-9]*"
+  inputMode="numeric"
+  value={orderForm.staff}
+  onChange={e => setOrderForm(f => ({ ...f, staff: e.target.value }))}
+  placeholder="Mã nhân viên"
+  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
+/>
               </div>
               <div>
                 <label>Member *</label>

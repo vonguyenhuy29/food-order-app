@@ -115,7 +115,10 @@ router.post('/', (req,res)=>{
     } = req.body || {};
 
     if (!area || !tableNo) return res.status(400).json({ error:'Thiếu area/tableNo' });
-    if (!staff)           return res.status(400).json({ error:'Thiếu staff' });
+    // Staff phải là chuỗi số hợp lệ
+if (!staff || !String(staff).trim() || !/^\d+$/.test(String(staff).trim())) {
+  return res.status(400).json({ error:'Invalid staff: phải là mã số' });
+}
     if (!Array.isArray(itemsRaw) || itemsRaw.length===0) return res.status(400).json({ error:'Giỏ trống' });
 
     // Snapshot customer
