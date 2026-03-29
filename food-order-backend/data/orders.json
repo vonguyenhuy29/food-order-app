@@ -1,5 +1,261 @@
 [
   {
+    "id": "712",
+    "createdAt": "2026-03-28T12:38:19.915Z",
+    "status": "PENDING",
+    "area": "Multi",
+    "tableNo": 502,
+    "staff": "0977",
+    "memberCard": "38194",
+    "customer": {
+      "code": null,
+      "name": "Thi Thu Xuan Ngo",
+      "level": "V"
+    },
+    "note": "Vivi 15",
+    "items": [
+      {
+        "imageKey": "strawberry smoothie-1763843415030.jpg",
+        "name": "STRAWBERRY SMOOTHIE",
+        "qty": 1,
+        "price": 60000,
+        "group": "Beverage",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "711",
+    "createdAt": "2026-03-26T11:58:45.187Z",
+    "status": "PENDING",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "0886",
+    "memberCard": "37373",
+    "customer": {
+      "code": null,
+      "name": "Yen San Lee",
+      "level": "ONE"
+    },
+    "note": "Blair 2f",
+    "items": [
+      {
+        "imageKey": "k20.seaok-sae-bulgogi.jpg",
+        "name": "SEAOK SAE BULGOGI",
+        "qty": 1,
+        "price": 330000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "710",
+    "createdAt": "2026-03-26T11:47:28.632Z",
+    "status": "PENDING",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "0971",
+    "memberCard": "4773",
+    "customer": {
+      "code": null,
+      "name": "Hyung Suk Kim",
+      "level": "V+"
+    },
+    "note": "Erina 2f - 2pax\nWith garlic breads",
+    "items": [
+      {
+        "imageKey": "k6.sogogi-miyukguk.jpg",
+        "name": "SOGOGI MIYUKGUK",
+        "qty": 1,
+        "price": 200000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k14.tong-samgyupsal.jpg",
+        "name": "TONG SAMGYUPSAL",
+        "qty": 2,
+        "price": 250000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "beef-pho.jpg",
+        "name": "BEEF PHO",
+        "qty": 1,
+        "price": 330000,
+        "group": "HOTEL",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "709",
+    "createdAt": "2026-03-26T10:27:22.107Z",
+    "status": "PENDING",
+    "area": "Non - Smoking",
+    "tableNo": 1001,
+    "staff": "0865",
+    "memberCard": "50950",
+    "customer": {
+      "code": null,
+      "name": "Jay Andrew Tieu",
+      "level": "P"
+    },
+    "note": "Trung chien 1m",
+    "items": [
+      {
+        "imageKey": "croiss-ant-ham-cheese.jpg",
+        "name": "CROISSANT HAM CHEESE",
+        "qty": 1,
+        "price": 100000,
+        "group": "Dessert & Savoury",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "708",
+    "createdAt": "2026-03-26T07:29:47.562Z",
+    "status": "PENDING",
+    "area": "2 Floor",
+    "tableNo": 2014,
+    "staff": "0971",
+    "memberCard": "37197",
+    "customer": {
+      "code": null,
+      "name": "Junkyoo Song",
+      "level": "I"
+    },
+    "note": "Erina 2f - 2pax",
+    "items": [
+      {
+        "imageKey": "k20.seaok-sae-bulgogi.jpg",
+        "name": "SEAOK SAE BULGOGI",
+        "qty": 1,
+        "price": 330000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k16.sogogi-gukbap.jpg",
+        "name": "SOGOGI GUKBAP",
+        "qty": 1,
+        "price": 110000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "707",
+    "createdAt": "2026-03-25T14:54:48.270Z",
+    "status": "PENDING",
+    "area": "2 Floor",
+    "tableNo": 2018,
+    "staff": "0971",
+    "memberCard": "60257",
+    "customer": {
+      "code": null,
+      "name": "Jinping Xia",
+      "level": "V"
+    },
+    "note": "Erina 2f",
+    "items": [
+      {
+        "imageKey": "k14.tong-samgyupsal.jpg",
+        "name": "TONG SAMGYUPSAL",
+        "qty": 1,
+        "price": 250000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "c1.dimsum.jpg",
+        "name": "DIMSUM",
+        "qty": 1,
+        "price": 75900,
+        "group": "Chinese",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "706",
+    "createdAt": "2026-03-25T14:51:52.882Z",
+    "status": "PENDING",
+    "area": "2 Floor",
+    "tableNo": 2015,
+    "staff": "0971",
+    "memberCard": "60257",
+    "customer": {
+      "code": null,
+      "name": "Jinping Xia",
+      "level": "V"
+    },
+    "note": "Erina 2f",
+    "items": [
+      {
+        "imageKey": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+        "name": "PAN RRIED MINCED PORK DUMPLING 'GUOTIE'",
+        "qty": 1,
+        "price": 55000,
+        "group": "Chinese",
+        "note": ""
+      },
+      {
+        "imageKey": "c7.steamed-bbq-noey-glazed-porl-bun.jpg",
+        "name": "STEAMED BBQ NOEY GLAZED PORL BUN",
+        "qty": 1,
+        "price": 55000,
+        "group": "Chinese",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "705",
+    "createdAt": "2026-03-25T12:32:21.396Z",
+    "status": "PENDING",
+    "area": "Non - Smoking",
+    "tableNo": 1001,
+    "staff": "0865",
+    "memberCard": "５７３３５",
+    "customer": {
+      "code": null,
+      "name": "Chưa có thông tin",
+      "level": "Chưa có thông tin"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "seafood-spicy-noodle.jpg",
+        "name": "SEAFOOD SPICY NOODLE",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
     "id": "704",
     "createdAt": "2026-03-22T13:17:02.937Z",
     "status": "PENDING",
@@ -133,7 +389,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "700",
@@ -167,7 +423,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "699",
@@ -219,7 +475,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "697",
@@ -245,7 +501,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "696",
