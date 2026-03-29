@@ -60,6 +60,17 @@ const MENU_LEVELS_JSON = path.join(DATA_DIR, 'menu-levels.json');
 const STATUS_HISTORY_JSON = path.join(DATA_DIR, 'status-history.json');
 const ORDERS_JSON  = path.join(DATA_DIR, 'orders.json');
 const MEMBERS_JSON = path.join(DATA_DIR, 'members.json');
+// NEW: file chứa danh sách nhân viên
+const STAFFS_JSON = path.join(DATA_DIR, 'staffs.json');
+
+// Đảm bảo file staff.json luôn tồn tại (nếu chưa có thì tạo rỗng)
+try {
+  if (!fs.existsSync(STAFFS_JSON)) {
+    fs.writeFileSync(STAFFS_JSON, '[]', 'utf8');
+  }
+} catch (e) {
+  console.error('Could not initialize STAFFS_JSON:', e.message);
+}
 
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
@@ -170,7 +181,45 @@ app.post('/qz/sign', express.text({ type: '*/*' }), (req, res) => {
   }
 });
 // ===================================================================
+// ==== Staffs API ====
+// Trả về danh sách nhân viên. File lưu tại STAFFS_JSON dưới dạng array các object { id, name }.
+app.get('/api/staffs', (_req, res) => {
+  try {
+    const data = fs.existsSync(STAFFS_JSON)
+      ? JSON.parse(fs.readFileSync(STAFFS_JSON, 'utf8'))
+      : [];
+    // Đảm bảo luôn trả về array of objects { id, name }
+    const out = Array.isArray(data)
+      ? data.map((it) => {
+          const id = String(it?.id ?? it?.code ?? '').trim();
+          return { id, name: String(it?.name ?? '') };
+        })
+      : [];
+    res.json(out);
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
 
+// Cập nhật danh sách nhân viên (ghi đè toàn bộ). Yêu cầu body là array các object { id/code, name }.
+app.post('/api/staffs', (req, res) => {
+  try {
+    const list = Array.isArray(req.body) ? req.body : [];
+    // normalize
+    const normalized = list
+      .map((it) => {
+        const id = String(it?.id ?? it?.code ?? '').trim();
+        const name = String(it?.name ?? '').trim();
+        if (!id || !name) return null;
+        return { id, name };
+      })
+      .filter(Boolean);
+    fs.writeFileSync(STAFFS_JSON, JSON.stringify(normalized, null, 2), 'utf8');
+    res.json({ success: true, count: normalized.length });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
 // ====== Helpers ======
 function extractImageName(url) {
   try { return url.split('/').pop().toLowerCase(); } catch { return null; }

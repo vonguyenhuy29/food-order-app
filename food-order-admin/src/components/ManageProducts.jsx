@@ -1047,7 +1047,7 @@ const lookupCustomerByCode = React.useCallback((o) => {
     if (!Array.isArray(orders) || orders.length === 0) return out;
 
     const acceptedOrderIds = new Set();
-    
+
     if (type === 'hanghoa_mon') {
       const by = new Map(); // key -> {name, code, qty, revenue}
       for (const o of orders) {
@@ -1253,7 +1253,7 @@ if (type === 'khachhang_tomtat' || type === 'khachhang_chitiet') {
 
 
     return out;
-}, [
+  }, [
   selectedGroups,
   deriveItemGroup,
   resolveItemName,
@@ -1383,15 +1383,14 @@ React.useEffect(() => {
           );
         }
       });
-      } else if (reportType === 'orders_detail') {
+    } else if (reportType === 'orders_detail') {
   // Header for detailed orders
   push(['Nhân viên', 'Mã món', 'Tên món', 'Menu Category', 'Member', 'Số lượng', 'Giá', 'Ngày & giờ Order', 'Bàn']);
   (reportData.rows || []).forEach(r =>
     push([r.staff, r.code, r.name, r.category, r.member, r.qty, r.price, r.dateTime, r.table])
   );
 }
-    }
-    
+
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Report');
@@ -3972,4 +3971,4 @@ function normalizeCustomers(items) {
       )}
     </div>
   );
-
+}

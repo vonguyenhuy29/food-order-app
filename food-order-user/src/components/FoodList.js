@@ -171,7 +171,36 @@ const [carts, setCarts] = useState(() => {
     } catch { return { staff: '', memberCard: '', customerName: '', note: '' }; }
   });
   const [toast, setToast] = useState('');
+    // === Staff lookup ===
+  // Lưu map mã nhân viên -> tên nhân viên (loaded từ API)
+  const [staffMap, setStaffMap] = useState({});
+  // Tên nhân viên hiện tại theo mã đã nhập
+  const [staffName, setStaffName] = useState('');
 
+  // Tải danh sách nhân viên từ API backend (/api/staffs)
+  useEffect(() => {
+    const loadStaffs = async () => {
+      try {
+        const res = await axios.get(apiUrl('/api/staffs'));
+        const arr = Array.isArray(res.data) ? res.data : [];
+        const map = {};
+        arr.forEach((it) => {
+          const id = String(it?.id ?? it?.code ?? '').trim();
+          if (id) map[id] = String(it?.name ?? '');
+        });
+        setStaffMap(map);
+      } catch (e) {
+        // Nếu lỗi, giữ staffMap rỗng
+      }
+    };
+    loadStaffs();
+  }, []);
+
+  // Cập nhật staffName mỗi khi mã nhân viên thay đổi hoặc staffMap đổi
+  useEffect(() => {
+    const id = String(orderForm.staff || '').trim();
+    setStaffName(staffMap[id] || '');
+  }, [orderForm.staff, staffMap]);
   // Refs
   const touchStartXRef = useRef(null);
   const touchStartYRef = useRef(null);
@@ -1467,15 +1496,21 @@ if (!orderForm.memberCard?.trim()) {
             <div style={{ display:'grid', gap:10 }}>
               <div>
                 <label>Staff *</label>
-<input
-  type="number"
-  pattern="[0-9]*"
-  inputMode="numeric"
-  value={orderForm.staff}
-  onChange={e => setOrderForm(f => ({ ...f, staff: e.target.value }))}
-  placeholder="Mã nhân viên"
-  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
-/>
+                <input
+                  type="number"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  value={orderForm.staff}
+                  onChange={e => setOrderForm(f => ({ ...f, staff: e.target.value }))}
+                  placeholder="Mã nhân viên"
+                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
+                />
+                {/* Hiển thị tên nhân viên nếu tìm thấy */}
+                {staffName && (
+                  <div style={{ marginTop: 4, fontSize: 12, color: '#6b7280' }}>
+                    Tên nhân viên: {staffName}
+                  </div>
+                )}
               </div>
               <div>
                 <label>Member *</label>
