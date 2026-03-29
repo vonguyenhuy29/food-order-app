@@ -1495,22 +1495,22 @@ if (!orderForm.memberCard?.trim()) {
 
             <div style={{ display:'grid', gap:10 }}>
               <div>
-                <label>Staff *</label>
-                <input
-                  type="number"
-                  pattern="[0-9]*"
-                  inputMode="numeric"
-                  value={orderForm.staff}
-                  onChange={e => setOrderForm(f => ({ ...f, staff: e.target.value }))}
-                  placeholder="Mã nhân viên"
-                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
-                />
-                {/* Hiển thị tên nhân viên nếu tìm thấy */}
-                {staffName && (
-                  <div style={{ marginTop: 4, fontSize: 12, color: '#6b7280' }}>
-                    Tên nhân viên: {staffName}
-                  </div>
-                )}
+              <label>Staff *</label>
+              <input
+                type="number"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                value={orderForm.staff}
+                onChange={e => setOrderForm(f => ({ ...f, staff: e.target.value }))}
+                placeholder="Mã nhân viên"
+                style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
+              />
+              {/* Hiển thị tên nhân viên nếu tìm thấy */}
+              {staffName && (
+                <div style={{ marginTop: 4, fontSize: 12, color: '#6b7280' }}>
+                  Tên nhân viên: {staffName}
+                </div>
+              )}
               </div>
               <div>
                 <label>Member *</label>

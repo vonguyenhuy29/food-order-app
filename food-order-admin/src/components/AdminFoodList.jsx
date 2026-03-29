@@ -194,7 +194,20 @@ useEffect(() => { showManageRef.current = showManage; }, [showManage]);
     } catch { return []; }
   });
   useEffect(() => { localStorage.setItem('customMenus', JSON.stringify(customMenus)); }, [customMenus]);
-
+// === Staff lookup ===
+const [staffMap, setStaffMap] = useState({});
+useEffect(() => {
+  async function loadStaffs() {
+    const res = await axios.get(apiUrl('/api/staffs'));
+    const map = {};
+    (res.data || []).forEach(it => {
+      const id = String(it.id || it.code || '').trim();
+      if (id) map[id] = String(it.name || '');
+    });
+    setStaffMap(map);
+  }
+  loadStaffs();
+}, []);
 const foodsReqRef = useRef(null);
 const fetchFoods = useCallback(async () => {
   if (foodsReqRef.current) return foodsReqRef.current; // nếu đang chạy, trả về promise cũ
@@ -296,6 +309,8 @@ const humanizeName = useCallback((s) =>
     .trim()
 , []);
   // ====== Print (dialog fallback) ======
+  
+ 
 const printDialog = useCallback((o) => {
   try {
     const w = window.open('', '_blank', 'width=480,height=640');
@@ -306,6 +321,11 @@ const printDialog = useCallback((o) => {
     const rows = (o.items || [])
       .map(it => `<tr><td style="padding:4px 0; width:32px;">x${it.qty}</td><td style="padding:4px 0;">${esc(humanizeName(it.name || it.imageName || it.imageKey))}</td></tr>`)
       .join('');
+      const sName = staffMap[o.staff] || '';
+      const staffDisplay = o.staff ? (sName ? `${o.staff} - ${sName}` : o.staff) : '';
+      const customerDisplay = o.memberCard
+        ? (o.customerName ? `${o.memberCard} - ${o.customerName}` : o.memberCard)
+        : (o.customerName || '');
       const html = `
 <!doctype html>
 <html><head><meta charset="utf-8" /><title>Order #${o.id}</title>
@@ -322,8 +342,9 @@ const printDialog = useCallback((o) => {
   <hr />
   <div class="row"><span>Area</span><span class="bold">${o.area}</span></div>
   <div class="row"><span>Table</span><span class="bold">${o.tableNo}</span></div>
- <div class="row"><span>Staff</span><span>${esc(o.staff || '')}</span></div>
-  <div class="row"><span>Member</span><span>${esc(o.memberCard || '')}</span></div>
+ <div class="row"><span>Staff</span><span>${esc(staffDisplay)}</span></div>
+<div class="row"><span>Customer</span><span>${esc(customerDisplay)}</span></div>
+
   ${o.customerName ? `<div class="row"><span>Customer</span><span>${esc(o.customerName)}</span></div>` : ''}
   ${o.note ? `<div>Note: ${esc(o.note)}</div>` : ''}
   <hr />
@@ -336,7 +357,7 @@ const printDialog = useCallback((o) => {
     } catch (e) {
       alert('Không in được: ' + (e?.message || e));
     }
-}, [humanizeName]);
+}, [humanizeName, staffMap]);
 
   // ---------- PRINT AGENT (HTTP, auto-detect host) ----------
   const [agentBase, setAgentBase] = useState(
@@ -1644,11 +1665,26 @@ const foodsForDisplay = normQ
                                   {pillStyle.label}
                                 </div>
                               </div>
-                              <div style={{ fontSize: 12, color: '#6b7280' }}>
-                                Staff: <b>{o.staff}</b>
-                                {' · '}Member: <b>{o.memberCard}</b>
-                                {o.customerName ? <> {' · '}Khách: <b>{o.customerName}</b></> : null}
-                              </div>
+<div style={{ fontSize: 12, color: '#6b7280' }}>
+  Staff: <b>{staffMap[o.staff] ? o.staff + ' - ' + staffMap[o.staff] : (o.staff || '')}</b>
+  {' · '}
+  {/* Tính tên khách từ customerName hoặc snapshot o.customer.name */}
+  {(() => {
+    const custName =
+      (o.customerName != null && o.customerName !== undefined)
+        ? o.customerName
+        : (o.customer && typeof o.customer === 'object' ? (o.customer.name || '') : '');
+    return (
+      <>
+        Customer: <b>{
+          o.memberCard
+            ? (custName ? `${o.memberCard} - ${custName}` : o.memberCard)
+            : (custName || '')
+        }</b>
+      </>
+    );
+  })()}
+</div>
                             </div>
 
                             <div style={{ padding: 10 }}>

@@ -201,7 +201,24 @@ router.post('/:id/close',(req,res)=>{
  */
 router.get('/report',  (req,res)=>{
   const { from, to } = req.query || {};
-  const all = readJson(ORDERS_FILE, []);
+  let all = readJson(ORDERS_FILE, []);
+
+  // Tự động đánh dấu đơn của những ngày trước (không bị CANCELLED) là DONE
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    let changed = false;
+    all.forEach(o => {
+      const orderTime = new Date(o.createdAt).getTime();
+      if (orderTime < todayStart && o.status !== 'CANCELLED' && o.status !== 'DONE') {
+        o.status = 'DONE';
+        changed = true;
+      }
+    });
+    if (changed) writeJson(ORDERS_FILE, all);
+  } catch (e) {
+    // Ignore errors
+  }
   const rows = all.filter(o => {
     const t = new Date(o.createdAt).getTime();
     const okFrom = from ? (t >= new Date(from+'T00:00:00').getTime()) : true;

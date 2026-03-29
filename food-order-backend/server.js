@@ -127,7 +127,8 @@ app.locals.io = io;
 app.use(cors({
   origin: allowOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  // thêm cả 'Cache-Control' và 'cache-control' vào allowedHeaders
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'cache-control'],
 }));
 
 app.use(express.json({ limit: '4mb' }));
@@ -216,6 +217,44 @@ app.post('/api/staffs', (req, res) => {
       .filter(Boolean);
     fs.writeFileSync(STAFFS_JSON, JSON.stringify(normalized, null, 2), 'utf8');
     res.json({ success: true, count: normalized.length });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+// Cập nhật hoặc tạo nhân viên theo id
+app.put('/api/staffs/:id', (req, res) => {
+  try {
+    const idParam = req.params.id;
+    const { id = idParam, code, name } = req.body || {};
+    const staffId = String(id || code || '').trim();
+    const staffName = String(name || '').trim();
+    if (!staffId || !staffName) {
+      return res.status(400).json({ error: 'id and name required' });
+    }
+    const list = fs.existsSync(STAFFS_JSON)
+      ? JSON.parse(fs.readFileSync(STAFFS_JSON, 'utf8') || '[]')
+      : [];
+    const idx = list.findIndex(it => String(it.id || it.code).trim() === staffId);
+    if (idx >= 0) list[idx] = { id: staffId, name: staffName };
+    else list.push({ id: staffId, name: staffName });
+    fs.writeFileSync(STAFFS_JSON, JSON.stringify(list, null, 2), 'utf8');
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
+// Xoá nhân viên theo id
+app.delete('/api/staffs/:id', (req, res) => {
+  try {
+    const id = String(req.params.id || '').trim();
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const list = fs.existsSync(STAFFS_JSON)
+      ? JSON.parse(fs.readFileSync(STAFFS_JSON, 'utf8') || '[]')
+      : [];
+    const newList = list.filter(it => String(it.id || it.code).trim() !== id);
+    fs.writeFileSync(STAFFS_JSON, JSON.stringify(newList, null, 2), 'utf8');
+    res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
