@@ -1,8 +1,224 @@
 [
   {
+    "id": "720",
+    "createdAt": "2026-03-29T06:16:04.310Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1001,
+    "staff": "111",
+    "memberCard": "37167",
+    "customer": {
+      "code": null,
+      "name": "Bi Peng",
+      "level": "I"
+    },
+    "note": "2 pax - com đậu - outside - ruan",
+    "items": [
+      {
+        "imageKey": "k19.jok-bal.jpg",
+        "name": "JOK BAL",
+        "qty": 2,
+        "price": 500000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "double-boiled-nutritious-soup.jpg",
+        "name": "DOUBLE BOILED NUTRITIOUS SOUP",
+        "qty": 2,
+        "price": 328000,
+        "group": "HOTEL",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "719",
+    "createdAt": "2026-03-29T06:14:02.214Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 106,
+    "staff": "1",
+    "memberCard": "7267",
+    "customer": {
+      "code": null,
+      "name": "Jiang Li Hu",
+      "level": "I"
+    },
+    "note": "test",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "718",
+    "createdAt": "2026-03-29T06:06:53.098Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 106,
+    "staff": "1",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "test",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "717",
+    "createdAt": "2026-03-29T06:06:30.436Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 106,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "test",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "716",
+    "createdAt": "2026-03-29T05:57:42.677Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2021,
+    "staff": "0886",
+    "memberCard": "66",
+    "customer": {
+      "code": null,
+      "name": "Ninh Ngoc Vu",
+      "level": "V"
+    },
+    "note": "Cháo hào bào ngư",
+    "items": [
+      {
+        "imageKey": "seafoods congee (prawn & squid)-h5.jpg",
+        "name": "SEAFOODS CONGEE (PRAWN & SQUID)",
+        "qty": 1,
+        "price": 428000,
+        "group": "HOTEL",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "715",
+    "createdAt": "2026-03-29T04:49:28.762Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2021,
+    "staff": "60135",
+    "memberCard": "60135",
+    "customer": {
+      "code": null,
+      "name": "Guocai Dai",
+      "level": "I+"
+    },
+    "note": "Otis 25",
+    "items": [
+      {
+        "imageKey": "k16.sogogi-gukbap.jpg",
+        "name": "SOGOGI GUKBAP",
+        "qty": 1,
+        "price": 110000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "714",
+    "createdAt": "2026-03-29T04:01:47.218Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1001,
+    "staff": "0785",
+    "memberCard": "785",
+    "customer": {
+      "code": null,
+      "name": "Chang Shu Chuan Hsu",
+      "level": "I"
+    },
+    "note": "Otis 33",
+    "items": [
+      {
+        "imageKey": "c6.baked-egg-tart.jpg",
+        "name": "BAKED EGG TART",
+        "qty": 1,
+        "price": 55000,
+        "group": "Chinese",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "713",
+    "createdAt": "2026-03-29T04:00:48.030Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1001,
+    "staff": "0964",
+    "memberCard": "785",
+    "customer": {
+      "code": null,
+      "name": "Chang Shu Chuan Hsu",
+      "level": "I"
+    },
+    "note": "Otis 33",
+    "items": [
+      {
+        "imageKey": "sweet-&-spicy-cold-noodle.jpg",
+        "name": "SWEET & SPICY COLD NOODLE",
+        "qty": 1,
+        "price": 40000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
     "id": "712",
     "createdAt": "2026-03-28T12:38:19.915Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Multi",
     "tableNo": 502,
     "staff": "0977",
@@ -28,7 +244,7 @@
   {
     "id": "711",
     "createdAt": "2026-03-26T11:58:45.187Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "2 Floor",
     "tableNo": 2030,
     "staff": "0886",
@@ -62,7 +278,7 @@
   {
     "id": "710",
     "createdAt": "2026-03-26T11:47:28.632Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "2 Floor",
     "tableNo": 2030,
     "staff": "0971",
@@ -104,7 +320,7 @@
   {
     "id": "709",
     "createdAt": "2026-03-26T10:27:22.107Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1001,
     "staff": "0865",
@@ -130,7 +346,7 @@
   {
     "id": "708",
     "createdAt": "2026-03-26T07:29:47.562Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "2 Floor",
     "tableNo": 2014,
     "staff": "0971",
@@ -164,7 +380,7 @@
   {
     "id": "707",
     "createdAt": "2026-03-25T14:54:48.270Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "2 Floor",
     "tableNo": 2018,
     "staff": "0971",
@@ -198,7 +414,7 @@
   {
     "id": "706",
     "createdAt": "2026-03-25T14:51:52.882Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "2 Floor",
     "tableNo": 2015,
     "staff": "0971",
@@ -232,7 +448,7 @@
   {
     "id": "705",
     "createdAt": "2026-03-25T12:32:21.396Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1001,
     "staff": "0865",
@@ -258,7 +474,7 @@
   {
     "id": "704",
     "createdAt": "2026-03-22T13:17:02.937Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "2 Floor",
     "tableNo": 2024,
     "staff": "Erina",
@@ -292,7 +508,7 @@
   {
     "id": "703",
     "createdAt": "2026-03-22T11:42:31.021Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "2 Floor",
     "tableNo": 2010,
     "staff": "Erina",
@@ -326,7 +542,7 @@
   {
     "id": "702",
     "createdAt": "2026-03-21T10:20:01.045Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Roulette 1",
     "tableNo": 106,
     "staff": "Peter",
@@ -368,7 +584,7 @@
   {
     "id": "701",
     "createdAt": "2026-03-21T07:39:35.138Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Roulette 1",
     "tableNo": 101,
     "staff": "Andrea",
@@ -394,7 +610,7 @@
   {
     "id": "700",
     "createdAt": "2026-03-21T07:39:19.228Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Roulette 1",
     "tableNo": 101,
     "staff": "Andrea",
@@ -428,7 +644,7 @@
   {
     "id": "699",
     "createdAt": "2026-03-21T05:40:52.362Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Reception 2",
     "tableNo": 1013,
     "staff": "Erina 33",
@@ -454,7 +670,7 @@
   {
     "id": "698",
     "createdAt": "2026-03-20T09:43:29.977Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Roulette 1",
     "tableNo": 101,
     "staff": "Jack",
@@ -480,7 +696,7 @@
   {
     "id": "697",
     "createdAt": "2026-03-20T09:42:51.777Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Roulette 1",
     "tableNo": 101,
     "staff": "Jack",
@@ -506,7 +722,7 @@
   {
     "id": "696",
     "createdAt": "2026-03-19T15:24:31.924Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Center",
     "tableNo": 3015,
     "staff": "Erina 33",
@@ -540,7 +756,7 @@
   {
     "id": "695",
     "createdAt": "2026-03-18T16:15:17.808Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Reception 2",
     "tableNo": 1022,
     "staff": "Vian",
@@ -622,7 +838,7 @@
   {
     "id": "694",
     "createdAt": "2026-03-18T12:43:27.553Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1003,
     "staff": "Ruan",
@@ -664,7 +880,7 @@
   {
     "id": "693",
     "createdAt": "2026-03-16T15:07:11.242Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1003,
     "staff": "Lis",
@@ -690,7 +906,7 @@
   {
     "id": "692",
     "createdAt": "2026-03-16T15:06:39.811Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1003,
     "staff": "Lis",
@@ -750,7 +966,7 @@
   {
     "id": "690",
     "createdAt": "2026-03-16T02:35:01.621Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1001,
     "staff": "bar-maris",
@@ -776,7 +992,7 @@
   {
     "id": "689",
     "createdAt": "2026-03-15T19:55:37.509Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Roulette 1",
     "tableNo": 106,
     "staff": "Lis",
@@ -802,7 +1018,7 @@
   {
     "id": "688",
     "createdAt": "2026-03-15T19:40:54.014Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Roulette 1",
     "tableNo": 106,
     "staff": "Lis",
@@ -828,7 +1044,7 @@
   {
     "id": "687",
     "createdAt": "2026-03-15T09:22:50.992Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1002,
     "staff": "bar-sumee",
@@ -854,7 +1070,7 @@
   {
     "id": "686",
     "createdAt": "2026-03-15T09:05:14.758Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1003,
     "staff": "John",
@@ -888,7 +1104,7 @@
   {
     "id": "685",
     "createdAt": "2026-03-15T08:00:04.900Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Reception 2",
     "tableNo": 1022,
     "staff": "John",
@@ -914,7 +1130,7 @@
   {
     "id": "684",
     "createdAt": "2026-03-14T22:33:45.678Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1003,
     "staff": "Lis",
@@ -948,7 +1164,7 @@
   {
     "id": "683",
     "createdAt": "2026-03-14T21:47:15.160Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1003,
     "staff": "Lis",
@@ -974,7 +1190,7 @@
   {
     "id": "682",
     "createdAt": "2026-03-14T19:16:48.164Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1003,
     "staff": "Lis",
@@ -1000,7 +1216,7 @@
   {
     "id": "681",
     "createdAt": "2026-03-14T18:35:07.663Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Roulette 1",
     "tableNo": 101,
     "staff": "Vian",
@@ -1026,7 +1242,7 @@
   {
     "id": "680",
     "createdAt": "2026-03-14T12:38:13.327Z",
-    "status": "PENDING",
+    "status": "DONE",
     "area": "Non - Smoking",
     "tableNo": 1003,
     "staff": "Vivi",

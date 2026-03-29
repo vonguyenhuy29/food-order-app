@@ -19,8 +19,29 @@ export default function ManageProductsModal({
 {
     // Level menu dùng bên User (FoodList)
   const USER_MENU_LEVELS = ['P', 'I-I+', 'V-One'];
-const [membersMap, setMembersMap] = React.useState({}); // { [code]: { code, name, level } }
+const [membersMap, setMembersMap] = React.useState({});
 
+// === Staff lookup ===
+const [staffMap, setStaffMap] = React.useState({});
+React.useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    try {
+      const url = apiUrl ? apiUrl('/api/staffs') : '/api/staffs';
+      const res = await axios.get(url, { headers: { 'Cache-Control': 'no-cache' } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const map = {};
+      arr.forEach(it => {
+        const id = String(it.id || it.code || '').trim();
+        if (id) map[id] = String(it.name || '');
+      });
+      if (!cancelled) setStaffMap(map);
+    } catch (e) {
+      // nếu lỗi, staffMap sẽ rỗng
+    }
+  })();
+  return () => { cancelled = true; };
+}, [apiUrl]);
 React.useEffect(() => {
   let cancelled = false;
 
@@ -968,7 +989,7 @@ if (name) {
 
   // ====== Report type ======
   // hanghoa_mon | hanghoa_nhom | hanghoa_ban | khachhang_tomtat | khachhang_chitiet
-  const [reportType, setReportType] = React.useState('hanghoa_mon');
+  const [reportType, setReportType] = React.useState('orders_detail');
   const [loading, setLoading] = React.useState(false);
   const [reportData, setReportData] = React.useState(null);
 
@@ -1125,42 +1146,35 @@ const lookupCustomerByCode = React.useCallback((o) => {
     }
 // === Đơn hàng chi tiết ===
 if (type === 'orders_detail') {
-  // Chuẩn hóa chuỗi (dạng chữ thường)
   const norm = (s) => String(s || '').trim().toLowerCase();
   const out = { totalOrders: 0, totalRevenue: 0, rows: [] };
   const acceptedOrderIds = new Set();
   for (const o of orders) {
     let orderSum = 0;
-    const staff = o?.staff || '';
+    const staffId = o?.staff || '';
+    const staffName = staffId ? (staffMap[staffId] || '') : '';
     const dateTime = o?.createdAt || '';
     const table = [o?.area, o?.tableNo].filter(Boolean).join('-') || '(Không rõ bàn)';
     const customerInfo = lookupCustomerByCode(o) || {};
-    const member = customerInfo.code || '';
-
+    const memberCode = customerInfo.code || '';
+    const memberName = customerInfo.name || '';
     for (const it of (o.items || [])) {
       const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
       const code = resolveItemCode(it);
       const name = resolveItemName(it);
       const group = deriveItemGroup(it, k);
-      // Lấy loại thực đơn từ foodsIndex (key dạng `${type}|${imgKey}`)
       const types = new Set();
       for (const key of foodsIndex.keys()) {
         const parts = String(key).split('|');
-        if (parts.length === 2 && parts[1] === k) {
-          types.add(parts[0]);
-        }
+        if (parts.length === 2 && parts[1] === k) types.add(parts[0]);
       }
-      // Lấy menu (Admin/User) theo image
       const menuSet = menusOfImage.get(k) || new Set();
-      // Ghép nhóm hàng, loại thực đơn và menu thành 1 chuỗi
       const categoryParts = new Set();
       if (group) categoryParts.add(group);
-      types.forEach((t) => { if (t) categoryParts.add(t); });
-      menuSet.forEach((m) => { if (m) categoryParts.add(m); });
+      types.forEach(t => { if (t) categoryParts.add(t); });
+      menuSet.forEach(m => { if (m) categoryParts.add(m); });
       const category = Array.from(categoryParts).join(', ');
-
       const qty = Number(it?.qty || 0);
-      // Giá: ưu tiên từ it.price, fallback qua priceMap
       let price = Number(it?.price || 0);
       if (!price && priceMap) {
         const pImg  = priceMap.get(`img:${k}`);
@@ -1168,11 +1182,35 @@ if (type === 'orders_detail') {
         const pName = priceMap.get(`name:${norm(name)}`);
         price = pImg || pCode || pName || 0;
       }
-
       orderSum += qty * price;
-      out.rows.push({ staff, code, name, category, member, qty, price, dateTime, table });
-    }
 
+      // Tách dateTime thành ngày và giờ. Giờ chỉ lấy mỗi giờ, phút làm "00" (ví dụ 12:00).
+      let dateStr = '';
+      let timeStr = '';
+      if (dateTime) {
+        const dtObj = new Date(dateTime);
+        const day   = String(dtObj.getDate()).padStart(2, '0');
+        const month = String(dtObj.getMonth() + 1).padStart(2, '0');
+        const year  = dtObj.getFullYear();
+        dateStr = `${day}/${month}/${year}`;
+        const hours = String(dtObj.getHours()).padStart(2, '0');
+        timeStr = `${hours}:00`;
+      }
+      out.rows.push({
+        staffId,
+        staffName,
+        code,
+        name,
+        category,
+        memberCode,
+        memberName,
+        qty,
+        price,
+        date: dateStr,
+        time: timeStr,
+        table
+      });
+    }
     if (orderSum) {
       acceptedOrderIds.add(o.id || o._id || JSON.stringify(o));
       out.totalRevenue += orderSum;
@@ -1263,6 +1301,7 @@ if (type === 'khachhang_tomtat' || type === 'khachhang_chitiet') {
   menusOfImage,
   foodsIndex,
   priceMap,
+  staffMap,     
 ]);
 
   // ====== Fetch orders & build report ======
@@ -1383,11 +1422,10 @@ React.useEffect(() => {
           );
         }
       });
-    } else if (reportType === 'orders_detail') {
-  // Header for detailed orders
-  push(['Nhân viên', 'Mã món', 'Tên món', 'Menu Category', 'Member', 'Số lượng', 'Giá', 'Ngày & giờ Order', 'Bàn']);
+} else if (reportType === 'orders_detail') {
+  push(['Mã nhân viên','Tên nhân viên','Mã món','Tên món','Menu Category','Mã khách hàng','Tên khách hàng','Số lượng','Giá','Ngày','Giờ','Bàn']);
   (reportData.rows || []).forEach(r =>
-    push([r.staff, r.code, r.name, r.category, r.member, r.qty, r.price, r.dateTime, r.table])
+    push([r.staffId, r.staffName, r.code, r.name, r.category, r.memberCode, r.memberName, r.qty, r.price, r.date, r.time, r.table])
   );
 }
 
@@ -1674,33 +1712,39 @@ React.useEffect(() => {
     return (
       <table border="1" cellPadding="6" style={{ width:'100%', borderCollapse:'collapse' }}>
         <thead>
-          <tr>
-            <th>Nhân viên</th>
-            <th>Mã món</th>
-            <th>Tên món</th>
-            <th>Menu Category</th>
-            <th>Member</th>
-            <th style={{ textAlign:'right' }}>Số lượng</th>
-            <th style={{ textAlign:'right' }}>Giá</th>
-            <th>Ngày &amp; giờ Order</th>
-            <th>Bàn</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, idx) => (
-            <tr key={idx}>
-              <td>{r.staff}</td>
-              <td>{r.code}</td>
-              <td>{r.name}</td>
-              <td>{r.category}</td>
-              <td>{r.member}</td>
-              <td style={{ textAlign:'right' }}>{money(r.qty)}</td>
-              <td style={{ textAlign:'right' }}>{money(r.price)}</td>
-              <td>{r.dateTime}</td>
-              <td>{r.table}</td>
-            </tr>
-          ))}
-        </tbody>
+  <tr>
+    <th>Mã nhân viên</th>
+    <th>Tên nhân viên</th>
+    <th>Mã món</th>
+    <th>Tên món</th>
+    <th>Menu Category</th>
+    <th>Mã khách hàng</th>
+    <th>Tên khách hàng</th>
+    <th style={{ textAlign:'right' }}>Số lượng</th>
+    <th style={{ textAlign:'right' }}>Giá</th>
+    <th>Ngày</th>
+    <th>Giờ</th>
+    <th>Bàn</th>
+  </tr>
+</thead>
+<tbody>
+  {rows.map((r, idx) => (
+    <tr key={idx}>
+      <td>{r.staffId}</td>
+      <td>{r.staffName}</td>
+      <td>{r.code}</td>
+      <td>{r.name}</td>
+      <td>{r.category}</td>
+      <td>{r.memberCode}</td>
+      <td>{r.memberName}</td>
+      <td style={{ textAlign:'right' }}>{money(r.qty)}</td>
+      <td style={{ textAlign:'right' }}>{money(r.price)}</td>
+      <td>{r.date}</td>
+      <td>{r.time}</td>
+      <td>{r.table}</td>
+    </tr>
+  ))}
+</tbody>
       </table>
     );
   })()
@@ -3067,6 +3111,126 @@ function normalizeCustomers(items) {
       </div>
     );
   }
+    // ==== StaffPanel ====
+  // Quản lý danh sách nhân viên: tải, thêm, sửa, xoá
+  function StaffPanel({ apiUrl }) {
+    const [loading, setLoading] = React.useState(false);
+    const [rows, setRows] = React.useState([]);
+    const [search, setSearch] = React.useState('');
+
+    const loadStaffs = React.useCallback(async () => {
+      setLoading(true);
+      try {
+        const url = apiUrl ? apiUrl('/api/staffs') : '/api/staffs';
+        const res = await axios.get(url, { headers: { 'Cache-Control': 'no-cache' } });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setRows(data.map(it => ({ id: String(it.id || it.code || '').trim(), name: String(it.name || '') })));
+      } catch (e) {
+        alert('Không tải được danh sách nhân viên: ' + (e.response?.data?.error || e.message));
+      } finally {
+        setLoading(false);
+      }
+    }, [apiUrl]);
+
+    React.useEffect(() => { loadStaffs(); }, [loadStaffs]);
+
+    const handleChange = (idx, field, value) => {
+      setRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+    };
+
+    const handleSave = async (idx) => {
+      const item = rows[idx];
+      const id = String(item.id || '').trim();
+      const name = String(item.name || '').trim();
+      if (!id || !name) return alert('Mã và tên nhân viên bắt buộc.');
+      try {
+        const url = apiUrl ? apiUrl(`/api/staffs/${encodeURIComponent(item.id)}`) : `/api/staffs/${encodeURIComponent(item.id)}`;
+        await axios.put(url, { id, name });
+        await loadStaffs();
+        alert('Đã lưu nhân viên.');
+      } catch (e) {
+        alert('Không lưu được nhân viên: ' + (e.response?.data?.error || e.message));
+      }
+    };
+
+    const handleDelete = async (id) => {
+      if (!window.confirm('Bạn có chắc muốn xoá nhân viên này?')) return;
+      try {
+        const url = apiUrl ? apiUrl(`/api/staffs/${encodeURIComponent(id)}`) : `/api/staffs/${encodeURIComponent(id)}`;
+        await axios.delete(url);
+        await loadStaffs();
+        alert('Đã xoá nhân viên.');
+      } catch (e) {
+        alert('Không xoá được nhân viên: ' + (e.response?.data?.error || e.message));
+      }
+    };
+
+    const handleAdd = () => {
+      setRows(prev => [...prev, { id: '', name: '' }]);
+    };
+
+    const filtered = rows.filter(r => {
+      const q = search.trim().toLowerCase();
+      if (!q) return true;
+      return r.id.toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q);
+    });
+
+    return (
+      <div style={{ color: '#111' }}>
+        <h3>Danh sách nhân viên</h3>
+        <div style={{ marginBottom: 8, display:'flex', alignItems:'center', gap: 8 }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Tìm kiếm"
+            style={{ flexGrow: 1, padding:'6px 8px', border:'1px solid #d1d5db', borderRadius: 4 }}
+          />
+          <button
+            type="button"
+            onClick={handleAdd}
+            style={{ background:'#334155', color:'#fff', border:'none', padding:'6px 10px', borderRadius:6, cursor:'pointer' }}
+          >+ Thêm nhân viên</button>
+        </div>
+        {loading ? (
+          <div>Đang tải dữ liệu…</div>
+        ) : (
+          <table border="1" cellPadding="6" style={{ width:'100%', borderCollapse:'collapse' }}>
+            <thead>
+              <tr>
+                <th>Mã NV</th>
+                <th>Tên NV</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r, idx) => (
+                <tr key={idx}>
+                  <td>
+                    <input value={r.id} onChange={e => handleChange(idx, 'id', e.target.value)} style={{ width:'100%', padding:'4px 6px' }} />
+                  </td>
+                  <td>
+                    <input value={r.name} onChange={e => handleChange(idx, 'name', e.target.value)} style={{ width:'100%', padding:'4px 6px' }} />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => handleSave(idx)}
+                      style={{ marginRight:4, background:'#10b981', color:'#fff', border:'none', padding:'4px 8px', borderRadius:4 }}
+                    >Lưu</button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(r.id)}
+                      style={{ background:'#ef4444', color:'#fff', border:'none', padding:'4px 8px', borderRadius:4 }}
+                    >Xoá</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    );
+  }
   // =============== UI Chính ===============
   return (
     <div
@@ -3100,6 +3264,19 @@ function normalizeCustomers(items) {
                  background: activeTab==='customers' ? '#fff' : '#334155', color: activeTab==='customers' ? '#111' : '#fff', fontSize:12 }}>
         Khách hàng
       </button>
+      <button
+  onClick={() => setActiveTab('staffs')}
+  style={{
+    border:'1px solid #e5e7eb',
+    borderRadius:8,
+    padding:'6px 10px',
+    cursor:'pointer',
+    background: activeTab === 'staffs' ? '#fff' : '#334155',
+    color: activeTab === 'staffs' ? '#111' : '#fff',
+    fontSize:12
+  }}>
+  Nhân viên
+</button>
             <button
         onClick={()=>setActiveTab('report')}
         style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 10px', cursor:'pointer',
@@ -3930,6 +4107,11 @@ function normalizeCustomers(items) {
 />
 
  )}
+ {activeTab === 'staffs' && (
+  <div style={{ background:'#fff', borderTopLeftRadius: 12, padding: 12, overflow:'auto' }} ref={rightPaneRef}>
+    <StaffPanel apiUrl={apiUrl} />
+  </div>
+)}
 {activeTab === 'report' && (
   <div style={{ background:'#fff', borderTopLeftRadius: 12, padding: 12, overflow: 'auto' }} ref={rightPaneRef}>
     <ReportPanel

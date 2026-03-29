@@ -45,7 +45,7 @@
     "id": 1753713777673,
     "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/KIMBAP.jpg",
     "type": "SNACK MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "85088d60894ede3b9689075b7c6d4cfd",
     "levelAccess": [
       "P",
@@ -53,7 +53,7 @@
       "V-One"
     ],
     "order": 3,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777674,
@@ -171,7 +171,7 @@
     "id": 1755923952356,
     "imageUrl": "http://192.168.101.70:5000/images/SNACK MENU/C1.DIMSUM.jpg",
     "type": "SNACK MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "9d6a6d92c00aa9f3037c1e2424daf8a8",
     "levelAccess": [
       "P",
@@ -179,7 +179,7 @@
       "V-One"
     ],
     "order": 12,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777683,
@@ -227,7 +227,7 @@
     "id": 1753713777689,
     "imageUrl": "http://192.168.101.70:5000/images/SNACK TRAVEL/KIMBAP.jpg",
     "type": "SNACK TRAVEL",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "baf530c88382029926dbea2b8f4742dd",
     "levelAccess": [
       "P",
@@ -235,7 +235,7 @@
       "V-One"
     ],
     "order": 16,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777690,
@@ -269,7 +269,7 @@
     "id": 1755923952357,
     "imageUrl": "http://192.168.101.70:5000/images/SNACK TRAVEL/C1.DIMSUM.jpg",
     "type": "SNACK TRAVEL",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "9d6a6d92c00aa9f3037c1e2424daf8a8",
     "levelAccess": [
       "P",
@@ -277,7 +277,7 @@
       "V-One"
     ],
     "order": 19,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777693,
@@ -339,7 +339,7 @@
     "id": 1755923952354,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C1.DIMSUM.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "ab2d193ab7b55ac5690c5bc9a2790b1f",
     "levelAccess": [
       "P",
@@ -347,7 +347,7 @@
       "V-One"
     ],
     "order": 24,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777721,
@@ -395,7 +395,7 @@
     "id": 1753713777720,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "51566db3af0fcdbe08f550b3420a53c8",
     "levelAccess": [
       "P",
@@ -403,7 +403,7 @@
       "V-One"
     ],
     "order": 28,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777705,
@@ -423,7 +423,7 @@
     "id": 1753713777700,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "44bc3cc07eb7b5399affa7d9b6f24bde",
     "levelAccess": [
       "P",
@@ -431,7 +431,7 @@
       "V-One"
     ],
     "order": 30,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777701,
@@ -479,7 +479,7 @@
     "id": 1753713777713,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K4.SO-BULGOGI-JJIGAE.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "e4f4201261789ccf10a0cc39d60cbb3e",
     "levelAccess": [
       "P",
@@ -487,7 +487,7 @@
       "V-One"
     ],
     "order": 34,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777708,
@@ -549,7 +549,7 @@
     "id": 1753713777716,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K9.YANG-PYUNG-HAEJANGKUK.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "P",
@@ -557,13 +557,13 @@
       "V-One"
     ],
     "order": 39,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777702,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K10.JJAJANGMYOEN.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "8413689f1c0ee75adc70bde50b895129",
     "levelAccess": [
       "P",
@@ -571,7 +571,7 @@
       "V-One"
     ],
     "order": 40,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777729,
@@ -703,7 +703,7 @@
     "id": 1753713777730,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/K20.SEAOK-SAE-BULGOGI.jpg",
     "type": "CLUB MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "13549422d146b845038d5c3fc1e8f3a6",
     "levelAccess": [
       "P",
@@ -711,7 +711,7 @@
       "V-One"
     ],
     "order": 50,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777704,
@@ -731,7 +731,7 @@
     "id": 1753713777706,
     "imageUrl": "http://192.168.101.70:5000/images/CLUB MENU/KIMBAP.jpg",
     "type": "CLUB MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "85088d60894ede3b9689075b7c6d4cfd",
     "levelAccess": [
       "P",
@@ -739,7 +739,7 @@
       "V-One"
     ],
     "order": 52,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777710,
@@ -910,14 +910,14 @@
     "id": 1755923952355,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C1.DIMSUM.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "ab2d193ab7b55ac5690c5bc9a2790b1f",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 65,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777763,
@@ -962,14 +962,14 @@
     "id": 1753713777762,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "51566db3af0fcdbe08f550b3420a53c8",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 69,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777747,
@@ -988,14 +988,14 @@
     "id": 1753713777742,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "44bc3cc07eb7b5399affa7d9b6f24bde",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 71,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777743,
@@ -1040,14 +1040,14 @@
     "id": 1753713777755,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K4.SO-BULGOGI-JJIGAE.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "7375afe1b5651e274e8359d22bf16292",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 75,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777750,
@@ -1105,27 +1105,27 @@
     "id": 1753713777758,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K9.YANG-PYUNG-HAEJANGKUK.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 80,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777744,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K10.JJAJANGMYOEN.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "fac35cd567fa00941030e7ede1dd881d",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 81,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777771,
@@ -1248,14 +1248,14 @@
     "id": 1753713777772,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/K20.SEAOK-SAE-BULGOGI.jpg",
     "type": "HOTEL MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "cb6a8493ee7cb1a63e4bb82f98181c76",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 91,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777746,
@@ -1274,14 +1274,14 @@
     "id": 1753713777748,
     "imageUrl": "http://192.168.101.70:5000/images/HOTEL MENU/KIMBAP.jpg",
     "type": "HOTEL MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1e224432c4fee72b232f197154975e5c",
     "levelAccess": [
       "I-I+",
       "V-One"
     ],
     "order": 93,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777752,
@@ -1544,13 +1544,13 @@
     "id": 1755923952358,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/C1.DIMSUM.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "ab2d193ab7b55ac5690c5bc9a2790b1f",
     "levelAccess": [
       "V-One"
     ],
     "order": 114,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777864,
@@ -1592,13 +1592,13 @@
     "id": 1753713777863,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/C5.PAN-RRIED-MINCED-PORK-DUMPLING-'GUOTIE'.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "51566db3af0fcdbe08f550b3420a53c8",
     "levelAccess": [
       "V-One"
     ],
     "order": 118,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777848,
@@ -1616,13 +1616,13 @@
     "id": 1753713777843,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/C7.STEAMED-BBQ-NOEY-GLAZED-PORL-BUN.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "44bc3cc07eb7b5399affa7d9b6f24bde",
     "levelAccess": [
       "V-One"
     ],
     "order": 120,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777844,
@@ -1664,13 +1664,13 @@
     "id": 1753713777856,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K4.SO-BULGOGI-JJIGAE.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "e4f4201261789ccf10a0cc39d60cbb3e",
     "levelAccess": [
       "V-One"
     ],
     "order": 124,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777851,
@@ -1724,25 +1724,25 @@
     "id": 1753713777859,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K9.YANG-PYUNG-HAEJANGKUK.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "1023782018459ae2412b5adea474919e",
     "levelAccess": [
       "V-One"
     ],
     "order": 129,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777845,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K10.JJAJANGMYOEN.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "8413689f1c0ee75adc70bde50b895129",
     "levelAccess": [
       "V-One"
     ],
     "order": 130,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777872,
@@ -1856,13 +1856,13 @@
     "id": 1753713777873,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/K20.SEAOK-SAE-BULGOGI.jpg",
     "type": "VIP MENU",
-    "status": "Available",
+    "status": "Sold Out",
     "hash": "13549422d146b845038d5c3fc1e8f3a6",
     "levelAccess": [
       "V-One"
     ],
     "order": 140,
-    "quantity": 10
+    "quantity": 0
   },
   {
     "id": 1753713777898,
@@ -1904,13 +1904,13 @@
     "id": 1753713777849,
     "imageUrl": "http://192.168.101.70:5000/images/VIP MENU/KIMBAP.jpg",
     "type": "VIP MENU",
-    "status": "Sold Out",
+    "status": "Available",
     "hash": "1e224432c4fee72b232f197154975e5c",
     "levelAccess": [
       "V-One"
     ],
     "order": 144,
-    "quantity": 0
+    "quantity": 10
   },
   {
     "id": 1753713777853,
