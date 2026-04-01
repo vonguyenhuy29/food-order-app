@@ -1,5 +1,2101 @@
 [
   {
+    "id": "780",
+    "createdAt": "2026-04-01T14:56:42.897Z",
+    "status": "PENDING",
+    "area": "2 Floor",
+    "tableNo": 2005,
+    "staff": "0926",
+    "memberCard": "30638",
+    "customer": {
+      "code": null,
+      "name": "Gyubo Seo",
+      "level": "V"
+    },
+    "note": "1 chén cơm + chén kim chi",
+    "items": [
+      {
+        "imageKey": "k11.jjamppong.jpg",
+        "name": "JJAMPPONG",
+        "qty": 1,
+        "price": 131000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "779",
+    "createdAt": "2026-04-01T14:22:00.144Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 112,
+    "staff": "0959",
+    "memberCard": "5811",
+    "customer": {
+      "code": null,
+      "name": "Shaode Wu",
+      "level": "P"
+    },
+    "note": "Jon 14 out",
+    "items": [
+      {
+        "imageKey": "k4.so-bulgogi-jjigae.jpg",
+        "name": "SO BULGOGI JJIGAE",
+        "qty": 1,
+        "price": 209000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "778",
+    "createdAt": "2026-04-01T13:48:33.337Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "test ạ",
+    "items": [
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": "test nhá"
+      },
+      {
+        "imageKey": "kimbap.jpg",
+        "name": "KIMBAP",
+        "qty": 1,
+        "price": 42500,
+        "group": "Snack Menu",
+        "note": "test ạ"
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "777",
+    "createdAt": "2026-04-01T12:36:21.082Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không hành, không lá, không rau, không giá, thêm trứng, thêm cơm",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": "Không hành"
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": "không lá"
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": "Ít ngọt"
+      },
+      {
+        "imageKey": "kimbap.jpg",
+        "name": "KIMBAP",
+        "qty": 1,
+        "price": 42500,
+        "group": "Snack Menu",
+        "note": "Nhiều đường"
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "776",
+    "createdAt": "2026-04-01T12:31:51.022Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không hành, không lá, không rau, không giá, thêm trứng, thêm cơm",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": "Không lá"
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": "Không rau"
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": "Không bánh"
+      },
+      {
+        "imageKey": "kimbap.jpg",
+        "name": "KIMBAP",
+        "qty": 1,
+        "price": 42500,
+        "group": "Snack Menu",
+        "note": "Không đá"
+      },
+      {
+        "imageKey": "sweet-&-spicy-cold-noodle.jpg",
+        "name": "SWEET & SPICY COLD NOODLE",
+        "qty": 1,
+        "price": 40000,
+        "group": "Snack Menu",
+        "note": "Không đường"
+      },
+      {
+        "imageKey": "tokoyaki.jpg",
+        "name": "TOKOYAKI",
+        "qty": 1,
+        "price": 25000,
+        "group": "Snack Menu",
+        "note": "Thêm cơm"
+      },
+      {
+        "imageKey": "sundae.jpg",
+        "name": "SUNDAE",
+        "qty": 1,
+        "price": 110000,
+        "group": "Snack Menu",
+        "note": "Ít thịt"
+      },
+      {
+        "imageKey": "chapagetti.jpg",
+        "name": "CHAPAGETTI",
+        "qty": 1,
+        "price": 27000,
+        "group": "Snack Menu",
+        "note": "Nhiều đậu hủ"
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "775",
+    "createdAt": "2026-04-01T12:28:02.878Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "1",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không hành, không lá, không rau, không giá, thêm trứng, thêm cơm",
+    "items": [
+      {
+        "imageKey": "ddok.jpg",
+        "name": "DDOK",
+        "qty": 1,
+        "price": 25000,
+        "group": "Snack Menu",
+        "note": "không đá"
+      },
+      {
+        "imageKey": "seafood-spicy-noodle.jpg",
+        "name": "SEAFOOD SPICY NOODLE",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": "Không lá"
+      },
+      {
+        "imageKey": "fried-tofu.jpg",
+        "name": "FRIED TOFU",
+        "qty": 1,
+        "price": 21000,
+        "group": "Snack Menu",
+        "note": "Không gia vị"
+      },
+      {
+        "imageKey": "c1.dimsum.jpg",
+        "name": "DIMSUM",
+        "qty": 1,
+        "price": 75900,
+        "group": "Chinese",
+        "note": "Không hành"
+      },
+      {
+        "imageKey": "sinramyun.jpg",
+        "name": "SINRAMYUN",
+        "qty": 1,
+        "price": 30800,
+        "group": "Snack Menu",
+        "note": "Nhiều rau"
+      },
+      {
+        "imageKey": "udon.jpg",
+        "name": "UDON",
+        "qty": 1,
+        "price": 55200,
+        "group": "Snack Menu",
+        "note": "Ít thịt"
+      },
+      {
+        "imageKey": "j2.udon-noodles.jpg",
+        "name": "UDON NOODLES",
+        "qty": 1,
+        "price": 55200,
+        "group": "Japanese",
+        "note": "Thêm trứng"
+      },
+      {
+        "imageKey": "c2.wonton-noodles.jpg",
+        "name": "WONTON NOODLES",
+        "qty": 1,
+        "price": 132000,
+        "group": "Chinese",
+        "note": "Thêm cơm"
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "774",
+    "createdAt": "2026-04-01T12:26:35.463Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "1",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không hành, không lá, không rau, không giá, thêm trứng, thêm cơm",
+    "items": [
+      {
+        "imageKey": "chapagetti.jpg",
+        "name": "CHAPAGETTI",
+        "qty": 1,
+        "price": 27000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "sundae.jpg",
+        "name": "SUNDAE",
+        "qty": 1,
+        "price": 110000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "tokoyaki.jpg",
+        "name": "TOKOYAKI",
+        "qty": 1,
+        "price": 25000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "sweet-&-spicy-cold-noodle.jpg",
+        "name": "SWEET & SPICY COLD NOODLE",
+        "qty": 1,
+        "price": 40000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "ddok.jpg",
+        "name": "DDOK",
+        "qty": 1,
+        "price": 25000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "773",
+    "createdAt": "2026-04-01T12:20:40.062Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "1",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không hành, không lá, không rau, không giá, thêm trứng, thêm cơm",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "kimbap.jpg",
+        "name": "KIMBAP",
+        "qty": 1,
+        "price": 42500,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "chapagetti.jpg",
+        "name": "CHAPAGETTI",
+        "qty": 1,
+        "price": 27000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "772",
+    "createdAt": "2026-04-01T12:10:39.897Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không đá không hành không mùi không vị",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "771",
+    "createdAt": "2026-04-01T12:04:18.713Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không đá không hành không mùi không vị",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "770",
+    "createdAt": "2026-04-01T11:54:59.518Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không ",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "769",
+    "createdAt": "2026-04-01T11:48:30.074Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không ",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "768",
+    "createdAt": "2026-04-01T11:45:38.386Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Không ",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "767",
+    "createdAt": "2026-04-01T10:29:09.875Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "đen đá không đường",
+    "items": [
+      {
+        "imageKey": "chapagetti.jpg",
+        "name": "CHAPAGETTI",
+        "qty": 1,
+        "price": 27000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "766",
+    "createdAt": "2026-04-01T10:27:59.195Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "á à ạ",
+    "items": [
+      {
+        "imageKey": "chapagetti.jpg",
+        "name": "CHAPAGETTI",
+        "qty": 1,
+        "price": 27000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "sundae.jpg",
+        "name": "SUNDAE",
+        "qty": 1,
+        "price": 110000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "765",
+    "createdAt": "2026-04-01T10:27:06.119Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "teéss",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "chapagetti.jpg",
+        "name": "CHAPAGETTI",
+        "qty": 1,
+        "price": 27000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "764",
+    "createdAt": "2026-04-01T09:45:11.057Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "0312",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "á à ăv đ đá",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "763",
+    "createdAt": "2026-04-01T09:44:30.400Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "0312",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "á à ă â",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "762",
+    "createdAt": "2026-04-01T08:25:04.243Z",
+    "status": "CANCELLED",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "0312",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "test",
+    "items": [
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "761",
+    "createdAt": "2026-04-01T07:47:39.963Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 112,
+    "staff": "1016",
+    "memberCard": "6196",
+    "customer": {
+      "code": null,
+      "name": "Thi Ngoc Dan Pham",
+      "level": "P"
+    },
+    "note": "Out 14 ",
+    "items": [
+      {
+        "imageKey": "k6.sogogi-miyukguk.jpg",
+        "name": "SOGOGI MIYUKGUK",
+        "qty": 1,
+        "price": 200000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "760",
+    "createdAt": "2026-04-01T07:35:52.737Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 117,
+    "staff": "1016",
+    "memberCard": "27815",
+    "customer": {
+      "code": null,
+      "name": "Pil Soon Jang",
+      "level": "V+"
+    },
+    "note": "Out 14 1pax",
+    "items": [
+      {
+        "imageKey": "k11.jjamppong.jpg",
+        "name": "JJAMPPONG",
+        "qty": 1,
+        "price": 131000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k12.tangsuyuk.jpg",
+        "name": "TANGSUYUK",
+        "qty": 1,
+        "price": 380000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "759",
+    "createdAt": "2026-04-01T05:21:06.072Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "0813",
+    "memberCard": "134",
+    "customer": {
+      "code": null,
+      "name": "Young Il Cho",
+      "level": "I+"
+    },
+    "note": "Inside / per",
+    "items": [
+      {
+        "imageKey": "k3.jeyuk-bokkeum.jpg",
+        "name": "JEYUK BOKKEUM",
+        "qty": 1,
+        "price": 181500,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "758",
+    "createdAt": "2026-04-01T00:55:58.940Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "0977",
+    "memberCard": "60561",
+    "customer": {
+      "code": null,
+      "name": "James Ronnie Givens",
+      "level": "P"
+    },
+    "note": "Cho một chén cơm trắng",
+    "items": [
+      {
+        "imageKey": "j2.udon-noodles.jpg",
+        "name": "UDON NOODLES",
+        "qty": 1,
+        "price": 55200,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": false
+  },
+  {
+    "id": "757",
+    "createdAt": "2026-04-01T00:53:37.640Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 102,
+    "staff": "0589",
+    "memberCard": "56983",
+    "customer": {
+      "code": null,
+      "name": "Junhyeong Yoon",
+      "level": "V"
+    },
+    "note": "Testing bill ảo nhe. Megan",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "c5.pan-rried-minced-pork-dumpling-'guotie'.jpg",
+        "name": "PAN RRIED MINCED PORK DUMPLING 'GUOTIE'",
+        "qty": 1,
+        "price": 55000,
+        "group": "Chinese",
+        "note": ""
+      },
+      {
+        "imageKey": "k6.sogogi-miyukguk.jpg",
+        "name": "SOGOGI MIYUKGUK",
+        "qty": 1,
+        "price": 200000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "756",
+    "createdAt": "2026-03-31T18:23:12.935Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "1034",
+    "memberCard": "travel",
+    "customer": {
+      "code": null,
+      "name": "Chưa có thông tin",
+      "level": "Chưa có thông tin"
+    },
+    "note": "Ella 14 in, kimbap mở ra luôn giúpem ạ",
+    "items": [
+      {
+        "imageKey": "kimbap.jpg",
+        "name": "KIMBAP",
+        "qty": 1,
+        "price": 42500,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "tokoyaki.jpg",
+        "name": "TOKOYAKI",
+        "qty": 1,
+        "price": 25000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "755",
+    "createdAt": "2026-03-31T17:08:11.574Z",
+    "status": "PENDING",
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "1034",
+    "memberCard": "48255",
+    "customer": {
+      "code": null,
+      "name": "Rahul Kanojia",
+      "level": "I"
+    },
+    "note": "Ella 14 in, ít cay, cơm trắng ạ",
+    "items": [
+      {
+        "imageKey": "k8.nakju-bokkum.jpg",
+        "name": "NAKJU BOKKUM",
+        "qty": 1,
+        "price": 275000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "754",
+    "createdAt": "2026-03-31T15:29:42.624Z",
+    "status": "DONE",
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "1034",
+    "memberCard": "52954",
+    "customer": {
+      "code": null,
+      "name": "Weisheng Lei",
+      "level": "P"
+    },
+    "note": "Ella 14 out 1 pax",
+    "items": [
+      {
+        "imageKey": "k19.jok-bal.jpg",
+        "name": "JOK BAL",
+        "qty": 1,
+        "price": 500000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "c2.wonton-noodles.jpg",
+        "name": "WONTON NOODLES",
+        "qty": 1,
+        "price": 132000,
+        "group": "Chinese",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "753",
+    "createdAt": "2026-03-31T14:45:08.308Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2005,
+    "staff": "0857",
+    "memberCard": "30638",
+    "customer": {
+      "code": null,
+      "name": "Gyubo Seo",
+      "level": "V"
+    },
+    "note": "#30638 Phoebe 2f - com trang + kim chi ",
+    "items": [
+      {
+        "imageKey": "k10.jjajangmyoen.jpg",
+        "name": "JJAJANGMYOEN",
+        "qty": 1,
+        "price": 131000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "752",
+    "createdAt": "2026-03-31T12:22:55.665Z",
+    "status": "DONE",
+    "area": "Center",
+    "tableNo": 3023,
+    "staff": "0959",
+    "memberCard": "56983",
+    "customer": {
+      "code": null,
+      "name": "Junhyeong Yoon",
+      "level": "V"
+    },
+    "note": "Jon 33 out 3ng",
+    "items": [
+      {
+        "imageKey": "k19.jok-bal.jpg",
+        "name": "JOK BAL",
+        "qty": 1,
+        "price": 500000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k20.seaok-sae-bulgogi.jpg",
+        "name": "SEAOK SAE BULGOGI",
+        "qty": 1,
+        "price": 330000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k2.bibimbap.jpg",
+        "name": "BIBIMBAP",
+        "qty": 3,
+        "price": 117700,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "751",
+    "createdAt": "2026-03-31T09:49:26.113Z",
+    "status": "DONE",
+    "area": "Center",
+    "tableNo": 3023,
+    "staff": "0959",
+    "memberCard": "8110",
+    "customer": {
+      "code": null,
+      "name": "Jintuan Sun",
+      "level": "I"
+    },
+    "note": "Jon 33 out",
+    "items": [
+      {
+        "imageKey": "c2.wonton-noodles.jpg",
+        "name": "WONTON NOODLES",
+        "qty": 1,
+        "price": 132000,
+        "group": "Chinese",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "750",
+    "createdAt": "2026-03-31T09:08:10.881Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1007,
+    "staff": "0974",
+    "memberCard": "48819",
+    "customer": {
+      "code": null,
+      "name": "Mong Van Le",
+      "level": "P"
+    },
+    "note": "R1",
+    "items": [
+      {
+        "imageKey": "strawberry smoothie-1763843415030.jpg",
+        "name": "STRAWBERRY SMOOTHIE",
+        "qty": 1,
+        "price": 60000,
+        "group": "Beverage",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "749",
+    "createdAt": "2026-03-31T01:02:46.630Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "0312",
+    "memberCard": "５７３３５",
+    "customer": {
+      "code": null,
+      "name": "Chưa có thông tin",
+      "level": "Chưa có thông tin"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "748",
+    "createdAt": "2026-03-31T01:01:35.436Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2030,
+    "staff": "0312",
+    "memberCard": "４９５５",
+    "customer": {
+      "code": null,
+      "name": "Chưa có thông tin",
+      "level": "Chưa có thông tin"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "747",
+    "createdAt": "2026-03-30T19:14:35.709Z",
+    "status": "DONE",
+    "area": "Roulette 1",
+    "tableNo": 106,
+    "staff": "1034",
+    "memberCard": "23944",
+    "customer": {
+      "code": null,
+      "name": "Yanqing Ouyang",
+      "level": "I+"
+    },
+    "note": "Ella 33 out 2 pax",
+    "items": [
+      {
+        "imageKey": "c2.wonton-noodles.jpg",
+        "name": "WONTON NOODLES",
+        "qty": 1,
+        "price": 132000,
+        "group": "Chinese",
+        "note": ""
+      },
+      {
+        "imageKey": "k18.hwang-tae-hae-jang-guk.jpg",
+        "name": "HWANG TAE HAE JANG GUK",
+        "qty": 1,
+        "price": 280000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "746",
+    "createdAt": "2026-03-30T10:07:44.022Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Ghi chú Đ á à ă á",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": "Không hành"
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": "Không Giá"
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": "Khồn đậu phộng"
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "745",
+    "createdAt": "2026-03-30T09:30:33.744Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Chị ơi chị chụp cái bill gửi em xem với nha, em Jack ạ",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": "Không hành"
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": "Không giá"
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": "Không ớt"
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "744",
+    "createdAt": "2026-03-30T09:13:18.342Z",
+    "status": "CANCELLED",
+    "area": "Roulette 1",
+    "tableNo": 101,
+    "staff": "1010",
+    "memberCard": "1",
+    "customer": {
+      "code": null,
+      "name": "Vegas Customer",
+      "level": "Test"
+    },
+    "note": "Test",
+    "items": [
+      {
+        "imageKey": "j1.soba-noodles.jpg",
+        "name": "SOBA NOODLES",
+        "qty": 1,
+        "price": 66000,
+        "group": "Japanese",
+        "note": "test 1"
+      },
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": "test 2"
+      },
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 1,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": "test 3"
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "743",
+    "createdAt": "2026-03-30T05:42:39.687Z",
+    "status": "DONE",
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "0855",
+    "memberCard": "61299",
+    "customer": {
+      "code": null,
+      "name": "Guangyu Li",
+      "level": "P"
+    },
+    "note": "2 ng out 14",
+    "items": [
+      {
+        "imageKey": "croiss-ant-ham-cheese.jpg",
+        "name": "CROISSANT HAM CHEESE",
+        "qty": 2,
+        "price": 100000,
+        "group": "Dessert & Savoury",
+        "note": ""
+      },
+      {
+        "imageKey": "k15.dogani-tang.jpg",
+        "name": "DOGANI TANG",
+        "qty": 1,
+        "price": 135000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k4.so-bulgogi-jjigae.jpg",
+        "name": "SO BULGOGI JJIGAE",
+        "qty": 1,
+        "price": 209000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "742",
+    "createdAt": "2026-03-30T05:13:03.930Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2029,
+    "staff": "0926",
+    "memberCard": "10039",
+    "customer": {
+      "code": null,
+      "name": "Jing Cai",
+      "level": "V"
+    },
+    "note": "Ivy 2F 1 pax ",
+    "items": [
+      {
+        "imageKey": "k6.sogogi-miyukguk.jpg",
+        "name": "SOGOGI MIYUKGUK",
+        "qty": 1,
+        "price": 200000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k19.jok-bal.jpg",
+        "name": "JOK BAL",
+        "qty": 1,
+        "price": 500000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "741",
+    "createdAt": "2026-03-30T04:52:50.685Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1002,
+    "staff": "0808",
+    "memberCard": "19139",
+    "customer": {
+      "code": null,
+      "name": "Ho Lee",
+      "level": "V"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "j3.japanese-curry.jpg",
+        "name": "JAPANESE CURRY",
+        "qty": 1,
+        "price": 101000,
+        "group": "Japanese",
+        "note": ""
+      },
+      {
+        "imageKey": "c3.fried-beef-noodles.jpg",
+        "name": "FRIED BEEF NOODLES",
+        "qty": 1,
+        "price": 330000,
+        "group": "Chinese",
+        "note": "Hk noodle"
+      },
+      {
+        "imageKey": "c4.fried-seafood-noodles.jpg",
+        "name": "FRIED SEAFOOD NOODLES",
+        "qty": 1,
+        "price": 330000,
+        "group": "Chinese",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "740",
+    "createdAt": "2026-03-30T04:48:05.537Z",
+    "status": "DONE",
+    "area": "Multi",
+    "tableNo": 502,
+    "staff": "0812",
+    "memberCard": "38780",
+    "customer": {
+      "code": null,
+      "name": "Cheng Guo",
+      "level": "I"
+    },
+    "note": "33 - 2ng",
+    "items": [
+      {
+        "imageKey": "k17.dwaeji-gukbap.jpg",
+        "name": "DWAEJI GUKBAP",
+        "qty": 2,
+        "price": 110000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k19.jok-bal.jpg",
+        "name": "JOK BAL",
+        "qty": 1,
+        "price": 500000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "739",
+    "createdAt": "2026-03-30T03:25:06.545Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1002,
+    "staff": "0808",
+    "memberCard": "19139",
+    "customer": {
+      "code": null,
+      "name": "Ho Lee",
+      "level": "V"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "chapagetti.jpg",
+        "name": "CHAPAGETTI",
+        "qty": 1,
+        "price": 27000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "738",
+    "createdAt": "2026-03-30T03:24:48.666Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1002,
+    "staff": "0808",
+    "memberCard": "19139",
+    "customer": {
+      "code": null,
+      "name": "Ho Lee",
+      "level": "V"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "chapagetti.jpg",
+        "name": "CHAPAGETTI",
+        "qty": 1,
+        "price": 27000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "737",
+    "createdAt": "2026-03-30T03:21:15.861Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1001,
+    "staff": "0808",
+    "memberCard": "19139",
+    "customer": {
+      "code": null,
+      "name": "Ho Lee",
+      "level": "V"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "chapagetti.jpg",
+        "name": "CHAPAGETTI",
+        "qty": 1,
+        "price": 27000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "736",
+    "createdAt": "2026-03-30T02:23:07.237Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2005,
+    "staff": "0971",
+    "memberCard": "3604",
+    "customer": {
+      "code": null,
+      "name": "Seungcheol Back",
+      "level": "V"
+    },
+    "note": "Erina 2f tra bill",
+    "items": [
+      {
+        "imageKey": "hopang.jpg",
+        "name": "HO PANG",
+        "qty": 3,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "735",
+    "createdAt": "2026-03-30T02:14:42.490Z",
+    "status": "DONE",
+    "area": "Reception 2",
+    "tableNo": 1021,
+    "staff": "0978",
+    "memberCard": "56158",
+    "customer": {
+      "code": null,
+      "name": "Shota Tokuyasu",
+      "level": "I"
+    },
+    "note": "Cashier",
+    "items": [
+      {
+        "imageKey": "tokoyaki.jpg",
+        "name": "TOKOYAKI",
+        "qty": 1,
+        "price": 25000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "734",
+    "createdAt": "2026-03-29T23:19:49.365Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1001,
+    "staff": "0808",
+    "memberCard": "19139",
+    "customer": {
+      "code": null,
+      "name": "Ho Lee",
+      "level": "V"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "sinramyun.jpg",
+        "name": "SINRAMYUN",
+        "qty": 1,
+        "price": 30800,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "733",
+    "createdAt": "2026-03-29T18:00:50.815Z",
+    "status": "DONE",
+    "area": "Multi",
+    "tableNo": 502,
+    "staff": "0806",
+    "memberCard": "60908",
+    "customer": {
+      "code": null,
+      "name": "Youngum Kim",
+      "level": "I"
+    },
+    "note": "",
+    "items": [
+      {
+        "imageKey": "wagyu-burger.jpg",
+        "name": "WAGYU BURGER",
+        "qty": 1,
+        "price": 490000,
+        "group": "HOTEL",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "732",
+    "createdAt": "2026-03-29T17:42:26.182Z",
+    "status": "DONE",
+    "area": "Roulette 1",
+    "tableNo": 103,
+    "staff": "1034",
+    "memberCard": "60775",
+    "customer": {
+      "code": null,
+      "name": "Wonseop Shin",
+      "level": "P"
+    },
+    "note": "Ella 14 2 pax in ",
+    "items": [
+      {
+        "imageKey": "croiss-ant-ham-cheese.jpg",
+        "name": "CROISSANT HAM CHEESE",
+        "qty": 2,
+        "price": 100000,
+        "group": "Dessert & Savoury",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "731",
+    "createdAt": "2026-03-29T16:59:17.750Z",
+    "status": "DONE",
+    "area": "Reception 2",
+    "tableNo": 1021,
+    "staff": "0993",
+    "memberCard": "943",
+    "customer": {
+      "code": null,
+      "name": "Cindy Nguyen",
+      "level": "I"
+    },
+    "note": "33 out",
+    "items": [
+      {
+        "imageKey": "beef-pho.jpg",
+        "name": "BEEF PHO",
+        "qty": 1,
+        "price": 330000,
+        "group": "HOTEL",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "730",
+    "createdAt": "2026-03-29T16:49:45.559Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2005,
+    "staff": "0987",
+    "memberCard": "46398",
+    "customer": {
+      "code": null,
+      "name": "Ryota Kudo",
+      "level": "I"
+    },
+    "note": "Mb 46398 Carolyn 2f/ 1 chén cơm trắng",
+    "items": [
+      {
+        "imageKey": "seared-hookaido-scallop-&-foie-gras.jpg",
+        "name": "SEARED HOOKAIDO SCALLOP & FOIE GRAS",
+        "qty": 2,
+        "price": 628000,
+        "group": "HOTEL",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "729",
+    "createdAt": "2026-03-29T14:33:07.494Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2009,
+    "staff": "0857",
+    "memberCard": "2715",
+    "customer": {
+      "code": null,
+      "name": "Qianbing Chen",
+      "level": "ONE"
+    },
+    "note": "Cơm trắng - 1 chén kimchi - 1 nguoi",
+    "items": [
+      {
+        "imageKey": "k13.kimchi-dumping.jpg",
+        "name": "KIMCHI DUMPING",
+        "qty": 1,
+        "price": 130000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k15.dogani-tang.jpg",
+        "name": "DOGANI TANG",
+        "qty": 1,
+        "price": 135000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "baked-lobster.jpg",
+        "name": "BAKED LOBSTER",
+        "qty": 1,
+        "price": 1180000,
+        "group": "HOTEL",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "728",
+    "createdAt": "2026-03-29T13:01:32.962Z",
+    "status": "DONE",
+    "area": "Center",
+    "tableNo": 3008,
+    "staff": "0974",
+    "memberCard": "4585",
+    "customer": {
+      "code": null,
+      "name": "Cheng Feng Liu",
+      "level": "ONE"
+    },
+    "note": "Mimi 33 out",
+    "items": [
+      {
+        "imageKey": "k11.jjamppong.jpg",
+        "name": "JJAMPPONG",
+        "qty": 1,
+        "price": 131000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "727",
+    "createdAt": "2026-03-29T08:53:18.962Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2009,
+    "staff": "3382",
+    "memberCard": "3382",
+    "customer": {
+      "code": null,
+      "name": "Jun Yi Cho",
+      "level": "ONE"
+    },
+    "note": "Otis 25",
+    "items": [
+      {
+        "imageKey": "k12.tangsuyuk.jpg",
+        "name": "TANGSUYUK",
+        "qty": 1,
+        "price": 380000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k16.sogogi-gukbap.jpg",
+        "name": "SOGOGI GUKBAP",
+        "qty": 1,
+        "price": 110000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "726",
+    "createdAt": "2026-03-29T07:56:47.656Z",
+    "status": "DONE",
+    "area": "Roulette 1",
+    "tableNo": 105,
+    "staff": "0941",
+    "memberCard": "14187",
+    "customer": {
+      "code": null,
+      "name": "Dong Hun Kim",
+      "level": "P"
+    },
+    "note": "Mandy 14 INSIDE",
+    "items": [
+      {
+        "imageKey": "k10.jjajangmyoen.jpg",
+        "name": "JJAJANGMYOEN",
+        "qty": 1,
+        "price": 131000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "725",
+    "createdAt": "2026-03-29T07:45:09.724Z",
+    "status": "DONE",
+    "area": "Roulette 1",
+    "tableNo": 105,
+    "staff": "0741",
+    "memberCard": "48347",
+    "customer": {
+      "code": null,
+      "name": "Soung Hwan Kwak",
+      "level": "P"
+    },
+    "note": "Hoan 2ng",
+    "items": [
+      {
+        "imageKey": "seafood-spicy-noodle.jpg",
+        "name": "SEAFOOD SPICY NOODLE",
+        "qty": 2,
+        "price": 50000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "kimbap.jpg",
+        "name": "KIMBAP",
+        "qty": 1,
+        "price": 42500,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "724",
+    "createdAt": "2026-03-29T07:42:56.049Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1001,
+    "staff": "925",
+    "memberCard": "39287",
+    "customer": {
+      "code": null,
+      "name": "Bentian Zhang",
+      "level": "P"
+    },
+    "note": "Ruan",
+    "items": [
+      {
+        "imageKey": "k1.galbi-tang.jpg",
+        "name": "GALBI TANG",
+        "qty": 1,
+        "price": 176000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "723",
+    "createdAt": "2026-03-29T07:35:24.853Z",
+    "status": "DONE",
+    "area": "Roulette 1",
+    "tableNo": 106,
+    "staff": "1016",
+    "memberCard": "36741",
+    "customer": {
+      "code": null,
+      "name": "Jeehoon Lee",
+      "level": "P"
+    },
+    "note": "33 out",
+    "items": [
+      {
+        "imageKey": "c1.dimsum.jpg",
+        "name": "DIMSUM",
+        "qty": 1,
+        "price": 75900,
+        "group": "Chinese",
+        "note": ""
+      },
+      {
+        "imageKey": "baked-lobster.jpg",
+        "name": "BAKED LOBSTER",
+        "qty": 1,
+        "price": 1180000,
+        "group": "HOTEL",
+        "note": ""
+      },
+      {
+        "imageKey": "k3.jeyuk-bokkeum.jpg",
+        "name": "JEYUK BOKKEUM",
+        "qty": 2,
+        "price": 181500,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "sweet-&-spicy-cold-noodle.jpg",
+        "name": "SWEET & SPICY COLD NOODLE",
+        "qty": 1,
+        "price": 40000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "k1.galbi-tang.jpg",
+        "name": "GALBI TANG",
+        "qty": 1,
+        "price": 176000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "722",
+    "createdAt": "2026-03-29T07:30:32.708Z",
+    "status": "DONE",
+    "area": "Non - Smoking",
+    "tableNo": 1001,
+    "staff": "0977",
+    "memberCard": "31936",
+    "customer": {
+      "code": null,
+      "name": "Jong Kweon Kim",
+      "level": "P"
+    },
+    "note": "Bar",
+    "items": [
+      {
+        "imageKey": "fish-cake.jpg",
+        "name": "FISH CAKE",
+        "qty": 1,
+        "price": 30000,
+        "group": "Snack Menu",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
+    "id": "721",
+    "createdAt": "2026-03-29T07:05:09.751Z",
+    "status": "DONE",
+    "area": "2 Floor",
+    "tableNo": 2009,
+    "staff": "0857",
+    "memberCard": "8888",
+    "customer": {
+      "code": null,
+      "name": "Wonseok Kim",
+      "level": "EC"
+    },
+    "note": "2 nguoi an ",
+    "items": [
+      {
+        "imageKey": "tokoyaki.jpg",
+        "name": "TOKOYAKI",
+        "qty": 1,
+        "price": 25000,
+        "group": "Snack Menu",
+        "note": ""
+      },
+      {
+        "imageKey": "k20.seaok-sae-bulgogi.jpg",
+        "name": "SEAOK SAE BULGOGI",
+        "qty": 1,
+        "price": 330000,
+        "group": "Korea",
+        "note": ""
+      },
+      {
+        "imageKey": "k16.sogogi-gukbap.jpg",
+        "name": "SOGOGI GUKBAP",
+        "qty": 2,
+        "price": 110000,
+        "group": "Korea",
+        "note": ""
+      }
+    ],
+    "tableClosed": true
+  },
+  {
     "id": "720",
     "createdAt": "2026-03-29T06:16:04.310Z",
     "status": "DONE",
@@ -31,7 +2127,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "719",
@@ -135,7 +2231,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "715",
@@ -161,7 +2257,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "714",
@@ -187,7 +2283,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "713",
@@ -213,7 +2309,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "712",
@@ -239,7 +2335,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "711",
@@ -273,7 +2369,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "710",
@@ -315,7 +2411,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "709",
@@ -341,7 +2437,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "708",
@@ -375,7 +2471,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "707",
@@ -409,7 +2505,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "706",
@@ -443,7 +2539,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "705",
@@ -503,7 +2599,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "703",
@@ -537,7 +2633,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "702",
@@ -579,7 +2675,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "701",
@@ -665,7 +2761,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "698",
@@ -751,7 +2847,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "695",
@@ -833,7 +2929,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "694",
@@ -2121,7 +4217,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "654",
@@ -2223,7 +4319,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "651",
@@ -2249,7 +4345,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "650",
@@ -2403,7 +4499,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "645",
@@ -2497,7 +4593,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "642",
@@ -2531,7 +4627,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "641",
@@ -2557,7 +4653,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "640",
@@ -2583,7 +4679,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "639",
@@ -2865,7 +4961,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "630",
@@ -3115,7 +5211,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "621",
@@ -3687,7 +5783,7 @@
         "note": ""
       }
     ],
-    "tableClosed": false
+    "tableClosed": true
   },
   {
     "id": "603",

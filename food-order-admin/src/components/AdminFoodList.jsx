@@ -308,55 +308,179 @@ const humanizeName = useCallback((s) =>
     .replace(/\s{2,}/g,' ')
     .trim()
 , []);
-  // ====== Print (dialog fallback) ======
   
+  const formatPrintDateTime = (value) => {
+  const d = new Date(value || Date.now());
+  const pad = (n) => String(n).padStart(2, '0');
+
+  let hours = d.getHours();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(hours)}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${ampm}`;
+};
  
 const printDialog = useCallback((o) => {
   try {
     const w = window.open('', '_blank', 'width=480,height=640');
     if (!w) return alert('Trình duyệt đang chặn popup. Hãy cho phép để in.');
+
     const esc = (s) => String(s ?? '')
       .replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    const rows = (o.items || [])
-      .map(it => `<tr><td style="padding:4px 0; width:32px;">x${it.qty}</td><td style="padding:4px 0;">${esc(humanizeName(it.name || it.imageName || it.imageKey))}</td></tr>`)
-      .join('');
-      const sName = staffMap[o.staff] || '';
-      const staffDisplay = o.staff ? (sName ? `${o.staff} - ${sName}` : o.staff) : '';
-      const customerDisplay = o.memberCard
-        ? (o.customerName ? `${o.memberCard} - ${o.customerName}` : o.memberCard)
-        : (o.customerName || '');
-      const html = `
-<!doctype html>
-<html><head><meta charset="utf-8" /><title>Order #${o.id}</title>
-<style>
-  @page { size: 80mm auto; margin: 4mm; }
-  body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12px; }
-  .center { text-align: center; } .row { display:flex; justify-content:space-between; }
-  .bold { font-weight:700; } hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
-  table { width: 100%; border-collapse: collapse; } td { vertical-align: top; }
-</style></head>
-<body onload="window.print(); setTimeout(()=>window.close(), 300);">
-  <div class="center bold">KITCHEN ORDER</div>
-  <div class="center">#${o.id} • ${new Date(o.createdAt).toLocaleString()}</div>
-  <hr />
-  <div class="row"><span>Area</span><span class="bold">${o.area}</span></div>
-  <div class="row"><span>Table</span><span class="bold">${o.tableNo}</span></div>
- <div class="row"><span>Staff</span><span>${esc(staffDisplay)}</span></div>
-<div class="row"><span>Customer</span><span>${esc(customerDisplay)}</span></div>
 
-  ${o.customerName ? `<div class="row"><span>Customer</span><span>${esc(o.customerName)}</span></div>` : ''}
-  ${o.note ? `<div>Note: ${esc(o.note)}</div>` : ''}
-  <hr />
-  <table>${rows}</table>
-  <hr />
-  <div class="center">— thank you —</div>
-</body></html>`;
-      w.document.write(html);
-      w.document.close();
-    } catch (e) {
-      alert('Không in được: ' + (e?.message || e));
+    const rows = (o.items || [])
+      .map(it => {
+        const code = (it.code || it.productCode || '').trim();
+        const itemName = humanizeName(it.name || it.imageName || it.imageKey).toUpperCase();
+        const noteLine = it.note
+          ? `<div class="item-note">Ghi chú: ${esc(it.note)}</div>`
+          : '';
+
+        return `
+          <tr>
+            <td colspan="3" style="padding: 0;">
+              <div class="item-row">
+                <div class="col-qty">${esc(String(it.qty || ''))}</div>
+                <div class="col-name">${esc(itemName)}</div>
+                <div class="col-code">${esc(code)}</div>
+              </div>
+              ${noteLine}
+            </td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const sName = staffMap[o.staff] || '';
+    const staffDisplay = o.staff ? (sName ? `${o.staff} - ${sName}` : o.staff) : '';
+
+    const customerDisplay = o.memberCard
+      ? (o.customerName ? `${o.memberCard} - ${o.customerName}` : o.memberCard)
+      : (o.customerName || '');
+
+    const html = `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Order #${o.id}</title>
+  <style>
+    @page { size: 80mm auto; margin: 4mm; }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.35;
+      color: #000;
     }
+
+    .center { text-align: center; }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 2px 0;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .sub {
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .normal-label {
+      font-weight: 400;
+    }
+
+    .value-normal {
+      font-weight: 400;
+    }
+
+    .value-bold {
+      font-weight: 700;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px dashed #000;
+      margin: 8px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    td {
+      vertical-align: top;
+    }
+
+    .item-row {
+      display: grid;
+      grid-template-columns: 32px 1fr 44px;
+      column-gap: 8px;
+      align-items: start;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 4px 0;
+    }
+
+    .col-qty {
+      text-align: left;
+    }
+
+    .col-name {
+      text-transform: uppercase;
+      word-break: break-word;
+    }
+
+    .col-code {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .item-note {
+      font-size: 12px;
+      margin: 2px 0 6px 40px;
+    }
+  </style>
+</head>
+<body onload="window.print(); setTimeout(()=>window.close(), 500);">
+  <div class="center title">KITCHEN ORDER</div>
+  <div class="center sub">#${o.id} • ${formatPrintDateTime(o.createdAt)}</div>
+
+  <hr />
+
+  <div class="row"><span class="normal-label">Area</span><span class="value-normal">${esc(o.area || '')}</span></div>
+  <div class="row"><span class="normal-label">Table</span><span class="value-normal">${esc(o.tableNo || '')}</span></div>
+  <div class="row"><span class="normal-label">Staff</span><span class="value-bold">${esc(staffDisplay)}</span></div>
+  <div class="row"><span class="normal-label">Customer</span><span class="value-bold">${esc(customerDisplay)}</span></div>
+
+  ${o.note ? `<div style="margin-top:4px;"><span class="value-bold">Note:</span> ${esc(o.note)}</div>` : ''}
+
+  <hr />
+
+  <table>${rows}</table>
+
+  <hr />
+  <div class="center">— THANK YOU —</div>
+</body>
+</html>`;
+
+    w.document.write(html);
+    w.document.close();
+  } catch (e) {
+    alert('Không in được: ' + (e?.message || e));
+  }
 }, [humanizeName, staffMap]);
 
   // ---------- PRINT AGENT (HTTP, auto-detect host) ----------
@@ -407,96 +531,131 @@ const printDialog = useCallback((o) => {
     return () => clearInterval(t);
   }, [agentBase, detectAgent]);
 
-  const printOrderAgent = useCallback(async (order) => {
-    const base = agentBase || await detectAgent(true);
-    if (!base) throw new Error('Print Agent not found');
-    const res = await fetch(`${base}/print`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order })
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  }, [agentBase, detectAgent]);
-
-  const printOrderSmart = useCallback(async (o) => {
-    try { await printOrderAgent(o); return; }
-    catch (e) { console.warn('[Agent] print fail:', e?.message || e); }
-    printDialog(o);
-  }, [printOrderAgent, printDialog]);
-
-  // ===== Orders state =====
-  const [tab, setTab] = useState('foods'); // 'foods' | 'orders'
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [ordersError, setOrdersError] = useState(null);
-  const [orderFilter, setOrderFilter] = useState('ALL');
-  const [dateRange, setDateRange] = useState('today');
-  const [fromDate, setFromDate]   = useState('');
-  const [toDate, setToDate]       = useState('');
-  const [activeTable, setActiveTable] = useState(null);
-  const [orderSort, setOrderSort] = useState('time_desc');
-  const [productCodeByImage, setProductCodeByImage] = useState({});
-  const [autoPrint, setAutoPrint] = useState(() => {
-    const raw = localStorage.getItem('autoPrint');
-    return raw ? raw === 'true' : true;
+const printOrderAgent = useCallback(async (order) => {
+  const base = agentBase || await detectAgent(true);
+  if (!base) throw new Error('Print Agent not found');
+  const res = await fetch(`${base}/print`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order })
   });
-  useEffect(() => { localStorage.setItem('autoPrint', String(autoPrint)); }, [autoPrint]);
-    // Load danh sách sản phẩm để map imageName -> mã món (productCode)
-  useEffect(() => {
-    if (!isLoggedIn) return;
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}, [agentBase, detectAgent]);
 
-    let cancelled = false;
+// ===== Orders state =====
+const [tab, setTab] = useState('foods'); // 'foods' | 'orders'
+const [orders, setOrders] = useState([]);
+const [ordersLoading, setOrdersLoading] = useState(false);
+const [ordersError, setOrdersError] = useState(null);
+const [orderFilter, setOrderFilter] = useState('ALL');
+const [dateRange, setDateRange] = useState('today');
+const [fromDate, setFromDate]   = useState('');
+const [toDate, setToDate]       = useState('');
+const [activeTable, setActiveTable] = useState(null);
+const [orderSort, setOrderSort] = useState('time_desc');
 
-    (async () => {
-      try {
-        const res = await axios.get(apiUrl('/api/products'), {
-          params: { limit: 70000 },
-        });
+// PHẢI đặt state này lên trước resolveItemCode
+const [productCodeByImage, setProductCodeByImage] = useState({});
 
-        const rows = Array.isArray(res.data?.rows)
-          ? res.data.rows
-          : Array.isArray(res.data)
-          ? res.data
-          : [];
+const [autoPrint, setAutoPrint] = useState(() => {
+  const raw = localStorage.getItem('autoPrint');
+  return raw ? raw === 'true' : true;
+});
+useEffect(() => { localStorage.setItem('autoPrint', String(autoPrint)); }, [autoPrint]);
 
-        const map = {};
-        for (const p of rows) {
-          const img = getImageName(p.imageUrl || p.imageName || '');
-          if (!img) continue;
+// Load danh sách sản phẩm để map imageName -> mã món (productCode)
+useEffect(() => {
+  if (!isLoggedIn) return;
 
-          const code = (p.productCode || p.code || '').toString().trim();
-          if (!code) continue;
+  let cancelled = false;
 
-          map[img] = code;
-        }
+  (async () => {
+    try {
+      const res = await axios.get(apiUrl('/api/products'), {
+        params: { limit: 70000 },
+      });
 
-        if (!cancelled) setProductCodeByImage(map);
-      } catch (e) {
-        console.warn('Load product codes for Orders view failed:', e?.message || e);
+      const rows = Array.isArray(res.data?.rows)
+        ? res.data.rows
+        : Array.isArray(res.data)
+        ? res.data
+        : [];
+
+      const map = {};
+      for (const p of rows) {
+        const img = getImageName(p.imageUrl || p.imageName || '');
+        if (!img) continue;
+
+        const code = (p.productCode || p.code || '').toString().trim();
+        if (!code) continue;
+
+        map[img] = code;
       }
-    })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoggedIn]);
-  const resolveItemCode = useCallback(
-    (item) => {
-      if (!item) return '';
+      if (!cancelled) setProductCodeByImage(map);
+    } catch (e) {
+      console.warn('Load product codes for Orders view failed:', e?.message || e);
+    }
+  })();
 
-      // Nếu backend sau này có trả sẵn productCode / code thì ưu tiên dùng
-      const direct = (item.productCode || item.code || '').toString().trim();
-      if (direct) return direct;
+  return () => {
+    cancelled = true;
+  };
+}, [isLoggedIn]);
 
-      // Map theo imageName
-      const img = getImageName(item.imageUrl || item.imageName || item.imageKey || '');
-      if (img && productCodeByImage[img]) return productCodeByImage[img];
+const resolveItemCode = useCallback(
+  (item) => {
+    if (!item) return '';
 
-      return '';
-    },
-    [productCodeByImage]
-  );
+    const direct = (item.productCode || item.code || '').toString().trim();
+    if (direct) return direct;
+
+    const img = getImageName(item.imageUrl || item.imageName || item.imageKey || '');
+    if (img && productCodeByImage[img]) return productCodeByImage[img];
+
+    return '';
+  },
+  [productCodeByImage]
+);
+
+const printOrderSmart = useCallback(async (o) => {
+  const staffName = staffMap[o.staff] || '';
+
+  const customerNameVal =
+    (o.customerName != null && o.customerName !== undefined)
+      ? o.customerName
+      : (o.customer && typeof o.customer === 'object' ? (o.customer.name || '') : '');
+
+  const itemsWithCode = Array.isArray(o.items)
+    ? o.items.map((it) => {
+        const direct = (it.productCode || it.code || '').toString().trim();
+        const resolved = direct || resolveItemCode(it) || '';
+        return {
+          ...it,
+          code: resolved || it.code || it.productCode || '',
+        };
+      })
+    : [];
+
+  const orderForPrint = {
+    ...o,
+    staffName,
+    customerName: customerNameVal,
+    items: itemsWithCode,
+  };
+
+  try {
+    await printOrderAgent(orderForPrint);
+    return;
+  } catch (e) {
+    console.warn('[Agent] print fail:', e?.message || e);
+  }
+
+  printDialog(orderForPrint);
+}, [printOrderAgent, printDialog, staffMap, resolveItemCode]);
+
+
 
 
   const buildRange = useCallback(() => {
@@ -836,17 +995,39 @@ useEffect(() => {
     setAuthHeader(null);
   };
 
-  // ===== Actions (toggle, delete, rename, add...) =====
-  const handleToggleStatus = async (id, status) => {
-    if (!isLoggedIn) return alert('Please sign in.');
-    try {
-      const newStatus = status === 'Available' ? 'Sold Out' : 'Available';
-      await axios.post(apiUrl(`/api/update-status/${id}`), { newStatus });
-      setApiError(null);
-    } catch (e) {
-      setApiError(e?.message || 'API error');
-    }
-  };
+const handleToggleStatus = async (id, status) => {
+  if (!isLoggedIn) return alert('Please sign in.');
+
+  const target = foods.find((f) => f.id === id);
+  if (!target) return;
+
+  const newStatus = status === 'Available' ? 'Sold Out' : 'Available';
+  const imageName = getImageName(target.imageUrl);
+  const newQty =
+    newStatus === 'Sold Out'
+      ? 0
+      : ((typeof target.quantity === 'number' && target.quantity > 0) ? target.quantity : 10);
+
+  const prevFoods = foods;
+
+  // Update UI ngay lập tức
+  setFoods((prev) =>
+    prev.map((f) =>
+      getImageName(f.imageUrl) === imageName
+        ? { ...f, status: newStatus, quantity: newQty }
+        : f
+    )
+  );
+
+  try {
+    await axios.post(apiUrl(`/api/update-status/${id}`), { newStatus });
+    setApiError(null);
+  } catch (e) {
+    // rollback nếu lỗi
+    setFoods(prevFoods);
+    setApiError(e?.message || 'API error');
+  }
+};
 
   const handleDeleteFood = async (id) => {
     if (!isAdmin) return alert('Admin only.');

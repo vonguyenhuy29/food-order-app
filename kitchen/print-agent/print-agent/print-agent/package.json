@@ -1,0 +1,13 @@
+{
+"name": "print-agent",
+"version": "1.0.0",
+"private": true,
+"main": "agent.js",
+"scripts": {
+"start": "node agent.js"
+},
+"dependencies": {
+"@thiagoelg/node-printer": "^1.2.6",
+"ws": "^8.17.0"
+}
+}

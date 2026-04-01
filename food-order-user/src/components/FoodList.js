@@ -201,6 +201,10 @@ const [carts, setCarts] = useState(() => {
     const id = String(orderForm.staff || '').trim();
     setStaffName(staffMap[id] || '');
   }, [orderForm.staff, staffMap]);
+  // ==== Quick order state ====
+// khi người dùng bấm vào ảnh trong preview để order nhanh
+const [quickOrderFood, setQuickOrderFood] = useState(null);
+const [quickOrderForm, setQuickOrderForm] = useState({ staff: '', members: '' });
   // Refs
   const touchStartXRef = useRef(null);
   const touchStartYRef = useRef(null);
@@ -1295,11 +1299,73 @@ if (!orderForm.memberCard?.trim()) {
     CANCELLED:  { bg:'#f3f4f6', fg:'#374151', label:'CANCELLED' },
   }[o.status] || { bg:'#eee', fg:'#333', label:o.status };
 
-  return (
-    <div key={o.id} style={{ border:'1px solid #eee', borderRadius:8, overflow:'hidden' }}>
-      {/* phần header giữ nguyên */}
+return (
+  <div key={o.id} style={{ border:'1px solid #eee', borderRadius:8, overflow:'hidden' }}>
+    <div
+      style={{
+        padding: 10,
+        background: '#f9fafb',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 10,
+        borderBottom: '1px solid #eee'
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontWeight: 700 }}>Order #{o.id}</div>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>
+            {o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}
+          </div>
+        </div>
 
-      <div style={{ padding:10 }}>
+        <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
+          <div>
+            Staff:{' '}
+            <b>
+              {staffMap[o.staff]
+                ? `${o.staff} - ${staffMap[o.staff]}`
+                : (o.staff || '')}
+            </b>
+          </div>
+
+          <div>
+            Customer:{' '}
+            <b>
+              {(() => {
+                const custName =
+                  (o.customerName != null && o.customerName !== undefined)
+                    ? o.customerName
+                    : (o.customer && typeof o.customer === 'object'
+                        ? (o.customer.name || '')
+                        : '');
+
+                return o.memberCard
+                  ? (custName ? `${o.memberCard} - ${custName}` : o.memberCard)
+                  : (custName || '');
+              })()}
+            </b>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          fontSize: 12,
+          background: pill.bg,
+          color: pill.fg,
+          padding: '2px 8px',
+          borderRadius: 999,
+          fontWeight: 700,
+          whiteSpace: 'nowrap'
+        }}
+      >
+        {pill.label}
+      </div>
+    </div>
+
+    <div style={{ padding:10 }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr auto', rowGap:6, alignItems:'center' }}>
           {o.items.map((it, idx) => {
             // Ưu tiên dùng imageKey (do backend enrichItem tạo ra)
@@ -1478,6 +1544,33 @@ if (!orderForm.memberCard?.trim()) {
           >
             {previewIndex + 1} / {galleryList.length}
           </div>
+          {/* Nút Order nhanh trong preview overlay */}
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    const food = galleryList[previewIndex];
+    if (food) {
+      // lưu món hiện tại và prefill staff từ orderForm
+      setQuickOrderFood(food);
+      setQuickOrderForm(prev => ({ ...prev, staff: orderForm.staff || prev.staff, members: '' }));
+    }
+  }}
+  aria-label="Order this item"
+  style={{
+    position: 'absolute',
+    bottom: 80,
+    left: 20,
+    padding: '8px 12px',
+    background: '#10b981',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 13,
+  }}
+>
+  Order
+</button>
         </div>
       )}
 
@@ -1611,7 +1704,97 @@ if (!orderForm.memberCard?.trim()) {
           />
         </svg>
       </div>
-
+{/* Quick Order Overlay */}
+{quickOrderFood && (
+  <div
+    onClick={() => setQuickOrderFood(null)}
+    style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999 }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{ width: 420, background:'#fff', borderRadius:10, padding:16 }}
+    >
+      <h3 style={{ marginTop:0 }}>Order nhanh</h3>
+      <p><strong>Món:</strong> {quickOrderFood.name || quickOrderFood.productName || getImageName(quickOrderFood.imageUrl || quickOrderFood.imageName || '')}</p>
+      {/* Nhập staff */}
+      <div style={{ marginBottom:12 }}>
+        <label>Staff *</label>
+        <input
+          type="number"
+          pattern="[0-9]*"
+          inputMode="numeric"
+          value={quickOrderForm.staff}
+          onChange={e => setQuickOrderForm(f => ({ ...f, staff: e.target.value }))}
+          placeholder="Mã nhân viên"
+          style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
+        />
+      </div>
+      {/* Nhập nhiều mã member */}
+      <div style={{ marginBottom:12 }}>
+        <label>Members *</label>
+        <textarea
+          value={quickOrderForm.members}
+          onChange={e => setQuickOrderForm(f => ({ ...f, members: e.target.value }))}
+          placeholder="Nhập mã thẻ, ngăn cách bằng dấu phẩy hoặc xuống dòng"
+          rows={3}
+          style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
+        />
+      </div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+        <button
+          onClick={() => setQuickOrderFood(null)}
+          style={{ padding:'8px 12px', background:'#ccc', border:'none', borderRadius:6, cursor:'pointer' }}
+        >
+          Hủy
+        </button>
+        <button
+          onClick={async () => {
+            const staffVal = (quickOrderForm.staff || '').trim();
+            // Validate staff
+            if (!staffVal || !/^\\d+$/.test(staffVal)) {
+              setToast('Mã nhân viên phải là số');
+              return;
+            }
+            // Tách mã member theo dấu phẩy hoặc xuống dòng
+            const codes = (quickOrderForm.members || '')
+              .split(/[,\\n]+/)
+              .map(s => s.trim())
+              .filter(s => s);
+            if (codes.length === 0) {
+              setToast('Nhập Member');
+              return;
+            }
+            const food = quickOrderFood;
+            const imageKey = getImageName(food.imageUrl || food.imageName || '');
+            try {
+              for (const card of codes) {
+                const body = {
+                  area: null,
+                  tableNo: null,
+                  staff: staffVal,
+                  memberCard: card,
+                  customer: { code: null, name: null, level: null },
+                  note: '',
+                  items: [{ imageKey, qty: 1, note: '' }],
+                  consumeStock: false,
+                };
+                await axios.post(apiUrl('/api/orders'), body);
+              }
+              setQuickOrderFood(null);
+              setQuickOrderForm({ staff: staffVal, members: '' });
+              setToast('Đã ghi Order nhanh');
+            } catch (e) {
+              alert('Order nhanh thất bại: ' + (e?.response?.data?.error || e?.message || ''));
+            }
+          }}
+          style={{ padding:'8px 12px', background:'#10b981', color:'#fff', border:'none', borderRadius:6, cursor:'pointer' }}
+        >
+          Order
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       {/* Toast */}
       {toast && (
         <div style={{
