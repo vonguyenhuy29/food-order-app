@@ -86,17 +86,84 @@ function emitIO(req, evt, payload){
   if (io) io.emit(evt, payload);
 }
 
-/** GET /api/orders?area=&tableNo= */
-router.get('/', (req,res) => {
-  const { area, tableNo } = req.query || {};
-  const all = readJson(ORDERS_FILE, []);
-  let rows = all;
-  if (area && tableNo){
-    rows = all.filter(o => o.area === area && String(o.tableNo) === String(tableNo));
+/** GET /api/orders */
+router.get('/', (req, res) => {
+  try {
+    const { area, tableNo, includeClosed, status, from, to } = req.query || {};
+    let all = readJson(ORDERS_FILE, []);
+
+    // Tự động chuyển đơn của những ngày trước sang DONE
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    let changed = false;
+
+    all.forEach((o) => {
+      const orderTime = new Date(o.createdAt).getTime();
+      if (
+        Number.isFinite(orderTime) &&
+        orderTime < todayStart &&
+        o.status !== 'CANCELLED' &&
+        o.status !== 'DONE'
+      ) {
+        o.status = 'DONE';
+        changed = true;
+
+        emitIO(req, 'orderUpdated', {
+          orderId: o.id,
+          status: o.status,
+          order: o,
+        });
+      }
+    });
+
+    if (changed) writeJson(ORDERS_FILE, all);
+
+    let rows = [...all];
+
+    // User xem theo bàn
+    if (area && tableNo) {
+      rows = rows.filter(
+        (o) => o.area === area && String(o.tableNo) === String(tableNo)
+      );
+
+      if (String(includeClosed || '').toLowerCase() !== 'true') {
+        rows = rows.filter((o) => !o.tableClosed);
+      }
+    }
+
+    // Admin filter trạng thái
+    if (status && status !== 'ALL') {
+      if (status === 'OPEN') {
+        rows = rows.filter((o) => ['PENDING', 'IN_PROGRESS'].includes(o.status));
+      } else {
+        rows = rows.filter((o) => o.status === status);
+      }
+    }
+
+    // Admin filter thời gian
+    if (from) {
+      const fromMs = Date.parse(from);
+      if (!Number.isNaN(fromMs)) {
+        rows = rows.filter((o) => Date.parse(o.createdAt) >= fromMs);
+      }
+    }
+
+    if (to) {
+      const toMs = Date.parse(to);
+      if (!Number.isNaN(toMs)) {
+        rows = rows.filter((o) => Date.parse(o.createdAt) <= toMs);
+      }
+    }
+
+    rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json(rows.map((o) => ({
+      ...o,
+      cancelReason: o.cancelReason ?? null,
+    })));
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'Cannot get orders' });
   }
-  // mới nhất trước
-  rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-  res.json(rows);
 });
 
 /** POST /api/orders  (tạo order mới — SNAPSHOT customer + enrich items) */
@@ -114,7 +181,10 @@ router.post('/', (req,res)=>{
       consumeStock = false
     } = req.body || {};
 
-    if (!area || !tableNo) return res.status(400).json({ error:'Thiếu area/tableNo' });
+    // Chỉ trả lỗi nếu thiếu bàn mà vẫn muốn trừ tồn kho (consumeStock=true).
+if ((!area || !tableNo) && consumeStock) {
+  return res.status(400).json({ error: 'Thiếu area/tableNo' });
+}
     // Staff phải là chuỗi số hợp lệ
 if (!staff || !String(staff).trim() || !/^\d+$/.test(String(staff).trim())) {
   return res.status(400).json({ error:'Invalid staff: phải là mã số' });
@@ -149,8 +219,8 @@ if (!staff || !String(staff).trim() || !/^\d+$/.test(String(staff).trim())) {
       id,
       createdAt: now,
       status: 'PENDING',   // PENDING → IN_PROGRESS → DONE/CANCELLED
-      area,
-      tableNo,
+      area: area || null,
+      tableNo: tableNo || null,
       staff,
       memberCard: memberCard || null,
       customer,            // <— SNAPSHOT tại thời điểm order

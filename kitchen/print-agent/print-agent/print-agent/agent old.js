@@ -59,6 +59,23 @@ const boldOn   = ESC + 'E' + '\x01';
 const boldOff  = ESC + 'E' + '\x00';
 const cut      = GS  + 'V' + '\x00'; // partial cut (tùy máy)
 
+// Helper: remove diacritical marks (accents) from Vietnamese and other accented characters.
+// Many ESC/POS printers do not support Unicode, so we convert to simple ASCII.
+function removeAccents(str = '') {
+  try {
+    return String(str)
+      // Normalize to decompose accents
+      .normalize('NFD')
+      // Remove combining diacritical marks
+      .replace(/[\u0300-\u036f]/g, '')
+      // Replace specific Vietnamese letters
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
+  } catch {
+    return str;
+  }
+}
+
 function size(widthMul = 1, heightMul = 2) {
   const w = Math.max(0, Math.min(7, widthMul - 1));
   const h = Math.max(0, Math.min(7, heightMul - 1));
@@ -206,36 +223,31 @@ function buildKitchenTicket(o = {}) {
     boldOn + 'Time: ' + boldOff + fmtTime(o.createdAt) + LF
   );
 
-  // Staff nổi bật hơn
-  const staffText = String(o.staff || '').trim().toUpperCase();
+// Staff: ghép mã và tên, in đậm, size lớn. Convert to ASCII to avoid printer font issues.
+// Staff: ghép mã và tên, bỏ dấu, viết hoa
+{
+  const codeRaw = String(o.staff || '').trim();
+  const nameRaw = String(o.staffName || '').trim();
+  const staffCode = removeAccents(codeRaw).toUpperCase();
+  const staffName = removeAccents(nameRaw).toUpperCase();
+  const staffText = staffCode ? (staffName ? `${staffCode} - ${staffName}` : staffCode) : '';
   if (staffText) {
     parts.push(
-      boldOn +
-      focusSize +
-      'STAFF: ' + staffText +
-      normalSize +
-      boldOff +
-      LF
-    );
-  } else {
-    parts.push(
-      boldOn + 'Staff: ' + boldOff + LF
+      boldOn + focusSize + 'STAFF: ' + staffText + normalSize + boldOff + LF
     );
   }
+}
 
-  // Customer nổi bật hơn
-  const custDisplay = getCustomerDisplay(o);
-  if (custDisplay) {
-    const custText = String(custDisplay).trim().toUpperCase();
+// Customer: ghép mã và tên, bỏ dấu, viết hoa
+{
+  const raw = getCustomerDisplay(o); // trả về "code - name" nếu có cả hai
+  if (raw) {
+    const custText = removeAccents(String(raw).trim()).toUpperCase();
     parts.push(
-      boldOn +
-      focusSize +
-      'CUSTOMER: ' + custText +
-      normalSize +
-      boldOff +
-      LF
+      boldOn + focusSize + 'CUSTOMER: ' + custText + normalSize + boldOff + LF
     );
   }
+}
 
   if (o.note) {
     parts.push(
@@ -259,18 +271,22 @@ function buildKitchenTicket(o = {}) {
   for (let i = 0; i < items.length; i++) {
     const it   = items[i] || {};
     const qty  = String(it.qty ?? 1);
-    const name = cleanFoodName(it.name || it.imageName || it.imageKey);
-    const note = it.note ? `Note: ${String(it.note).trim()}` : '';
-    const code = getItemCode(it);
+const nameRaw = cleanFoodName(it.name || it.imageName || it.imageKey);
+const name    = removeAccents(nameRaw);
+let note = it.note ? `Note: ${String(it.note).trim()}` : '';
+if (note) note = removeAccents(note);
+const code = getItemCode(it);
 
-    const foodBlock = `${name}${note ? LF + note : ''}`;
+// ghép tên + note
+const foodBlock = `${name}${note ? LF + note : ''}`;
 
-    // Tên món + dòng món in đậm để dễ đọc
-    parts.push(boldOn);
-    parts.push(row3(qty, foodBlock, code, LINE_WIDTH));
-    parts.push(boldOff);
-
-    parts.push(lineOf('-', LINE_WIDTH));
+// In đậm và font cao hơn
+parts.push(boldOn);
+parts.push(focusSize);
+parts.push(row3(qty, foodBlock, code, LINE_WIDTH));
+parts.push(normalSize);
+parts.push(boldOff);
+parts.push(lineOf('-', LINE_WIDTH));
   }
 
   parts.push(LF.repeat(FEED_BEFORE_CUT), cut, LF.repeat(CUT_AFTER_CUT));
