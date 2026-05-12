@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1777363848070-18d39a7ab456d",
+    "createdAt": "2026-04-28T08:10:48.070Z",
+    "updatedAt": "2026-04-28T08:10:48.070Z",
+    "mode": "user",
+    "by": "user",
+    "question": "37373 ăn gì",
+    "oldAnswer": "Lee Yen San - level V (37373) hay ăn:\n- Tổng lịch sử: 17 order\n1. KIMCHI JJIKAE [K07] — 8 lần, tổng 8 phần, lần gần nhất 24/04/2026 20:34\n2. SEAOK SAE BULGOGI [K20] — 5 lần, tổng 5 phần, lần gần nhất 24/04/2026 20:34\n3. WONTON NOODLES [C02] — 4 lần, tổng 4 phần, lần gần nhất 25/04/2026 17:42\n4. HONGKONG SWEET & SOUR GROUPER FISH [H77] — 2 lần, tổng 2 phần, lần gần nhất 16/04/2026 12:47\n5. JOK BAL [K19] — 2 lần, tổng 2 phần, lần gần nhất 15/04/2026 18:26\n6. JAPANESE CURRY [J03] — 2 lần, tổng 2 phần, lần gần nhất 09/04/2026 14:00\n7. FISH CAKE [S18] — 1 lần, tổng 1 phần, lần gần nhất 17/04/2026 22:42\n8. UDON NOODLES [J02] — 1 lần, tổng 1 phần, lần gần nhất 17/04/2026 22:42",
+    "correction": "Mr.Lee Yen San còn ăn off menu (cháo trắng) với Hokkaido Scallop",
+    "type": "food_alias",
+    "phrase": "37373 ăn gì",
+    "meaning": "congee",
+    "status": "approved",
+    "reason": ""
+  },
+  {
+    "id": "1778572650357-e970947d5c821",
+    "createdAt": "2026-05-12T07:57:30.357Z",
+    "updatedAt": "2026-05-12T07:57:30.357Z",
+    "mode": "user",
+    "by": "user",
+    "question": "ngày 10/5 member 1724 đã order món gì, thời gian cụ thể",
+    "oldAnswer": "Có, Kim Sung Chan (1724) có 46 order trong toàn bộ lịch sử.\nTổng món đã order: 45 phần.\n1. GGORI GOM TANG [K05] — 23 lần, tổng 24 phần, lần gần nhất 11/05/2026 20:01\n2. JJAJANGMYOEN [k10] — 7 lần, tổng 7 phần, lần gần nhất 12/05/2026 14:52\n3. JJAMPPONG [K11] — 7 lần, tổng 7 phần, lần gần nhất 09/05/2026 20:41\n4. KIMCHI JJIKAE [K07] — 3 lần, tổng 3 phần, lần gần nhất 10/05/2026 19:39\n5. JOK BAL [K19] — 1 lần, tổng 1 phần, lần gần nhất 03/05/2026 20:03\n6. FISH CAKE [S18] — 1 lần, tổng 1 phần, lần gần nhất 03/05/2026 20:03\n7. NAKJU BOKKUM [K08] — 1 lần, tổng 1 phần, lần gần nhất 01/05/2026 21:19\n8. BIBIMBAP [K02] — 1 lần, tổng 1 phần, lần gần nhất 01/05/2026 21:19\nLần gần nhất: 12/05/2026 14:52 tại Roulette 1 - bàn 105 — JJAJANGMYOEN [k10] x1.",
+    "correction": "kiểm tra 1 ngày cụ thể chứ không phải số total lifetime",
+    "type": "food_alias",
+    "phrase": "ngày 10/5 member 1724 đã order món gì, thời gian cụ thể",
+    "meaning": "chicken",
+    "status": "approved",
+    "reason": ""
+  }
+]

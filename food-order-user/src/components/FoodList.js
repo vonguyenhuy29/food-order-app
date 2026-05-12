@@ -1,5 +1,6 @@
 // src/components/FoodList.js
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import AIChatBox from './AIChatBox.jsx';
 import axios from 'axios';
 import io from 'socket.io-client';
 
@@ -37,15 +38,15 @@ const LEVELS = ['P', 'I-I+', 'V-One'];
 
 // Khu vực và dải số bàn
 const AREA_DEFS = [
-  { name: 'Roulette 1', ranges: [[101, 120]] },
-  { name: 'Roulette 2', ranges: [[201, 240]] },
-  { name: 'Roulette 3', ranges: [[301, 320]] },
-  { name: 'Multi', ranges: [[501, 508]] },
+  { name: 'Roulette 1', ranges: [[101, 117]] },
+  { name: 'Roulette 2', ranges: [[201, 231]] },
+  { name: 'Roulette 3', ranges: [[301, 317]] },
+  { name: 'Multi', ranges: [[501, 510]] },
   { name: 'Non - Smoking', ranges: [[1001, 1008]] },
   { name: 'Reception 2', ranges: [[1009, 1024]] },
-  { name: 'Center', ranges: [[1025, 1040], [5001, 5008], [3001, 3030]] },
+  { name: 'Center', ranges: [[1025, 1030], [5001, 5008], [3001, 3027]] },
   { name: 'Table', ranges: [[11, 15], [21, 25]] },
-  { name: '2 Floor', ranges: [[2001, 2030]] },
+  { name: '2 Floor', ranges: [[2001, 2028]] },
 ];
 const genTables = (ranges) => { const out=[]; ranges.forEach(([a,b])=>{ for(let i=a;i<=b;i++) out.push(i);}); return out; };
 const tableKeyOf = (area, tableNo) => (area && tableNo) ? `${area}#${tableNo}` : '';
@@ -171,6 +172,9 @@ const [carts, setCarts] = useState(() => {
     } catch { return { staff: '', memberCard: '', customerName: '', note: '' }; }
   });
   const [toast, setToast] = useState('');
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const placeOrderLockRef = useRef(false);
+  const orderRequestIdRef = useRef(null);
     // === Staff lookup ===
   // Lưu map mã nhân viên -> tên nhân viên (loaded từ API)
   const [staffMap, setStaffMap] = useState({});
@@ -198,7 +202,7 @@ const [carts, setCarts] = useState(() => {
 
   // Cập nhật staffName mỗi khi mã nhân viên thay đổi hoặc staffMap đổi
   useEffect(() => {
-    const id = String(orderForm.staff || '').trim();
+    const id = String(orderForm.staff || '').replace(/\s+/g, '');
     setStaffName(staffMap[id] || '');
   }, [orderForm.staff, staffMap]);
   // ==== Quick order state ====
@@ -518,23 +522,30 @@ const preferredTypes = useMemo(() => {
   );
 
   // (ĐÃ SỬA) Filter foods theo level + (type|group). Khi đang search => bỏ filter theo type/group
-  const foodsByTypeRaw = sortedFoods.filter((f) => {
-    const typeFilter = isSearching ? null : selectedType;
-    const inSelectedType =
-      (typeFilter === null) ||
-      (typeFilter === SOLD_OUT_KEY && f.status === 'Sold Out') ||
-      (f.type === typeFilter);
+const foodsByTypeRaw = sortedFoods.filter((f) => {
+  // Khi đang search: cho phép search toàn bộ món, không giới hạn theo level/type
+  if (isSearching) {
+    return true;
+  }
 
-    if (!inSelectedType) return false;
-    if (!selectedLevel) return false;
+  const typeFilter = selectedType;
+  const inSelectedType =
+    (typeFilter === null) ||
+    (typeFilter === SOLD_OUT_KEY && f.status === 'Sold Out') ||
+    (f.type === typeFilter);
 
-    // Trang Sold-out: chỉ hiện món hết + menu/type đó được phép cho level đang chọn
-    if (isSoldOutPage) return f.status === 'Sold Out' && typeAllowedForLevel(f.type, selectedLevel);
+  if (!inSelectedType) return false;
+  if (!selectedLevel) return false;
 
-    // Trang thường: chỉ hiện món chưa sold out + menu/type đó được phép cho level đang chọn
-    if (f.status === 'Sold Out') return false;
-    return typeAllowedForLevel(f.type, selectedLevel);
-  });
+  // Trang Sold-out: chỉ hiện món hết + menu/type đó được phép cho level đang chọn
+  if (isSoldOutPage) {
+    return f.status === 'Sold Out' && typeAllowedForLevel(f.type, selectedLevel);
+  }
+
+  // Trang thường: chỉ hiện món chưa sold out + menu/type đó được phép cho level đang chọn
+  if (f.status === 'Sold Out') return false;
+  return typeAllowedForLevel(f.type, selectedLevel);
+});
 
   // Deduplicate theo file ảnh
   const foodsByType = [];
@@ -657,18 +668,52 @@ const foodsForDisplay = normQ
   const currentCart = useMemo(() => (currentTableKey ? (carts[currentTableKey] || {}) : {}), [carts, currentTableKey]);
 const cartQtyOf = (imageName) => currentCart[imageName]?.qty || 0;
 
-  const setCartQty = (imageName, qty) => {
-    if (!currentTableKey) return;
-    setCarts(prev => {
-      const cart = { ...(prev[currentTableKey] || {}) };
-      if (qty <= 0) delete cart[imageName];
-        else {
-    const cur = cart[imageName] || { qty: 0, note: '' };
-    cart[imageName] = { ...cur, qty };
-  }
-      return { ...prev, [currentTableKey]: cart };
-    });
-  };
+const OFF_MENU_PREFIX = '__offmenu__';
+
+const isOffMenuKey = (key) => String(key || '').startsWith(OFF_MENU_PREFIX);
+
+const makeOffMenuKey = () =>
+  `${OFF_MENU_PREFIX}${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+const addOffMenuItem = () => {
+  if (!selectedTable) return setToast('Hãy chọn bàn');
+
+  const key = makeOffMenuKey();
+  setCarts((prev) => {
+    const cart = { ...(prev[currentTableKey] || {}) };
+    cart[key] = {
+      qty: 1,
+      note: '',
+      name: '',
+      isOffMenu: true,
+    };
+    return { ...prev, [currentTableKey]: cart };
+  });
+};
+
+const setCartQty = (cartKey, qty) => {
+  if (!currentTableKey) return;
+
+  setCarts((prev) => {
+    const cart = { ...(prev[currentTableKey] || {}) };
+
+    if (qty <= 0) {
+      delete cart[cartKey];
+    } else {
+      const cur = cart[cartKey] || {
+        qty: 0,
+        note: '',
+        name: '',
+        isOffMenu: isOffMenuKey(cartKey),
+      };
+      cart[cartKey] = { ...cur, qty };
+    }
+
+    return { ...prev, [currentTableKey]: cart };
+  });
+};
+
+
   const incItem = (food) => {
     if (!selectedTable) return setToast('Hãy chọn bàn');
     const imageName = getImageName(food.imageUrl);
@@ -687,6 +732,37 @@ const cartQtyOf = (imageName) => currentCart[imageName]?.qty || 0;
   };
   const totalItems = useMemo(() => Object.values(currentCart).reduce((s, it) => s + (it.qty || 0), 0), [currentCart]);
 
+  const updateCartItemField = (cartKey, patch) => {
+  if (!currentTableKey) return;
+
+  setCarts((prev) => {
+    const cart = { ...(prev[currentTableKey] || {}) };
+    cart[cartKey] = { ...(cart[cartKey] || {}), ...patch };
+    return { ...prev, [currentTableKey]: cart };
+  });
+};
+
+const orderDraftItems = useMemo(() => {
+  return Object.entries(currentCart)
+    .map(([cartKey, item]) => {
+      const offMenu = Boolean(item?.isOffMenu) || isOffMenuKey(cartKey);
+      const food = offMenu
+        ? null
+        : foods.find((f) => getImageName(f.imageUrl) === String(cartKey || '').toLowerCase());
+
+      return {
+        cartKey,
+        offMenu,
+        qty: Number(item?.qty || 0),
+        note: item?.note || '',
+        name: offMenu
+          ? (String(item?.name || '').trim() || 'OFF MENU')
+          : (food?.productName || food?.name || cartKey),
+        code: offMenu ? 'OFF MENU' : (food?.productCode || food?.code || ''),
+      };
+    })
+    .filter((it) => it.qty > 0);
+}, [currentCart, foods]);
 
   const tableCartCount = useCallback((areaName, tableNo) => {
     const key = tableKeyOf(areaName, tableNo);
@@ -695,59 +771,212 @@ const cartQtyOf = (imageName) => currentCart[imageName]?.qty || 0;
 
   }, [carts]);
 
-  // Member lookup
-const lookupMember = useCallback(async (memberCard) => {
+// Member/Name lookup
+const lastMemberLookupRef = useRef({ card: '', at: 0 });
+const memberSearchTimerRef = useRef(null);
+const [memberSearchText, setMemberSearchText] = useState('');
+const [memberSuggestions, setMemberSuggestions] = useState([]);
+const [memberSearchLoading, setMemberSearchLoading] = useState(false);
+const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+
+const selectMemberSuggestion = useCallback((member) => {
+  const code = String(member?.code || member?.customerCode || '').replace(/\s+/g, '').trim();
+  if (!code) return;
+
+  const name = String(member?.name || member?.customerName || '').trim();
+  const lv = String(member?.level || member?.memberLevel || member?.tier || '').trim();
+
+  setOrderForm(f => ({
+    ...f,
+    memberCard: code,
+    customerCode: code,
+    customerName: name || 'Chưa có thông tin',
+    level: lv || 'Chưa có thông tin',
+  }));
+
+  setMemberSearchText(name ? `${code} - ${name}` : code);
+  setMemberSuggestions([]);
+  setMemberDropdownOpen(false);
+}, []);
+
+const lookupMember = useCallback(async (memberCard, opts = {}) => {
+  const card = String(memberCard || '').replace(/\s+/g, '').trim();
+
   try {
-    if (!memberCard) return;
-    const res = await axios.get(apiUrl('/api/member-lookup'), { params: { memberCard } });
- const code = res?.data?.code || res?.data?.customerCode || '';
- const name = res?.data?.customerName || res?.data?.name || '';
- const lv   = res?.data?.level || res?.data?.tier || '';
+    if (!card) return;
+
+    // Không gọi lại cùng 1 mã trong 2 phút, trừ khi force
+    const now = Date.now();
+    if (
+      !opts.force &&
+      lastMemberLookupRef.current.card === card &&
+      now - lastMemberLookupRef.current.at < 2 * 60 * 1000
+    ) {
+      return;
+    }
+
+    lastMemberLookupRef.current = { card, at: now };
+
+    const res = await axios.get(apiUrl('/api/member-lookup'), {
+      params: { memberCard: card },
+      timeout: 6000,
+    });
+
+    const code = res?.data?.code || res?.data?.customerCode || card;
+    const name = res?.data?.customerName || res?.data?.name || '';
+    const lv = res?.data?.level || res?.data?.tier || '';
+
     setOrderForm(f => ({
       ...f,
-      customerCode: code || '',
+      memberCard: card,
+      customerCode: code || card,
       customerName: name || 'Chưa có thông tin',
-      level: lv || 'Chưa có thông tin'
+      level: lv || 'Chưa có thông tin',
     }));
   } catch {
-    setOrderForm(f => ({ ...f, customerName: 'Chưa có thông tin', level: 'Chưa có thông tin' }));
+    setOrderForm(f => ({
+      ...f,
+      customerCode: card,
+      customerName: 'Chưa có thông tin',
+      level: 'Chưa có thông tin',
+    }));
   }
 }, []);
 
-  useEffect(() => {
-    const card = (orderForm.memberCard || '').trim();
-    if (!card) return;
-    const t = setTimeout(() => lookupMember(card), 300);
-    return () => clearTimeout(t);
-  }, [orderForm.memberCard, lookupMember]);
+useEffect(() => {
+  const card = String(orderForm.memberCard || '').replace(/\s+/g, '').trim();
+
+  if (!card) {
+    return;
+  }
+
+  // Chỉ lookup API chi tiết khi đã có mã số member.
+  if (!/^\d+$/.test(card)) {
+    return;
+  }
+
+  const t = setTimeout(() => lookupMember(card), 800);
+  return () => clearTimeout(t);
+}, [orderForm.memberCard, lookupMember]);
+
+useEffect(() => {
+  const q = String(memberSearchText || '').trim();
+
+  clearTimeout(memberSearchTimerRef.current);
+
+  if (!q) {
+    setMemberSuggestions([]);
+    setMemberSearchLoading(false);
+    setMemberDropdownOpen(false);
+    setOrderForm(f => ({
+      ...f,
+      memberCard: '',
+      customerCode: '',
+      customerName: '',
+      level: '',
+    }));
+    return;
+  }
+
+  const selectedCode = String(orderForm.memberCard || '').replace(/\s+/g, '').trim();
+  const selectedPrefix = selectedCode ? `${selectedCode} -` : '';
+  if (selectedCode && (q.replace(/\s+/g, '') === selectedCode || q.startsWith(selectedPrefix))) {
+    setMemberSuggestions([]);
+    setMemberSearchLoading(false);
+    setMemberDropdownOpen(false);
+    return;
+  }
+
+  memberSearchTimerRef.current = setTimeout(async () => {
+    try {
+      setMemberSearchLoading(true);
+      const res = await axios.get(apiUrl('/api/member-search'), {
+        params: { q, limit: 10 },
+        timeout: 6000,
+      });
+      const items = Array.isArray(res?.data?.items) ? res.data.items : [];
+      setMemberSuggestions(items);
+      setMemberDropdownOpen(true);
+    } catch {
+      setMemberSuggestions([]);
+      setMemberDropdownOpen(false);
+    } finally {
+      setMemberSearchLoading(false);
+    }
+  }, 250);
+
+  return () => clearTimeout(memberSearchTimerRef.current);
+}, [memberSearchText, orderForm.memberCard]);
 
   // Submit order
-  const placeOrder = async () => {
-if (!selectedTable) return setToast('Hãy chọn bàn');
-if (totalItems <= 0) return setToast('Giỏ trống');
-// Validate staff: phải có và là số
-const staffVal = (orderForm.staff || '').trim();
-if (!staffVal || !/^\d+$/.test(staffVal)) {
-  setToast('Mã nhân viên phải là số');
-  return;
-}
-// Validate member card
-if (!orderForm.memberCard?.trim()) {
-  setToast('Nhập Member');
-  return;
-}
-    const items = Object.entries(currentCart).map(([imageName, item]) => ({
-  imageKey: imageName, // <— chuẩn hoá key ảnh
-  qty: item.qty,
-  note: item.note || ''
-}));
+const placeOrder = async () => {
+  if (placeOrderLockRef.current) {
+    setToast('Order đang được gửi, vui lòng chờ...');
+    return;
+  }
 
-    try {
-      const body = {
-        area: selectedTable.area,
-        tableNo: selectedTable.tableNo,
-        staff: orderForm.staff.trim(),
-     memberCard: orderForm.memberCard.trim(), // để server đối chiếu nếu cần
+  if (!selectedTable) return setToast('Hãy chọn bàn');
+  if (totalItems <= 0) return setToast('Giỏ trống');
+
+  const staffVal = String(orderForm.staff || '').replace(/\s+/g, '');
+  if (!staffVal || !/^\d+$/.test(staffVal)) {
+    setToast('Mã nhân viên phải là số');
+    return;
+  }
+
+  const memberCardVal = String(orderForm.memberCard || orderForm.customerCode || '').replace(/\s+/g, '');
+
+  if (!memberCardVal) {
+    setToast('Nhập Member/Name và chọn khách');
+    return;
+  }
+const items = Object.entries(currentCart)
+  .map(([cartKey, item]) => {
+    const offMenu = Boolean(item?.isOffMenu) || isOffMenuKey(cartKey);
+
+if (offMenu) {
+  const offMenuName = String(item?.name || '').trim();
+
+  return {
+    isOffMenu: true,
+    imageKey: '',
+    imageName: '',
+    productCode: '',
+    group: 'OFF MENU',
+    name: offMenuName,
+    qty: Number(item?.qty || 0),
+    note: String(item?.note || '').trim(),
+    price: Number(item?.price || 0) || 0,
+  };
+}
+
+    return {
+      imageKey: cartKey,
+      qty: Number(item?.qty || 0),
+      note: item?.note || '',
+    };
+  })
+  .filter((it) => Number(it.qty || 0) > 0);
+  const invalidOffMenu = items.find((it) => it.isOffMenu && !String(it.name || '').trim());
+if (invalidOffMenu) {
+  setToast('Nhập tên món ngoài menu');
+  return;
+}
+
+placeOrderLockRef.current = true;
+setIsPlacingOrder(true);
+
+if (!orderRequestIdRef.current) {
+  orderRequestIdRef.current = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+try {
+const body = {
+  clientRequestId: orderRequestIdRef.current,
+  area: selectedTable.area,
+  tableNo: selectedTable.tableNo,
+  staff: staffVal,
+  memberCard: memberCardVal,
      customer: {                              // <— SNAPSHOT ngay tại thời điểm gửi
        code: (orderForm.customerCode || '').trim() || null,
       name: (orderForm.customerName || '').trim() || null,
@@ -758,12 +987,28 @@ if (!orderForm.memberCard?.trim()) {
         consumeStock: false,
       };
       const res = await axios.post(apiUrl('/api/orders'), body);
-      if (res?.data?.ok) {
-        localStorage.setItem('lastOrderInfo', JSON.stringify({ staff: orderForm.staff.trim() }));
-        setCarts(prev => ({ ...prev, [currentTableKey]: {} }));
-        setShowOrderForm(false);
-        setToast('Đã gửi Order');
-      }
+if (res?.data?.ok) {
+  const savedStaff = staffVal;
+
+  localStorage.setItem('lastOrderInfo', JSON.stringify({ staff: savedStaff }));
+  setCarts(prev => ({ ...prev, [currentTableKey]: {} }));
+
+  setOrderForm({
+    staff: savedStaff,
+    memberCard: '',
+    customerCode: '',
+    customerName: '',
+    level: '',
+    note: ''
+  });
+  setMemberSearchText('');
+  setMemberSuggestions([]);
+  setMemberDropdownOpen(false);
+
+orderRequestIdRef.current = null;
+setShowOrderForm(false);
+setToast('Đã gửi Order');
+}
     } catch (e) {
       if (e?.response?.status === 409 && Array.isArray(e.response.data?.missing)) {
         const miss = e.response.data.missing;
@@ -780,6 +1025,9 @@ if (!orderForm.memberCard?.trim()) {
       } else {
         alert('Order thất bại: ' + (e?.response?.data?.error || e?.message || ''));
       }
+    } finally {
+      placeOrderLockRef.current = false;
+      setIsPlacingOrder(false);
     }
   };
 
@@ -857,6 +1105,21 @@ if (!orderForm.memberCard?.trim()) {
             >
               MENU
             </button>
+            <button
+  onClick={() => setMode('insights')}
+  style={{
+    flex: 1,
+    padding: '8px 10px',
+    borderRadius: 8,
+    border: '1px solid #555',
+    background: mode === 'insights' ? '#f59e0b' : '#333',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: 12
+  }}
+>
+  Insights
+</button>
           </div>
 
           {/* Status pill */}
@@ -903,7 +1166,11 @@ if (!orderForm.memberCard?.trim()) {
 
           {/* Sidebar body */}
           <div style={{ flexGrow: 1, overflowY: 'auto' }}>
-            {mode === 'menu' ? (
+{mode === 'insights' ? (
+  <div style={{ padding: 10, color: '#d1d5db', fontSize: 12, lineHeight: 1.5 }}>
+    Nhập mã khách ở màn chính để xem món khách hay gọi, ghi chú món và gợi ý món.
+  </div>
+) : mode === 'menu' ? (
               <>
                 {!selectedLevel &&
                   LEVELS.map((level) => (
@@ -934,7 +1201,7 @@ if (!orderForm.memberCard?.trim()) {
                   );
                 })}
               </>
-            ) : (
+            ) : mode === 'tables' ? (
               <>
                 <div style={{ padding: '8px 10px' }}>
                   <input
@@ -997,6 +1264,10 @@ if (!orderForm.memberCard?.trim()) {
                   })}
                 </div>
               </>
+              ) : (
+  <div style={{ padding: 10, color: '#d1d5db', fontSize: 12, lineHeight: 1.5 }}>
+    Nhập mã khách ở màn chính để xem món khách hay gọi, ghi chú món và gợi ý món.
+  </div>
             )}
           </div>
 
@@ -1106,8 +1377,14 @@ if (!orderForm.memberCard?.trim()) {
             zIndex: 100,
           }}
         >
-          {mode === 'menu' ? (
-            selectedLevel ? (
+{mode === 'insights' ? (
+  <UserCustomerInsightsPanel
+    apiUrl={apiUrl}
+    withBase={withBase}
+    currentMemberCard={orderForm.memberCard}
+  />
+) : mode === 'menu' ? (
+  selectedLevel ? (
               <>
                 {/* Grid món */}
                 <div
@@ -1205,6 +1482,20 @@ if (!orderForm.memberCard?.trim()) {
                       >
                         + Thêm món
                       </button>
+                      <button
+  onClick={addOffMenuItem}
+  style={{
+    padding: '6px 10px',
+    borderRadius: 8,
+    border: '1px solid #8b5cf6',
+    background: '#fff',
+    color: '#7c3aed',
+    cursor: 'pointer',
+    fontSize: 13
+  }}
+>
+  + Món ngoài menu
+</button>
                           {Object.keys(currentCart).length > 0 && (
       <button
         onClick={() => setCarts(prev => ({ ...prev, [currentTableKey]: {} }))}
@@ -1223,50 +1514,89 @@ if (!orderForm.memberCard?.trim()) {
                       <div style={{ color: '#6b7280' }}>Chưa chọn món nào. Nhấn “+ Thêm món”.</div>
                     ) : (
                       <div style={{ display: 'grid', gap: 8 }}>
-{Object.entries(currentCart).map(([imgName, item]) => {
-  const f = findFoodByImageName(imgName); // tìm thông tin món
+{Object.entries(currentCart).map(([cartKey, item]) => {
+  const offMenu = Boolean(item?.isOffMenu) || isOffMenuKey(cartKey);
+  const f = offMenu ? null : findFoodByImageName(cartKey);
+
   return (
-    <div key={imgName} style={{ display:'flex', alignItems:'center', marginBottom:8 }}>
-      {/* Hiển thị hình ảnh và tên món */}
-      {f ? (
+    <div key={cartKey} style={{ display:'flex', alignItems:'center', marginBottom:8, gap: 8 }}>
+      {offMenu ? (
+        <div style={{ flex: 1, display: 'grid', gap: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>
+            OFF MENU
+          </div>
+
+          <input
+            value={item.name || ''}
+            onChange={(e) =>
+              setCarts((prev) => {
+                const cart = { ...(prev[currentTableKey] || {}) };
+                cart[cartKey] = { ...(cart[cartKey] || {}), name: e.target.value, isOffMenu: true };
+                return { ...prev, [currentTableKey]: cart };
+              })
+            }
+            placeholder="Nhập tên món ngoài menu..."
+            style={{ padding: 6, border: '1px solid #ddd', borderRadius: 6 }}
+          />
+        </div>
+      ) : f ? (
         <>
-<img src={withBase(f.imageUrl)} alt={f.name}
+          <img
+            src={withBase(f.imageUrl)}
+            alt={f.name}
             style={{ width: 40, height: 40, marginRight: 8, borderRadius: 4 }}
           />
-<div style={{ flex: 1 }}>
-  <div>
-    {(f.productCode || f.code) && (
-      <span style={{ fontWeight: 600, marginRight: 4 }}>
-        [{f.productCode || f.code}]
-      </span>
-    )}
-    {f.productName || f.name}
-  </div>
-</div>
-
+          <div style={{ flex: 1 }}>
+            <div>
+              {(f.productCode || f.code) && (
+                <span style={{ fontWeight: 600, marginRight: 4 }}>
+                  [{f.productCode || f.code}]
+                </span>
+              )}
+              {f.productName || f.name}
+            </div>
+          </div>
         </>
       ) : (
-        <div style={{ flex: 1 }}>
-          {imgName}
-        </div>
+        <div style={{ flex: 1 }}>{cartKey}</div>
       )}
 
-      {/* Các nút điều chỉnh số lượng và ghi chú */}
       <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
-        <button onClick={() => decItem(f || { imageUrl: imgName })}>−</button>
+        <button
+          onClick={() => {
+            if (offMenu) setCartQty(cartKey, Math.max(0, Number(item.qty || 0) - 1));
+            else decItem(f || { imageUrl: cartKey });
+          }}
+        >
+          −
+        </button>
+
         <div style={{ minWidth: 32, textAlign: 'center' }}>{item.qty}</div>
-        <button onClick={() => incItem(f || { imageUrl: imgName })}>+</button>
-        <input
-          value={item.note}
-          onChange={e => setCarts(prev => {
-            const cart = { ...(prev[currentTableKey] || {}) };
-            cart[imgName] = { ...cart[imgName], note: e.target.value };
-            return { ...prev, [currentTableKey]: cart };
-          })}
-          placeholder="Ghi chú... "
-          style={{ width: 120, padding: 4, border:'1px solid #ddd', borderRadius:6 }}
-        />
-        <button onClick={() => setCartQty(imgName, 0)}>Xóa</button>
+
+        <button
+          onClick={() => {
+            if (offMenu) setCartQty(cartKey, Number(item.qty || 0) + 1);
+            else incItem(f || { imageUrl: cartKey });
+          }}
+        >
+          +
+        </button>
+
+        <div
+  style={{
+    minWidth: 140,
+    fontSize: 12,
+    color: '#6b7280',
+    padding: '4px 6px',
+    border: '1px dashed #ddd',
+    borderRadius: 6,
+    background: '#fafafa'
+  }}
+>
+  {item.note ? `📝 ${item.note}` : 'Ghi chú trong Order'}
+</div>
+
+        <button onClick={() => setCartQty(cartKey, 0)}>Xóa</button>
       </div>
     </div>
   );
@@ -1369,9 +1699,12 @@ return (
         <div style={{ display:'grid', gridTemplateColumns:'1fr auto', rowGap:6, alignItems:'center' }}>
           {o.items.map((it, idx) => {
             // Ưu tiên dùng imageKey (do backend enrichItem tạo ra)
-            const key = it.imageKey || it.imageName;
-            const f = findFoodByImageName(key);
-            const label = (f?.productName || f?.name || it.name || key || '').trim();
+const offMenu = Boolean(it?.isOffMenu);
+const key = it.imageKey || it.imageName;
+const f = offMenu ? null : findFoodByImageName(key);
+const label = offMenu
+  ? String(it.name || '(Off menu)').trim()
+  : (f?.productName || f?.name || it.name || key || '').trim();
 
             return (
               <React.Fragment key={idx}>
@@ -1386,14 +1719,14 @@ return (
                     <div style={{ width: 40, height: 40 }} />
                   )}
 
-                  <div style={{ fontSize: 12 }}>
-                    {(f?.productCode || f?.code) && (
-                      <span style={{ fontWeight: 600, marginRight: 4 }}>
-                        [{f.productCode || f.code}]
-                      </span>
-                    )}
-                    {label}
-                  </div>
+<div style={{ fontSize: 12 }}>
+  {!offMenu && (f?.productCode || f?.code) && (
+    <span style={{ fontWeight: 600, marginRight: 4 }}>
+      [{f.productCode || f.code}]
+    </span>
+  )}
+  {label}
+</div>
                 </div>
 
                 <div style={{ fontWeight: 700 }}>x{it.qty}</div>
@@ -1576,80 +1909,241 @@ return (
 
       {/* Order Form Overlay */}
       {showOrderForm && (
-        <div
-          onClick={() => setShowOrderForm(false)}
-          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999 }}
-        >
-          <div
-            onClick={(e)=>e.stopPropagation()}
-            style={{ width: 420, background:'#fff', borderRadius:10, padding:16 }}
-          >
-            <h3 style={{ marginTop:0 }}>Tạo Order</h3>
+  <div
+    onClick={() => {
+  if (!isPlacingOrder) setShowOrderForm(false);
+}}
+    style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+      padding: 12,
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: 'min(560px, calc(100vw - 24px))',
+        maxHeight: '85vh',
+        overflowY: 'auto',
+        background: '#fff',
+        borderRadius: 10,
+        padding: 16,
+      }}
+    >
+      <h3 style={{ marginTop: 0 }}>Tạo Order</h3>
 
-            <div style={{ display:'grid', gap:10 }}>
-              <div>
-              <label>Staff *</label>
-              <input
-                type="number"
-                pattern="[0-9]*"
-                inputMode="numeric"
-                value={orderForm.staff}
-                onChange={e => setOrderForm(f => ({ ...f, staff: e.target.value }))}
-                placeholder="Mã nhân viên"
-                style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
-              />
-              {/* Hiển thị tên nhân viên nếu tìm thấy */}
-              {staffName && (
-                <div style={{ marginTop: 4, fontSize: 12, color: '#6b7280' }}>
-                  Tên nhân viên: {staffName}
+      <div style={{ display: 'grid', gap: 10 }}>
+        <div>
+          <label>Staff *</label>
+          <input
+            type="number"
+            pattern="[0-9]*"
+            inputMode="numeric"
+            value={orderForm.staff}
+            onChange={e =>
+  setOrderForm(f => ({
+    ...f,
+    staff: e.target.value.replace(/\s+/g, ''),
+  }))
+}
+            placeholder="Mã nhân viên"
+            style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 6 }}
+          />
+          {staffName && (
+            <div style={{ marginTop: 4, fontSize: 12, color: '#6b7280' }}>
+              Tên nhân viên: {staffName}
+            </div>
+          )}
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <label>Member/Name *</label>
+          <input
+            value={memberSearchText}
+            onFocus={() => {
+              if (memberSuggestions.length > 0) setMemberDropdownOpen(true);
+            }}
+            onBlur={() => {
+              setTimeout(() => setMemberDropdownOpen(false), 160);
+            }}
+            onChange={e => {
+              const raw = e.target.value;
+              const compact = raw.replace(/\s+/g, '').trim();
+
+              setMemberSearchText(raw);
+              setMemberDropdownOpen(true);
+
+              setOrderForm(f => ({
+                ...f,
+                memberCard: /^\d+$/.test(compact) ? compact : '',
+                customerCode: /^\d+$/.test(compact) ? compact : '',
+                customerName: '',
+                level: '',
+              }));
+            }}
+            placeholder="Nhập mã member hoặc tên khách"
+            style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 6 }}
+          />
+
+          {memberDropdownOpen && (memberSearchLoading || memberSuggestions.length > 0) && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                zIndex: 10002,
+                marginTop: 4,
+                maxHeight: 260,
+                overflowY: 'auto',
+                background: '#fff',
+                border: '1px solid #ddd',
+                borderRadius: 8,
+                boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+              }}
+            >
+              {memberSearchLoading && (
+                <div style={{ padding: 10, fontSize: 12, color: '#6b7280' }}>
+                  Đang tìm khách...
                 </div>
               )}
-              </div>
-              <div>
-                <label>Member *</label>
-                <input
-                  value={orderForm.memberCard}
-                  onChange={e=>setOrderForm(f=>({...f, memberCard:e.target.value}))}
-                  placeholder="Nhập mã thẻ / số thẻ"
-                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
-                />
-              </div>
-              <div>
-<label>Name</label>
-<input
-  value={orderForm.customerName}
-  readOnly
-  placeholder="Chưa có thông tin"
-  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6, background:'#f3f4f6' }}
-/>
-<label>Level</label>
-<input
-  value={orderForm.level}
-  readOnly
-  placeholder="Chưa có thông tin"
-  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6, background:'#f3f4f6' }}
-/>
 
-
-              </div>
-              <div>
-                <label>Ghi chú</label>
-                <textarea
-                  value={orderForm.note}
-                  onChange={e=>setOrderForm(f=>({...f, note:e.target.value}))}
-                  rows={3}
-                  style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
-                />
-              </div>
+              {!memberSearchLoading && memberSuggestions.map((m) => (
+                <div
+                  key={m.code}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectMemberSuggestion(m);
+                  }}
+                  style={{
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #f3f4f6',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: '#111827' }}>
+                    {m.code} - {m.name || 'Chưa có tên'}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>
+                    Level: {m.level || '---'} • Orders: {m.ordersCount || 0}
+                    {m.lastOrderAt ? ` • Gần nhất: ${new Date(m.lastOrderAt).toLocaleDateString()}` : ''}
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:12 }}>
-              <button onClick={()=>setShowOrderForm(false)} style={{ padding:'8px 12px', border:'1px solid #ddd', borderRadius:8, background:'#fff' }}>Huỷ</button>
-              <button onClick={placeOrder} style={{ padding:'8px 12px', border:'none', borderRadius:8, background:'#10b981', color:'#fff' }}>Gửi Order</button>
-            </div>
-          </div>
+          )}
         </div>
-      )}
+
+        <div>
+          <label>Name</label>
+          <input
+            value={orderForm.customerName}
+            readOnly
+            placeholder="Chưa có thông tin"
+            style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 6, background: '#f3f4f6' }}
+          />
+
+          <label style={{ display: 'block', marginTop: 10 }}>Level</label>
+          <input
+            value={orderForm.level}
+            readOnly
+            placeholder="Chưa có thông tin"
+            style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 6, background: '#f3f4f6' }}
+          />
+        </div>
+
+        {orderDraftItems.length > 0 && (
+          <div
+            style={{
+              display: 'grid',
+              gap: 10,
+              paddingTop: 10,
+              borderTop: '1px solid #eee'
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 14 }}>
+              Ghi chú từng món
+            </div>
+
+            {orderDraftItems.map((it) => (
+              <div key={it.cartKey}>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#111827'
+                  }}
+                >
+                  {it.qty} | {it.name} | {it.code || '---'}
+                </label>
+
+                <textarea
+                  value={it.note}
+                  onChange={(e) => updateCartItemField(it.cartKey, { note: e.target.value })}
+                  rows={2}
+                  placeholder="Nhập ghi chú cho món này..."
+                  style={{
+                    width: '100%',
+                    padding: 8,
+                    border: '1px solid #ddd',
+                    borderRadius: 6,
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div>
+          <label>Ghi chú Tổng</label>
+          <textarea
+            value={orderForm.note}
+            onChange={e => setOrderForm(f => ({ ...f, note: e.target.value }))}
+            rows={3}
+            style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 6 }}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+<button
+  disabled={isPlacingOrder}
+  onClick={() => {
+    if (isPlacingOrder) return;
+    orderRequestIdRef.current = null;
+    setShowOrderForm(false);
+  }}
+          style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, background: '#fff' }}
+        >
+          Huỷ
+        </button>
+<button
+  onClick={placeOrder}
+  disabled={isPlacingOrder}
+  style={{
+    padding: '8px 12px',
+    border: 'none',
+    borderRadius: 8,
+    background: isPlacingOrder ? '#9ca3af' : '#10b981',
+    color: '#fff',
+    cursor: isPlacingOrder ? 'not-allowed' : 'pointer',
+    opacity: isPlacingOrder ? 0.8 : 1,
+  }}
+>
+  {isPlacingOrder ? 'Đang gửi...' : 'Gửi Order'}
+</button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Funnel slider */}
       <div
@@ -1724,7 +2218,12 @@ return (
           pattern="[0-9]*"
           inputMode="numeric"
           value={quickOrderForm.staff}
-          onChange={e => setQuickOrderForm(f => ({ ...f, staff: e.target.value }))}
+          onChange={e =>
+  setQuickOrderForm(f => ({
+    ...f,
+    staff: e.target.value.replace(/\s+/g, ''),
+  }))
+}
           placeholder="Mã nhân viên"
           style={{ width:'100%', padding:8, border:'1px solid #ddd', borderRadius:6 }}
         />
@@ -1749,17 +2248,17 @@ return (
         </button>
         <button
           onClick={async () => {
-            const staffVal = (quickOrderForm.staff || '').trim();
+            const staffVal = String(quickOrderForm.staff || '').replace(/\s+/g, '');
             // Validate staff
-            if (!staffVal || !/^\\d+$/.test(staffVal)) {
+            if (!staffVal || !/^\d+$/.test(staffVal)) {
               setToast('Mã nhân viên phải là số');
               return;
             }
             // Tách mã member theo dấu phẩy hoặc xuống dòng
-            const codes = (quickOrderForm.members || '')
-              .split(/[,\\n]+/)
-              .map(s => s.trim())
-              .filter(s => s);
+const codes = (quickOrderForm.members || '')
+  .split(/[,\n]+/)
+  .map(s => s.replace(/\s+/g, ''))
+  .filter(s => s);
             if (codes.length === 0) {
               setToast('Nhập Member');
               return;
@@ -1795,8 +2294,23 @@ return (
     </div>
   </div>
 )}
-      {/* Toast */}
-      {toast && (
+
+<AIChatBox
+  mode="user"
+  apiUrl={apiUrl}
+  userContext={{
+    selectedTable,
+    selectedLevel,
+    selectedType,
+    screenMode: mode,
+    memberCard: orderForm.memberCard,
+    customerName: orderForm.customerName,
+    customerLevel: orderForm.level,
+  }}
+/>
+
+{/* Toast */}
+{toast && (
         <div style={{
           position:'fixed', bottom:20, left:'50%', transform:'translateX(-50%)',
           background:'#111', color:'#fff', padding:'8px 12px', borderRadius:8, zIndex:10000, opacity:0.95
@@ -1829,5 +2343,319 @@ const backButtonStyle = {
   fontSize: '14px',
   borderRadius: '6px',
 };
+function UserCustomerInsightsPanel({ apiUrl, withBase, currentMemberCard }) {
+  const [memberCode, setMemberCode] = useState(() => String(currentMemberCard || '').replace(/\s+/g, ''));
+  const [customer, setCustomer] = useState(null);
+  const [topItems, setTopItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
+  const loadTopItems = useCallback(async () => {
+    try {
+      const res = await axios.get(apiUrl('/api/customer-insights/top-items'), {
+        params: { limit: 50 },
+      });
+      setTopItems(res.data?.topItems || []);
+    } catch {}
+  }, [apiUrl]);
+
+  const loadCustomer = useCallback(async (code) => {
+    const clean = String(code || '').replace(/\s+/g, '').trim();
+    if (!clean) return;
+
+    try {
+      setLoading(true);
+      const res = await axios.get(apiUrl(`/api/customer-insights/customer/${encodeURIComponent(clean)}`));
+      setCustomer(res.data || null);
+      setMemberCode(clean);
+    } catch (e) {
+      alert('Không xem được sở thích khách: ' + (e?.response?.data?.error || e.message));
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl]);
+
+  useEffect(() => {
+    loadTopItems();
+  }, [loadTopItems]);
+
+  useEffect(() => {
+    const clean = String(currentMemberCard || '').replace(/\s+/g, '').trim();
+    if (clean && clean !== memberCode) {
+      setMemberCode(clean);
+    }
+  }, [currentMemberCard]);
+
+  const cardStyle = {
+    background: '#fff',
+    border: '1px solid #eee',
+    borderRadius: 10,
+    padding: 12,
+  };
+
+  const th = {
+    textAlign: 'left',
+    padding: '8px 10px',
+    borderBottom: '1px solid #e5e7eb',
+    fontSize: 12,
+    color: '#374151',
+    whiteSpace: 'nowrap',
+  };
+
+  const td = {
+    padding: '8px 10px',
+    borderBottom: '1px solid #f3f4f6',
+    fontSize: 12,
+    verticalAlign: 'top',
+  };
+
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div style={cardStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <h3 style={{ margin: 0 }}>Sở thích khách hàng</h3>
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <input
+              value={memberCode}
+              onChange={(e) => setMemberCode(e.target.value.replace(/\s+/g, ''))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') loadCustomer(memberCode);
+              }}
+              placeholder="Nhập mã khách..."
+              style={{
+                width: 180,
+                padding: 8,
+                border: '1px solid #ddd',
+                borderRadius: 8,
+              }}
+            />
+
+            <button
+              onClick={() => loadCustomer(memberCode)}
+              disabled={loading}
+              style={{
+                padding: '8px 12px',
+                border: 'none',
+                borderRadius: 8,
+                background: '#2563eb',
+                color: '#fff',
+                cursor: 'pointer'
+              }}
+            >
+              {loading ? 'Đang xem…' : 'Xem'}
+            </button>
+          </div>
+        </div>
+
+        {!customer && (
+          <div style={{ color: '#6b7280', fontSize: 13 }}>
+            Nhập mã khách để xem khách hay gọi món nào, ghi chú món ăn và gợi ý món phù hợp.
+          </div>
+        )}
+
+        {customer && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <b>{customer.code}</b>
+              <span>{customer.name || 'Chưa có tên'}</span>
+              <span style={{
+                background: '#eef2ff',
+                color: '#3730a3',
+                borderRadius: 999,
+                padding: '3px 8px',
+                fontSize: 12,
+                fontWeight: 700
+              }}>
+                {customer.level || 'No level'}
+              </span>
+              {!customer.found && (
+                <span style={{ color: '#ef4444', fontSize: 12 }}>
+                  Chưa có lịch sử order
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <h4 style={{ margin: '0 0 8px' }}>Món khách hay gọi</h4>
+
+                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+<thead>
+  <tr>
+    <th style={{ ...th, width: 50, textAlign: 'center' }}>#</th>
+    <th style={th}>Món</th>
+    <th style={{ ...th, width: 90, textAlign: 'center' }}>SL</th>
+    <th style={{ ...th, width: 100, textAlign: 'center' }}>Số lần</th>
+    <th style={th}>Ghi chú</th>
+  </tr>
+</thead>
+
+<tbody>
+  {(customer.favoriteItems || []).slice(0, 10).map((it, idx) => (
+    <tr key={it.key}>
+      <td style={{ ...td, width: 50, textAlign: 'center', fontWeight: 700 }}>
+        {idx + 1}
+      </td>
+
+      <td style={td}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {it.imageUrl && (
+            <img
+              src={withBase(it.imageUrl)}
+              alt=""
+              style={{
+                width: 42,
+                height: 42,
+                objectFit: 'cover',
+                borderRadius: 6,
+                border: '1px solid #eee'
+              }}
+            />
+          )}
+
+          <div>
+            <b>{it.productCode ? `[${it.productCode}] ` : ''}{it.name}</b>
+            <div style={{ color: '#6b7280' }}>
+              {it.itemGroup || it.type || ''}
+            </div>
+          </div>
+        </div>
+      </td>
+
+      <td style={{ ...td, width: 90, textAlign: 'center', fontWeight: 700 }}>
+        {it.qty}
+      </td>
+
+      <td style={{ ...td, width: 100, textAlign: 'center', fontWeight: 700 }}>
+        {it.orderCount || 0}
+      </td>
+
+      <td style={td}>
+        {(it.notes || []).slice(0, 3).map((n, noteIdx) => (
+          <div key={noteIdx}>📝 {n.note}</div>
+        ))}
+      </td>
+    </tr>
+  ))}
+</tbody>
+                </table>
+              </div>
+
+              <div>
+                <h4 style={{ margin: '0 0 8px' }}>Gợi ý món cho khách</h4>
+
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={th}>Món gợi ý</th>
+                      <th style={th}>Lý do</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(customer.recommendations || []).slice(0, 10).map((it) => (
+                      <tr key={it.key}>
+<td style={td}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    {it.imageUrl && (
+      <img
+        src={withBase(it.imageUrl)}
+        alt=""
+        style={{
+          width: 42,
+          height: 42,
+          objectFit: 'cover',
+          borderRadius: 6,
+          border: '1px solid #eee'
+        }}
+      />
+    )}
+
+    <div>
+      <b>{it.productCode ? `[${it.productCode}] ` : ''}{it.name}</b>
+      <div style={{ color: '#6b7280' }}>{it.itemGroup || it.type || ''}</div>
+    </div>
+  </div>
+</td>
+                        <td style={td}>{it.reason || `${it.customerCount || 0} khách từng gọi`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {(customer.notes || []).length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <h4 style={{ margin: '0 0 8px' }}>Ghi chú món gần đây</h4>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {(customer.notes || []).slice(0, 8).map((n, idx) => (
+                    <div key={idx} style={{ fontSize: 12, background: '#f9fafb', border: '1px solid #eee', borderRadius: 8, padding: 8 }}>
+                      <b>{n.itemName}</b>: {n.note}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div style={cardStyle}>
+        <h3 style={{ marginTop: 0 }}>Món được order nhiều nhất</h3>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={th}>#</th>
+              <th style={th}>Món</th>
+              <th style={th}>SL</th>
+              <th style={th}>Số khách</th>
+            </tr>
+          </thead>
+          <tbody>
+{topItems.slice(0, 50).map((it, idx) => (
+  <tr key={it.key}>
+    <td style={{ ...td, width: 50, textAlign: 'center', fontWeight: 700 }}>
+      {idx + 1}
+    </td>
+
+    <td style={td}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {it.imageUrl && (
+          <img
+            src={withBase(it.imageUrl)}
+            alt=""
+            style={{
+              width: 42,
+              height: 42,
+              objectFit: 'cover',
+              borderRadius: 6,
+              border: '1px solid #eee'
+            }}
+          />
+        )}
+
+        <div>
+          <b>{it.productCode ? `[${it.productCode}] ` : ''}{it.name}</b>
+          <div style={{ color: '#6b7280' }}>{it.itemGroup || it.type || ''}</div>
+        </div>
+      </div>
+    </td>
+
+    <td style={{ ...td, width: 90, textAlign: 'center', fontWeight: 700 }}>
+      {it.qty}
+    </td>
+
+    <td style={{ ...td, width: 100, textAlign: 'center', fontWeight: 700 }}>
+      {it.customerCount}
+    </td>
+  </tr>
+))}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  );
+}
 export default UserFoodList;

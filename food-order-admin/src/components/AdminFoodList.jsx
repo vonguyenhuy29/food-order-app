@@ -12,6 +12,7 @@
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import ManageProductsModal from './ManageProducts.jsx';
+import AIChatBox from './AIChatBox.jsx';
 import io from 'socket.io-client';
 import axios from 'axios';
 
@@ -151,7 +152,348 @@ async function fetchMenuLevels() {
 
 // ====== Print Agent config ======
 const AGENT_PORT = Number(process.env.REACT_APP_AGENT_PORT || 9393);
+function CustomerInsightsPanel({ apiUrl, resolveImg }) {
+  const [loading, setLoading] = React.useState(false);
+  const [overview, setOverview] = React.useState(null);
+  const [customerCode, setCustomerCode] = React.useState('');
+  const [customer, setCustomer] = React.useState(null);
 
+  const loadOverview = React.useCallback(async (force = false) => {
+    try {
+      setLoading(true);
+      const res = await axios.get(apiUrl('/api/customer-insights/overview'), {
+        params: { limit: 100, force: force ? 'true' : 'false' },
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      setOverview(res.data || null);
+    } catch (e) {
+      alert('Load Insights thất bại: ' + (e?.response?.data?.error || e.message));
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl]);
+
+  const loadCustomer = React.useCallback(async (code) => {
+    const clean = String(code || '').replace(/\s+/g, '').trim();
+    if (!clean) return;
+
+    try {
+      setLoading(true);
+      const res = await axios.get(apiUrl(`/api/customer-insights/customer/${encodeURIComponent(clean)}`));
+      setCustomer(res.data || null);
+      setCustomerCode(clean);
+    } catch (e) {
+      alert('Load khách thất bại: ' + (e?.response?.data?.error || e.message));
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl]);
+
+  React.useEffect(() => {
+    loadOverview(false);
+  }, [loadOverview]);
+
+  const topItems = overview?.topItems || [];
+  const topCustomers = overview?.topCustomers || [];
+
+  const cardStyle = {
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: 12,
+    padding: 14,
+  };
+
+  const th = {
+    textAlign: 'left',
+    padding: '8px 10px',
+    borderBottom: '1px solid #e5e7eb',
+    fontSize: 12,
+    color: '#374151',
+    whiteSpace: 'nowrap',
+  };
+
+  const td = {
+    padding: '8px 10px',
+    borderBottom: '1px solid #f3f4f6',
+    fontSize: 12,
+    verticalAlign: 'top',
+  };
+
+  const money = (n) =>
+    Number.isFinite(Number(n))
+      ? Number(n).toLocaleString('vi-VN')
+      : '';
+
+  return (
+    <div style={{ padding: 16, background: '#fff8dc', overflow: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <h2 style={{ margin: 0 }}>Customer Insights</h2>
+
+        <button
+          onClick={() => loadOverview(true)}
+          disabled={loading}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: 8,
+            background: '#fff',
+            cursor: 'pointer'
+          }}
+        >
+          {loading ? 'Loading…' : 'Refresh'}
+        </button>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <input
+            value={customerCode}
+            onChange={(e) => setCustomerCode(e.target.value.replace(/\s+/g, ''))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') loadCustomer(customerCode);
+            }}
+            placeholder="Nhập mã khách..."
+            style={{
+              width: 180,
+              padding: 8,
+              border: '1px solid #d1d5db',
+              borderRadius: 8
+            }}
+          />
+
+          <button
+            onClick={() => loadCustomer(customerCode)}
+            style={{
+              padding: '8px 12px',
+              border: 'none',
+              borderRadius: 8,
+              background: '#2563eb',
+              color: '#fff',
+              cursor: 'pointer'
+            }}
+          >
+            Xem khách
+          </button>
+        </div>
+      </div>
+
+      {overview && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginBottom: 12 }}>
+          <div style={cardStyle}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Orders đã phân tích</div>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>{overview.totalOrders}</div>
+          </div>
+
+          <div style={cardStyle}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Khách có lịch sử</div>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>{overview.totalCustomers}</div>
+          </div>
+
+          <div style={cardStyle}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Món từng được order</div>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>{overview.totalItems}</div>
+          </div>
+
+          <div style={cardStyle}>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Tổng số lượng món</div>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>{overview.totalQty}</div>
+          </div>
+        </div>
+      )}
+
+      {customer && (
+        <div style={{ ...cardStyle, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <h3 style={{ margin: 0 }}>
+              {customer.code} - {customer.name || 'Chưa có tên'}
+            </h3>
+            <span style={{
+              background: '#eef2ff',
+              color: '#3730a3',
+              borderRadius: 999,
+              padding: '3px 8px',
+              fontSize: 12,
+              fontWeight: 700
+            }}>
+              {customer.level || 'No level'}
+            </span>
+            {!customer.found && (
+              <span style={{ color: '#ef4444', fontSize: 12 }}>Chưa có lịch sử order</span>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <h4 style={{ margin: '0 0 8px' }}>Món khách hay gọi</h4>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={th}>Món</th>
+                    <th style={th}>SL</th>
+                    <th style={th}>Số lần</th>
+                    <th style={th}>Ghi chú gần đây</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(customer.favoriteItems || []).slice(0, 10).map((it) => (
+                    <tr key={it.key}>
+                      <td style={td}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {it.imageUrl && (
+                            <img
+                              src={resolveImg(it.imageUrl)}
+                              alt=""
+                              style={{ width: 42, height: 42, objectFit: 'cover', borderRadius: 6 }}
+                            />
+                          )}
+                          <div>
+                            <b>{it.productCode ? `[${it.productCode}] ` : ''}{it.name}</b>
+                            <div style={{ color: '#6b7280' }}>{it.itemGroup || it.type || ''}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={td}>{it.qty}</td>
+                      <td style={td}>{it.orderCount}</td>
+                      <td style={td}>
+                        {(it.notes || []).slice(0, 2).map((n, idx) => (
+                          <div key={idx}>📝 {n.note}</div>
+                        ))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <h4 style={{ margin: '0 0 8px' }}>Gợi ý món cho khách</h4>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={th}>Món gợi ý</th>
+                    <th style={th}>Độ phổ biến</th>
+                    <th style={th}>Lý do</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(customer.recommendations || []).slice(0, 10).map((it) => (
+                    <tr key={it.key}>
+                      <td style={td}>
+                        <b>{it.productCode ? `[${it.productCode}] ` : ''}{it.name}</b>
+                        <div style={{ color: '#6b7280' }}>{it.itemGroup || it.type || ''}</div>
+                      </td>
+                      <td style={td}>{it.qty} món / {it.customerCount} khách</td>
+                      <td style={td}>{it.reason || 'Món phổ biến'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {(customer.notes || []).length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <h4 style={{ margin: '0 0 8px' }}>Ghi chú món của khách</h4>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {(customer.notes || []).slice(0, 12).map((n, idx) => (
+                  <div key={idx} style={{ fontSize: 12, background: '#f9fafb', border: '1px solid #eee', borderRadius: 8, padding: 8 }}>
+                    <b>{n.itemName}</b>: {n.note}
+                    <span style={{ color: '#6b7280' }}> • {n.at ? new Date(n.at).toLocaleString() : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 12 }}>
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0 }}>Bảng xếp hạng món được order nhiều nhất</h3>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={th}>#</th>
+                  <th style={th}>Món</th>
+                  <th style={th}>SL</th>
+                  <th style={th}>Số lần order</th>
+                  <th style={th}>Số khách</th>
+                  <th style={th}>Giá</th>
+                  <th style={th}>Ghi chú hay gặp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topItems.slice(0, 50).map((it, idx) => (
+                  <tr key={it.key}>
+                    <td style={td}>{idx + 1}</td>
+                    <td style={td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {it.imageUrl && (
+                          <img
+                            src={resolveImg(it.imageUrl)}
+                            alt=""
+                            style={{ width: 42, height: 42, objectFit: 'cover', borderRadius: 6 }}
+                          />
+                        )}
+                        <div>
+                          <b>{it.productCode ? `[${it.productCode}] ` : ''}{it.name}</b>
+                          <div style={{ color: '#6b7280' }}>{it.itemGroup || it.type || ''}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={td}>{it.qty}</td>
+                    <td style={td}>{it.orderCount}</td>
+                    <td style={td}>{it.customerCount}</td>
+                    <td style={td}>{money(it.price)}</td>
+                    <td style={td}>
+                      {(it.notes || []).slice(0, 2).map((n, i) => (
+                        <div key={i}>📝 {n.note}</div>
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0 }}>Khách order nhiều</h3>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={th}>Khách</th>
+                <th style={th}>Level</th>
+                <th style={th}>Orders</th>
+                <th style={th}>Món thích</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topCustomers.slice(0, 50).map((c) => (
+                <tr
+                  key={c.code}
+                  onClick={() => loadCustomer(c.code)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <td style={td}>
+                    <b>{c.code}</b>
+                    <div>{c.name}</div>
+                  </td>
+                  <td style={td}>{c.level}</td>
+                  <td style={td}>{c.orderCount}</td>
+                  <td style={td}>
+                    {(c.favoriteItems || []).slice(0, 2).map((it) => it.name).join(', ')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 export default function AdminFoodList() {
   // ===== Auth state =====
   const [auth, setAuth] = useState(() => {
@@ -544,7 +886,7 @@ const printOrderAgent = useCallback(async (order) => {
 }, [agentBase, detectAgent]);
 
 // ===== Orders state =====
-const [tab, setTab] = useState('foods'); // 'foods' | 'orders'
+const [tab, setTab] = useState('foods'); // 'foods' | 'orders' | 'insights'
 const [orders, setOrders] = useState([]);
 const [ordersLoading, setOrdersLoading] = useState(false);
 const [ordersError, setOrdersError] = useState(null);
@@ -554,7 +896,7 @@ const [fromDate, setFromDate]   = useState('');
 const [toDate, setToDate]       = useState('');
 const [activeTable, setActiveTable] = useState(null);
 const [orderSort, setOrderSort] = useState('time_desc');
-
+const [offMenuPriceDrafts, setOffMenuPriceDrafts] = useState({});
 // PHẢI đặt state này lên trước resolveItemCode
 const [productCodeByImage, setProductCodeByImage] = useState({});
 
@@ -658,47 +1000,160 @@ const printOrderSmart = useCallback(async (o) => {
 
 
 
-  const buildRange = useCallback(() => {
-    const startOfDay = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
-    const endOfDay   = (d) => { const x = new Date(d); x.setHours(23,59,59,999); return x; };
-    const toISO      = (d) => d.toISOString();
+const buildRange = useCallback(() => {
+  const BUSINESS_HOUR = 6;
+  const DAY_MS = 24 * 60 * 60 * 1000;
 
-    const now = new Date();
-    let from = null, to = null;
+  const toISO = (d) => d.toISOString();
 
-    switch (dateRange) {
-      case 'today': { from = startOfDay(now); to = endOfDay(now); break; }
-      case 'yesterday': {
-        const y = new Date(now); y.setDate(y.getDate() - 1);
-        from = startOfDay(y); to = endOfDay(y); break;
-      }
-      case 'week': {
-        const d = new Date(now);
-        const day = d.getDay();
-        const diffToMon = (day + 6) % 7;
-        const s = new Date(d); s.setDate(d.getDate() - diffToMon);
-        const e = new Date(s); e.setDate(s.getDate() + 6);
-        from = startOfDay(s); to = endOfDay(e); break;
-      }
-      case 'month': {
-        const s = new Date(now.getFullYear(), now.getMonth(), 1);
-        const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        from = startOfDay(s); to = endOfDay(e); break;
-      }
-      case 'year': {
-        const s = new Date(now.getFullYear(), 0, 1);
-        const e = new Date(now.getFullYear(), 11, 31);
-        from = startOfDay(s); to = endOfDay(e); break;
-      }
-      case 'custom': {
-        if (fromDate) from = startOfDay(new Date(fromDate));
-        if (toDate)   to   = endOfDay(new Date(toDate));
-        break;
-      }
-      default: { from = startOfDay(now); to = endOfDay(now); break; }
+  const startAtBusinessHour = (d) =>
+    new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      BUSINESS_HOUR,
+      0,
+      0,
+      0
+    );
+
+  const endFromStart = (start, days = 1) =>
+    new Date(start.getTime() + days * DAY_MS - 1);
+
+  // Dịch thời gian lùi 6 tiếng để trước 6h sáng vẫn thuộc ngày kinh doanh hôm trước
+  const shiftForBusinessDay = (d) =>
+    new Date(d.getTime() - BUSINESS_HOUR * 60 * 60 * 1000);
+
+  const parseYmd = (ymd) => {
+    const [y, m, d] = String(ymd || '').split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
+  };
+
+  const getBusinessWeekStart = (d) => {
+    const shifted = shiftForBusinessDay(d);
+    const base = new Date(
+      shifted.getFullYear(),
+      shifted.getMonth(),
+      shifted.getDate()
+    );
+
+    const dow = (base.getDay() + 6) % 7; // Monday = 0
+    base.setDate(base.getDate() - dow);
+
+    return startAtBusinessHour(base);
+  };
+
+  const getBusinessMonthStart = (d) => {
+    const shifted = shiftForBusinessDay(d);
+    return new Date(
+      shifted.getFullYear(),
+      shifted.getMonth(),
+      1,
+      BUSINESS_HOUR,
+      0,
+      0,
+      0
+    );
+  };
+
+  const getBusinessYearStart = (d) => {
+    const shifted = shiftForBusinessDay(d);
+    return new Date(
+      shifted.getFullYear(),
+      0,
+      1,
+      BUSINESS_HOUR,
+      0,
+      0,
+      0
+    );
+  };
+
+  const now = new Date();
+  const shiftedNow = shiftForBusinessDay(now);
+
+  let from = null;
+  let to = null;
+
+  switch (dateRange) {
+    case 'today': {
+      from = startAtBusinessHour(shiftedNow);
+      to = endFromStart(from, 1);
+      break;
     }
-    return { from: from ? toISO(from) : undefined, to: to ? toISO(to) : undefined };
-  }, [dateRange, fromDate, toDate]);
+
+    case 'yesterday': {
+      const y = new Date(shiftedNow);
+      y.setDate(y.getDate() - 1);
+      from = startAtBusinessHour(y);
+      to = endFromStart(from, 1);
+      break;
+    }
+
+    case 'week': {
+      from = getBusinessWeekStart(now);
+      to = endFromStart(from, 7);
+      break;
+    }
+
+    case 'month': {
+      from = getBusinessMonthStart(now);
+
+      const shifted = shiftForBusinessDay(now);
+      const nextMonthStart = new Date(
+        shifted.getFullYear(),
+        shifted.getMonth() + 1,
+        1,
+        BUSINESS_HOUR,
+        0,
+        0,
+        0
+      );
+
+      to = new Date(nextMonthStart.getTime() - 1);
+      break;
+    }
+
+    case 'year': {
+      from = getBusinessYearStart(now);
+
+      const shifted = shiftForBusinessDay(now);
+      const nextYearStart = new Date(
+        shifted.getFullYear() + 1,
+        0,
+        1,
+        BUSINESS_HOUR,
+        0,
+        0,
+        0
+      );
+
+      to = new Date(nextYearStart.getTime() - 1);
+      break;
+    }
+
+    case 'custom': {
+      const fromBase = parseYmd(fromDate);
+      const toBase = parseYmd(toDate);
+
+      from = fromBase ? startAtBusinessHour(fromBase) : null;
+      to = toBase ? endFromStart(startAtBusinessHour(toBase), 1) : null;
+      break;
+    }
+
+    default: {
+      from = startAtBusinessHour(shiftedNow);
+      to = endFromStart(from, 1);
+      break;
+    }
+  }
+
+  return {
+    from: from ? toISO(from) : undefined,
+    to: to ? toISO(to) : undefined,
+  };
+}, [dateRange, fromDate, toDate]);
 
   const fetchOrders = useCallback(async () => {
     setOrdersLoading(true);
@@ -766,7 +1221,13 @@ socket.on('menuLevelsUpdated', onMenuLevelsUpdated);
    arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
    return arr;
  });
-
+setActiveTable((prev) => {
+  if (prev) return prev;
+  if (ord?.area && ord?.tableNo) {
+    return { area: ord.area, tableNo: ord.tableNo };
+  }
+  return prev;
+});
       const staff = (ord?.staff || '').toUpperCase();
       const dishNames = (ord?.items || []).map(i => speakName(i.name || i.imageName || i.imageKey));
       speakSequence([staff, ...dishNames], 1000);
@@ -889,7 +1350,13 @@ useEffect(() => {
       arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       return arr;
     });
-
+setActiveTable((prev) => {
+  if (prev) return prev;
+  if (ord?.area && ord?.tableNo) {
+    return { area: ord.area, tableNo: ord.tableNo };
+  }
+  return prev;
+});
     // Đọc tên món an toàn (name || imageName || imageKey)
     const staff = (ord?.staff || '').toUpperCase();
     const dishNames = (ord?.items || []).map((i) =>
@@ -1214,6 +1681,43 @@ const foodsForDisplay = normQ
     }
   };
 
+const saveOffMenuPrice = useCallback(async (orderId, itemIndex) => {
+  const key = `${orderId}:${itemIndex}`;
+  const raw = offMenuPriceDrafts[key];
+
+  if (raw === '' || raw == null) {
+    return alert('Nhập giá');
+  }
+
+  const price = Number(raw);
+  if (!Number.isFinite(price) || price < 0) {
+    return alert('Giá phải là số >= 0');
+  }
+
+  try {
+    const res = await axios.post(apiUrl(`/api/orders/${orderId}/item-price`), {
+      itemIndex,
+      price,
+    });
+
+    if (res?.data?.order) {
+      setOrders((prev) =>
+        prev.map((o) => (String(o.id) === String(orderId) ? { ...o, ...res.data.order } : o))
+      );
+    }
+
+    setOffMenuPriceDrafts((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+
+    setApiError(null);
+  } catch (e) {
+    alert('Lưu giá thất bại: ' + (e?.response?.data?.error || e?.message || ''));
+  }
+}, [offMenuPriceDrafts]);
+
   // ===== Login screen =====
   if (!isLoggedIn) {
     return (
@@ -1252,13 +1756,50 @@ const foodsForDisplay = normQ
       {/* Sidebar */}
       <div style={{ background: '#111', color: '#fff', padding: 16, overflowY: 'auto', overflowX: 'hidden', width: 260, minWidth: 260 }}>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <h3 style={{ margin: 0 }}>{isAdmin ? 'Admin' : (isKitchen ? 'Kitchen' : 'User')}</h3>
-            <button onClick={handleLogout}
-              style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 12 }}>
-              Sign out
-            </button>
-          </div>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+  <h3 style={{ margin: 0 }}>
+    {isAdmin ? 'Admin' : (isKitchen ? 'Kitchen' : 'User')}
+  </h3>
+
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    {isAdmin && (
+      <button
+        onClick={() => {
+          setTab('foods');
+          setShowManage(true);
+        }}
+        style={{
+          background: '#2563eb',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 6,
+          padding: '6px 10px',
+          cursor: 'pointer',
+          fontSize: 12,
+          fontWeight: 700,
+        }}
+        title="Quản lý hàng hóa, khách hàng, nhân viên, báo cáo"
+      >
+        Quản lý
+      </button>
+    )}
+
+    <button
+      onClick={handleLogout}
+      style={{
+        background: '#ef4444',
+        color: '#fff',
+        border: 'none',
+        borderRadius: 6,
+        padding: '6px 10px',
+        cursor: 'pointer',
+        fontSize: 12,
+      }}
+    >
+      Sign out
+    </button>
+  </div>
+</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
             <button
               onClick={() => setTab('foods')}
@@ -1272,6 +1813,20 @@ const foodsForDisplay = normQ
             >
               Orders
             </button>
+            <button
+  onClick={() => setTab('insights')}
+  style={{
+    background: tab === 'insights' ? '#10b981' : '#374151',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    padding: '6px 10px',
+    cursor: 'pointer',
+    fontSize: 12
+  }}
+>
+  Insights
+</button>
             <button
               onClick={async () => { setShowHistory(true); await fetchStatusHistory(); }}
               style={{ background: '#374151', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 12 }}
@@ -1329,7 +1884,7 @@ const foodsForDisplay = normQ
               {SOLD_OUT_MENU}
             </div>
           </>
-        ) : (
+        ) : tab === 'orders' ? (
           // Orders sidebar
           <div style={{ display: 'grid', gap: 8 }}>
             <div style={{ fontWeight: 700, marginBottom: 6 }}>Order filters</div>
@@ -1436,7 +1991,15 @@ const foodsForDisplay = normQ
               </button>
             </div>
           </div>
-        )}
+          ) : (
+            <div style={{ display: 'grid', gap: 8 }}>
+    <div style={{ fontWeight: 700, marginBottom: 6 }}>Customer Insights</div>
+    <div style={{ fontSize: 12, color: '#d1d5db', lineHeight: 1.5 }}>
+      Xem sở thích khách hàng, món order nhiều, ghi chú món và gợi ý món theo lịch sử order.
+    </div>
+  </div>
+)}
+      
       </div>
 
       {/* Main */}
@@ -1488,23 +2051,7 @@ const foodsForDisplay = normQ
         }}
       />
 
-      {isAdmin && (
-        <button
-          onClick={() => setShowManage(true)}
-          style={{
-            marginLeft: 8,
-            padding: '6px 8px',
-            border: '1px solid #e5e7eb',
-            borderRadius: 6,
-            background: '#fff',
-            fontSize: 14,
-            cursor: 'pointer',
-          }}
-          title="Quản lý hàng hóa"
-        >
-          Quản lý
-        </button>
-      )}
+
     </div>
 
     {/* Phần dưới vẫn giữ nguyên: modal quản lý, level selector, grid món */}
@@ -1708,7 +2255,7 @@ const foodsForDisplay = normQ
             )}
           </div>
         </div>
-      ) : (
+      ) : tab === 'orders' ? (
         // ====== ORDERS MAIN ======
         <div style={{ padding: 16, background: '#fff8dc', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 420px', gap: 12 }}>
           {/* Left: table tiles */}
@@ -1878,17 +2425,16 @@ const foodsForDisplay = normQ
     alignItems: 'center',
   }}
 >
-  {o.items.map((it, idx) => {
-    // Lấy tên ảnh chuẩn
-    const imgName = getImageName(it.imageName || it.imageKey || '');
-    const url = imageUrlByName(imgName);
-
-    // Lấy mã món từ item / map products
-    const code = resolveItemCode(it); // <-- dùng helper
-
-    // Tên món hiển thị
-    const label = humanizeName(it.name || imgName);
-    const displayName = code ? `${code} - ${label}` : label;
+{o.items.map((it, idx) => {
+  const isOffMenu = Boolean(it?.isOffMenu);
+  const imgName = isOffMenu ? '' : getImageName(it.imageName || it.imageKey || '');
+  const url = isOffMenu ? null : imageUrlByName(imgName);
+  const code = isOffMenu ? '' : resolveItemCode(it);
+  const label = isOffMenu
+    ? String(it.name || '(Off menu)').trim()
+    : humanizeName(it.name || imgName);
+  const displayName = isOffMenu ? label : (code ? `${code} - ${label}` : label);
+  const draftKey = `${o.id}:${idx}`;
 
     return (
       <React.Fragment key={idx}>
@@ -1909,10 +2455,70 @@ const foodsForDisplay = normQ
             <div style={{ width: 38 }} />
           )}
 
-          <div style={{ fontSize: 12 }}>
-            {displayName}
-            {it.note ? ` – ${it.note}` : ''}
-          </div>
+<div style={{ fontSize: 12 }}>
+{isOffMenu ? (
+  <div>
+    <div>
+      <span style={{ fontWeight: 700, color: '#7c3aed', marginRight: 6 }}>
+        OFF MENU
+      </span>
+      <span style={{ fontWeight: 600 }}>
+        {String(it.name || '(Off menu)').trim()}
+      </span>
+      {it.note ? ` – ${it.note}` : ''}
+    </div>
+
+    <div style={{ marginTop: 4, fontSize: 11, color: '#6b7280' }}>
+      Giá hiện tại: <b>{Number(it.price || 0).toLocaleString('vi-VN')}</b>
+    </div>
+
+    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <input
+        type="number"
+        inputMode="numeric"
+        min="0"
+        value={offMenuPriceDrafts[draftKey] ?? (it.price ?? '')}
+        onChange={(e) =>
+          setOffMenuPriceDrafts((prev) => ({
+            ...prev,
+            [draftKey]: e.target.value.replace(/[^\d.]/g, ''),
+          }))
+        }
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') saveOffMenuPrice(o.id, idx);
+        }}
+        placeholder="Nhập giá"
+        style={{
+          width: 100,
+          padding: '4px 6px',
+          border: '1px solid #ddd',
+          borderRadius: 6
+        }}
+      />
+
+      <button
+        onClick={() => saveOffMenuPrice(o.id, idx)}
+        style={{
+          padding: '4px 8px',
+          background: '#7c3aed',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 6,
+          cursor: 'pointer',
+          fontSize: 12
+        }}
+      >
+        Save
+      </button>
+    </div>
+  </div>
+) : (
+  <>
+    {displayName}
+    {it.note ? ` – ${it.note}` : ''}
+  </>
+)}
+</div>
         </div>
 
         <div style={{ fontWeight: 700 }}>x{it.qty}</div>
@@ -1976,6 +2582,8 @@ const foodsForDisplay = normQ
             )}
           </div>
         </div>
+        ) : (
+  <CustomerInsightsPanel apiUrl={apiUrl} resolveImg={resolveImg} />
       )}
 
       {/* ===== Status History Modal ===== */}
@@ -2049,6 +2657,14 @@ const foodsForDisplay = normQ
           </div>
         </div>
       )}
+      {isLoggedIn && (
+        <AIChatBox
+          mode={isAdmin ? 'admin' : 'user'}
+          apiUrl={apiUrl}
+          token={auth?.token || ''}
+        />
+      )}
+
       {reloadPending && (
   <div style={{
     position:'fixed', right:16, bottom:16, background:'#111', color:'#fff',

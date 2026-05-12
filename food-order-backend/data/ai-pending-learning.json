@@ -1,0 +1,17 @@
+[
+  {
+    "id": "1777301873345-67c660fc1443f",
+    "createdAt": "2026-04-27T14:57:53.345Z",
+    "updatedAt": "2026-04-27T14:57:53.345Z",
+    "mode": "user",
+    "by": "user",
+    "question": "1 có thích món KIMBAP ko?",
+    "oldAnswer": "Tech Vegas (1) đã từng order món liên quan \"thich kimbap thich kimbap\".\nTổng cộng: 5 lần, 8 phần.\n1. KIMBAP [S01] — 5 lần, 8 phần\nLần gần nhất: 24/11/2025 00:19 — KIMBAP [S01].\nGhi chú từng gặp: không cay (1 lần), 123 (1 lần).\nKết luận: có thể gợi ý lại món này nếu món còn hàng và phù hợp ghi chú của khách.",
+    "correction": "1 chắc chắn thích món KIMBAP",
+    "type": "unsafe_or_data_claim",
+    "phrase": "1 có thích món KIMBAP ko?",
+    "meaning": "1 chắc chắn thích món KIMBAP",
+    "status": "pending",
+    "reason": "Nội dung này có thể làm chatbot học sai dữ liệu thật, cần admin kiểm tra."
+  }
+]

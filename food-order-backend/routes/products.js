@@ -900,5 +900,223 @@ router.delete('/menu-types/:type', (req, res) => {
 });
 
 
+// ===== SYNC IMAGE FILENAME FROM PRODUCT NAME =====
+// POST /api/products/sync-image-names-from-product-names
+// Đổi tên file ảnh theo Tên hàng trong products.json, đồng thời cập nhật products.json + foods.json.
+function safeFileBaseFromProductName(name) {
+  return String(name || '')
+    .trim()
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, ' ')
+    .replace(/[._\-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase()
+    .slice(0, 120);
+}
+
+function extFromImageValue(value) {
+  const base = path.basename(String(value || '').split('?')[0]);
+  const ext = path.extname(base || '').toLowerCase();
+  return /^\.(jpg|jpeg|png|webp)$/i.test(ext) ? ext : '.jpg';
+}
+
+function replaceImageUrlFileName(url, newFileName) {
+  const s = String(url || '');
+  if (!s) return s;
+  const qIndex = s.indexOf('?');
+  const main = qIndex >= 0 ? s.slice(0, qIndex) : s;
+  const query = qIndex >= 0 ? s.slice(qIndex) : '';
+  const parts = main.split('/');
+  if (!parts.length) return s;
+  parts[parts.length - 1] = newFileName;
+  return parts.join('/') + query;
+}
+
+function scanImageFilesByBase() {
+  const map = new Map();
+  const allNames = new Set();
+  const stack = [IMAGES_DIR];
+
+  while (stack.length) {
+    const dir = stack.pop();
+    if (!dir || !fs.existsSync(dir)) continue;
+    let ents = [];
+    try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch { continue; }
+
+    for (const ent of ents) {
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) {
+        stack.push(full);
+      } else if (ent.isFile() && /\.(jpg|jpeg|png|webp)$/i.test(ent.name)) {
+        const key = ent.name.toLowerCase();
+        allNames.add(key);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(full);
+      }
+    }
+  }
+
+  return { map, allNames };
+}
+
+function renameImageFilesEverywhere(oldLower, newFileName) {
+  const { map } = scanImageFilesByBase();
+  const files = map.get(String(oldLower || '').toLowerCase()) || [];
+  const renamed = [];
+
+  for (const oldAbs of files) {
+    const dir = path.dirname(oldAbs);
+    const finalAbs = path.join(dir, newFileName);
+
+    if (oldAbs.toLowerCase() === finalAbs.toLowerCase()) {
+      renamed.push({ from: oldAbs, to: finalAbs, skipped: true });
+      continue;
+    }
+
+    try {
+      const tmpAbs = path.join(
+        dir,
+        `.__rename_tmp_${Date.now()}_${Math.random().toString(36).slice(2)}_${path.basename(oldAbs)}`,
+      );
+
+      fs.renameSync(oldAbs, tmpAbs);
+
+      if (fs.existsSync(finalAbs)) {
+        const parsed = path.parse(newFileName);
+        let n = 2;
+        let uniqueAbs = path.join(dir, `${parsed.name} ${n}${parsed.ext}`);
+        while (fs.existsSync(uniqueAbs)) {
+          n += 1;
+          uniqueAbs = path.join(dir, `${parsed.name} ${n}${parsed.ext}`);
+        }
+        fs.renameSync(tmpAbs, uniqueAbs);
+        renamed.push({ from: oldAbs, to: uniqueAbs, conflict: true });
+      } else {
+        fs.renameSync(tmpAbs, finalAbs);
+        renamed.push({ from: oldAbs, to: finalAbs });
+      }
+    } catch (e) {
+      renamed.push({ from: oldAbs, to: finalAbs, error: e?.message || String(e) });
+    }
+  }
+
+  return renamed;
+}
+
+router.post('/sync-image-names-from-product-names', (req, res) => {
+  try {
+    const dryRun = req.body?.dryRun === true;
+    const products = readJson(PRODUCTS_FILE, []);
+    const foods = readFoods();
+
+    const { allNames } = scanImageFilesByBase();
+
+    const groups = new Map();
+    for (const p of products) {
+      const oldName = path.basename(String(p.imageName || basenameLower(p.imageUrl) || '').trim());
+      if (!oldName) continue;
+      const oldLower = oldName.toLowerCase();
+      if (!groups.has(oldLower)) groups.set(oldLower, { oldName, products: [] });
+      groups.get(oldLower).products.push(p);
+    }
+
+    const oldSet = new Set(groups.keys());
+    const usedTargets = new Set(Array.from(allNames).filter(name => !oldSet.has(name)));
+
+    const renameMap = new Map();
+    const preview = [];
+    let skipped = 0;
+
+    for (const [oldLower, group] of groups.entries()) {
+      const ref = group.products.find(p => String(p.name || '').trim()) || group.products[0];
+      const base = safeFileBaseFromProductName(ref?.name || '');
+      if (!base) {
+        skipped += 1;
+        continue;
+      }
+
+      const ext = extFromImageValue(ref?.imageName || ref?.imageUrl || group.oldName);
+      let target = `${base}${ext}`;
+      let targetLower = target.toLowerCase();
+
+      if (targetLower !== oldLower && usedTargets.has(targetLower)) {
+        const code = String(ref?.productCode || ref?.code || '').trim().toUpperCase();
+        if (code) {
+          target = `${base} - ${code}${ext}`;
+          targetLower = target.toLowerCase();
+        }
+      }
+
+      let i = 2;
+      while (targetLower !== oldLower && usedTargets.has(targetLower)) {
+        target = `${base} ${i}${ext}`;
+        targetLower = target.toLowerCase();
+        i += 1;
+      }
+
+      usedTargets.add(targetLower);
+
+      if (targetLower === oldLower) {
+        skipped += 1;
+        continue;
+      }
+
+      renameMap.set(oldLower, target);
+      preview.push({ from: group.oldName, to: target, productName: ref?.name || '' });
+    }
+
+    if (dryRun) {
+      return res.json({ ok: true, dryRun: true, willRename: preview.length, skipped, rows: preview });
+    }
+
+    const fileChanges = [];
+    for (const [oldLower, newName] of renameMap.entries()) {
+      fileChanges.push(...renameImageFilesEverywhere(oldLower, newName));
+    }
+
+    let productsChanged = 0;
+    for (const p of products) {
+      const oldLower = path.basename(String(p.imageName || basenameLower(p.imageUrl) || '')).toLowerCase();
+      const newName = renameMap.get(oldLower);
+      if (!newName) continue;
+
+      const oldImageName = p.imageName || basenameLower(p.imageUrl) || '';
+      p.imageName = newName;
+      if (p.imageUrl) p.imageUrl = replaceImageUrlFileName(p.imageUrl, newName);
+
+      if (!p.id || String(p.id).toLowerCase() === String(oldImageName).toLowerCase()) {
+        p.id = newName;
+      }
+
+      p.updatedAt = Date.now();
+      productsChanged += 1;
+    }
+
+    let foodsChanged = 0;
+    for (const f of foods) {
+      const oldLower = basenameLower(f.imageUrl);
+      const newName = renameMap.get(oldLower);
+      if (!newName) continue;
+      f.imageUrl = replaceImageUrlFileName(f.imageUrl, newName);
+      foodsChanged += 1;
+    }
+
+    writeJson(PRODUCTS_FILE, products);
+    writeFoods(foods);
+
+    const io = req.app?.locals?.io || req.app?.get?.('io');
+    if (io) {
+      io.emit('foodRenamed', { bulk: true, count: renameMap.size });
+      io.emit('productsUpdated', { count: productsChanged });
+    }
+    bumpVersion(req);
+
+    res.json({ ok: true, renamedImages: renameMap.size, productsChanged, foodsChanged, skipped, rows: preview, fileChanges });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'Sync image names failed' });
+  }
+});
+
+
 
 module.exports = router;
