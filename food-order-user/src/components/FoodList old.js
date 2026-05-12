@@ -771,33 +771,8 @@ const orderDraftItems = useMemo(() => {
 
   }, [carts]);
 
-// Member/Name lookup
+// Member lookup
 const lastMemberLookupRef = useRef({ card: '', at: 0 });
-const memberSearchTimerRef = useRef(null);
-const [memberSearchText, setMemberSearchText] = useState('');
-const [memberSuggestions, setMemberSuggestions] = useState([]);
-const [memberSearchLoading, setMemberSearchLoading] = useState(false);
-const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
-
-const selectMemberSuggestion = useCallback((member) => {
-  const code = String(member?.code || member?.customerCode || '').replace(/\s+/g, '').trim();
-  if (!code) return;
-
-  const name = String(member?.name || member?.customerName || '').trim();
-  const lv = String(member?.level || member?.memberLevel || member?.tier || '').trim();
-
-  setOrderForm(f => ({
-    ...f,
-    memberCard: code,
-    customerCode: code,
-    customerName: name || 'Chưa có thông tin',
-    level: lv || 'Chưa có thông tin',
-  }));
-
-  setMemberSearchText(name ? `${code} - ${name}` : code);
-  setMemberSuggestions([]);
-  setMemberDropdownOpen(false);
-}, []);
 
 const lookupMember = useCallback(async (memberCard, opts = {}) => {
   const card = String(memberCard || '').replace(/\s+/g, '').trim();
@@ -847,30 +822,8 @@ useEffect(() => {
   const card = String(orderForm.memberCard || '').replace(/\s+/g, '').trim();
 
   if (!card) {
-    return;
-  }
-
-  // Chỉ lookup API chi tiết khi đã có mã số member.
-  if (!/^\d+$/.test(card)) {
-    return;
-  }
-
-  const t = setTimeout(() => lookupMember(card), 800);
-  return () => clearTimeout(t);
-}, [orderForm.memberCard, lookupMember]);
-
-useEffect(() => {
-  const q = String(memberSearchText || '').trim();
-
-  clearTimeout(memberSearchTimerRef.current);
-
-  if (!q) {
-    setMemberSuggestions([]);
-    setMemberSearchLoading(false);
-    setMemberDropdownOpen(false);
     setOrderForm(f => ({
       ...f,
-      memberCard: '',
       customerCode: '',
       customerName: '',
       level: '',
@@ -878,35 +831,20 @@ useEffect(() => {
     return;
   }
 
-  const selectedCode = String(orderForm.memberCard || '').replace(/\s+/g, '').trim();
-  const selectedPrefix = selectedCode ? `${selectedCode} -` : '';
-  if (selectedCode && (q.replace(/\s+/g, '') === selectedCode || q.startsWith(selectedPrefix))) {
-    setMemberSuggestions([]);
-    setMemberSearchLoading(false);
-    setMemberDropdownOpen(false);
+  // Không gọi API với mã dạng chữ như NMB/TV
+  if (!/^\d+$/.test(card)) {
+    setOrderForm(f => ({
+      ...f,
+      customerCode: card,
+      customerName: 'Chưa có thông tin',
+      level: 'Chưa có thông tin',
+    }));
     return;
   }
 
-  memberSearchTimerRef.current = setTimeout(async () => {
-    try {
-      setMemberSearchLoading(true);
-      const res = await axios.get(apiUrl('/api/member-search'), {
-        params: { q, limit: 10 },
-        timeout: 6000,
-      });
-      const items = Array.isArray(res?.data?.items) ? res.data.items : [];
-      setMemberSuggestions(items);
-      setMemberDropdownOpen(true);
-    } catch {
-      setMemberSuggestions([]);
-      setMemberDropdownOpen(false);
-    } finally {
-      setMemberSearchLoading(false);
-    }
-  }, 250);
-
-  return () => clearTimeout(memberSearchTimerRef.current);
-}, [memberSearchText, orderForm.memberCard]);
+  const t = setTimeout(() => lookupMember(card), 800);
+  return () => clearTimeout(t);
+}, [orderForm.memberCard, lookupMember]);
 
   // Submit order
 const placeOrder = async () => {
@@ -924,10 +862,10 @@ const placeOrder = async () => {
     return;
   }
 
-  const memberCardVal = String(orderForm.memberCard || orderForm.customerCode || '').replace(/\s+/g, '');
+  const memberCardVal = String(orderForm.memberCard || '').replace(/\s+/g, '');
 
   if (!memberCardVal) {
-    setToast('Nhập Member/Name và chọn khách');
+    setToast('Nhập Member');
     return;
   }
 const items = Object.entries(currentCart)
@@ -1001,9 +939,6 @@ if (res?.data?.ok) {
     level: '',
     note: ''
   });
-  setMemberSearchText('');
-  setMemberSuggestions([]);
-  setMemberDropdownOpen(false);
 
 orderRequestIdRef.current = null;
 setShowOrderForm(false);
@@ -1961,82 +1896,19 @@ const label = offMenu
           )}
         </div>
 
-        <div style={{ position: 'relative' }}>
-          <label>Member/Name *</label>
+        <div>
+          <label>Member *</label>
           <input
-            value={memberSearchText}
-            onFocus={() => {
-              if (memberSuggestions.length > 0) setMemberDropdownOpen(true);
-            }}
-            onBlur={() => {
-              setTimeout(() => setMemberDropdownOpen(false), 160);
-            }}
-            onChange={e => {
-              const raw = e.target.value;
-              const compact = raw.replace(/\s+/g, '').trim();
-
-              setMemberSearchText(raw);
-              setMemberDropdownOpen(true);
-
-              setOrderForm(f => ({
-                ...f,
-                memberCard: /^\d+$/.test(compact) ? compact : '',
-                customerCode: /^\d+$/.test(compact) ? compact : '',
-                customerName: '',
-                level: '',
-              }));
-            }}
-            placeholder="Nhập mã member hoặc tên khách"
+            value={orderForm.memberCard}
+            onChange={e =>
+  setOrderForm(f => ({
+    ...f,
+    memberCard: e.target.value.replace(/\s+/g, ''),
+  }))
+}
+            placeholder="Nhập mã thẻ / số thẻ"
             style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 6 }}
           />
-
-          {memberDropdownOpen && (memberSearchLoading || memberSuggestions.length > 0) && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                zIndex: 10002,
-                marginTop: 4,
-                maxHeight: 260,
-                overflowY: 'auto',
-                background: '#fff',
-                border: '1px solid #ddd',
-                borderRadius: 8,
-                boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-              }}
-            >
-              {memberSearchLoading && (
-                <div style={{ padding: 10, fontSize: 12, color: '#6b7280' }}>
-                  Đang tìm khách...
-                </div>
-              )}
-
-              {!memberSearchLoading && memberSuggestions.map((m) => (
-                <div
-                  key={m.code}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    selectMemberSuggestion(m);
-                  }}
-                  style={{
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #f3f4f6',
-                  }}
-                >
-                  <div style={{ fontWeight: 700, color: '#111827' }}>
-                    {m.code} - {m.name || 'Chưa có tên'}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#6b7280' }}>
-                    Level: {m.level || '---'} • Orders: {m.ordersCount || 0}
-                    {m.lastOrderAt ? ` • Gần nhất: ${new Date(m.lastOrderAt).toLocaleDateString()}` : ''}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         <div>

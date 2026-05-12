@@ -547,9 +547,6 @@ function saveOrders() {
   const tmp = ORDERS_JSON + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(orders, null, 2), 'utf-8');
   fs.renameSync(tmp, ORDERS_JSON);
-
-  // Xóa cache search khách vì orders đã thay đổi
-  clearMemberSearchCache();
 }
 // ====== AUTO DONE theo ngày kinh doanh 06:00 VN ======
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -636,7 +633,6 @@ function saveMembers() {
     const tmp = MEMBERS_JSON + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(members, null, 2), 'utf8');
     fs.renameSync(tmp, MEMBERS_JSON);
-    clearMemberSearchCache();
   } catch (err) {
     console.error('saveMembers error:', err);
     try {
@@ -656,8 +652,6 @@ const CUSTOMER_API_URL =
 // Cache tránh gọi API lặp lại quá nhiều lần cho cùng 1 mã
 const CUSTOMER_API_CACHE_MS = Number(process.env.CUSTOMER_API_CACHE_MS || 5 * 60 * 1000); // 5 phút
 const CUSTOMER_MEMBER_TTL_MS = Number(process.env.CUSTOMER_MEMBER_TTL_MS || 6 * 60 * 60 * 1000); // 6 giờ
-// Cache danh sách search khách để không phải quét lại orders + members mỗi lần gõ tên
-const MEMBER_SEARCH_CACHE_MS = Number(process.env.MEMBER_SEARCH_CACHE_MS || 30 * 1000); // 30 giây
 
 const customerApiCache = new Map();     // code -> { at, data }
 const customerApiInflight = new Map();  // code -> Promise
@@ -675,140 +669,6 @@ function cleanMemberId(v) {
   return String(v || '').replace(/\s+/g, '').trim();
 }
 
-function normalizeMemberSearchText(v) {
-  return String(v || '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase()
-    .replace(/[_\-.\/]+/g, ' ')
-    .replace(/[^a-z0-9\s]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function buildMemberOrderStats() {
-  const stats = new Map();
-
-  for (const o of orders || []) {
-    if (!o || o.status === 'CANCELLED') continue;
-
-    const code = cleanMemberId(o.memberCard || o.customer?.code || '');
-    if (!code) continue;
-
-    const cur = stats.get(code) || {
-      orderCount: 0,
-      totalQty: 0,
-      lastOrderAt: null,
-      name: '',
-      level: '',
-    };
-
-    cur.orderCount += 1;
-    cur.totalQty += (o.items || []).reduce(
-      (sum, it) => sum + Math.max(1, Number(it?.qty || it?.quantity || 1)),
-      0
-    );
-
-    const orderAt = o.createdAt || o.updatedAt || '';
-    if (orderAt && (!cur.lastOrderAt || new Date(orderAt) > new Date(cur.lastOrderAt))) {
-      cur.lastOrderAt = orderAt;
-    }
-
-    if (!cur.name) cur.name = String(o.customer?.name || o.customerName || '').trim();
-    if (!cur.level) cur.level = String(o.customer?.level || '').trim();
-
-    stats.set(code, cur);
-  }
-
-  return stats;
-}
-let memberSearchCache = {
-  at: 0,
-  rows: null,
-  ordersLen: 0,
-  membersLen: 0,
-};
-
-function clearMemberSearchCache() {
-  memberSearchCache = { at: 0, rows: null, ordersLen: 0, membersLen: 0 };
-}
-
-function getMemberSearchBaseRows() {
-  const now = Date.now();
-  const ordersLen = Array.isArray(orders) ? orders.length : 0;
-  const membersLen = Object.keys(members || {}).length;
-
-  if (
-    memberSearchCache.rows &&
-    now - memberSearchCache.at < MEMBER_SEARCH_CACHE_MS &&
-    memberSearchCache.ordersLen === ordersLen &&
-    memberSearchCache.membersLen === membersLen
-  ) {
-    return memberSearchCache.rows;
-  }
-
-  const stats = buildMemberOrderStats();
-  const rowsByCode = new Map();
-
-  const upsertRow = (codeInput, data = {}) => {
-    const code = cleanMemberId(codeInput);
-    if (!code) return;
-
-    const prev = rowsByCode.get(code) || {};
-    const st = stats.get(code) || {};
-    const m = members[code] || {};
-
-    const name = String(
-      data.name || prev.name || m.name || m.customerName || st.name || ''
-    ).trim();
-
-    const level = String(
-      data.level || prev.level || m.level || m.memberLevel || m.tier || st.level || ''
-    ).trim();
-
-    rowsByCode.set(code, {
-      id: code,
-      code,
-      name,
-      level,
-      ordersCount: Number(st.orderCount ?? m.ordersCount ?? prev.ordersCount ?? 0) || 0,
-      totalQty: Number(st.totalQty ?? prev.totalQty ?? 0) || 0,
-      lastOrderAt: st.lastOrderAt || m.lastSeenAt || prev.lastOrderAt || null,
-    });
-  };
-
-  for (const [code, m] of Object.entries(members || {})) {
-    upsertRow(code, {
-      name: m?.name || m?.customerName || '',
-      level: m?.level || m?.memberLevel || m?.tier || '',
-    });
-  }
-
-  for (const o of orders || []) {
-    if (!o || o.status === 'CANCELLED') continue;
-
-    const code = cleanMemberId(o.memberCard || o.customer?.code || '');
-    if (!code) continue;
-
-    upsertRow(code, {
-      name: o.customer?.name || o.customerName || '',
-      level: o.customer?.level || '',
-    });
-  }
-
-  const rows = Array.from(rowsByCode.values());
-
-  memberSearchCache = {
-    at: now,
-    rows,
-    ordersLen,
-    membersLen,
-  };
-
-  return rows;
-}
 function postJsonExternal(urlString, payload, timeoutMs = 3500) {
   return new Promise((resolve, reject) => {
     const u = new URL(urlString);
@@ -1317,53 +1177,6 @@ app.get('/api/foods', (_req, res) => {
 
 
   res.json(enriched);
-});
-
-// Tìm khách theo mã member hoặc tên, sắp xếp theo số lần order nhiều nhất
-app.get('/api/member-search', (req, res) => {
-  try {
-    const rawQ = String(req.query.q || req.query.search || '').trim();
-    const limit = Math.max(1, Math.min(50, Number(req.query.limit || 10)));
-
-    if (!rawQ) {
-      return res.json({ items: [], total: 0, q: rawQ });
-    }
-
-    const qCompact = cleanMemberId(rawQ).toLowerCase();
-    const qNorm = normalizeMemberSearchText(rawQ);
-    const qTokens = qNorm.split(' ').filter(Boolean);
-
-    // Dùng cache base rows để tránh mỗi lần gõ lại quét toàn bộ orders + members
-    const allRows = getMemberSearchBaseRows();
-
-    const filtered = allRows.filter((r) => {
-      const code = String(r.code || '').toLowerCase();
-      const nameNorm = normalizeMemberSearchText(r.name || '');
-      const levelNorm = normalizeMemberSearchText(r.level || '');
-
-      const matchCode = qCompact && code.includes(qCompact);
-      const matchName = qTokens.length > 0 && qTokens.every((t) => nameNorm.includes(t));
-      const matchLevel = qTokens.length > 0 && qTokens.every((t) => levelNorm.includes(t));
-
-      return matchCode || matchName || matchLevel;
-    });
-
-    filtered.sort((a, b) => {
-      if (b.ordersCount !== a.ordersCount) return b.ordersCount - a.ordersCount;
-      if (b.totalQty !== a.totalQty) return b.totalQty - a.totalQty;
-      return new Date(b.lastOrderAt || 0) - new Date(a.lastOrderAt || 0);
-    });
-
-    res.json({
-      items: filtered.slice(0, limit),
-      total: filtered.length,
-      q: rawQ,
-      cached: true,
-    });
-  } catch (e) {
-    console.error('GET /api/member-search error:', e);
-    res.status(500).json({ error: 'Cannot search members' });
-  }
 });
 
 // Tra cứu khách: ưu tiên API mới, lỗi thì fallback members.json
@@ -2810,32 +2623,38 @@ const card = cleanCard;
 if (card) {
   const prev = members[card] || {};
   const now = new Date().toISOString();
+  
 
-  const orderHistoryItem = {
-    at: now,
-    type: 'ORDER',
-    orderId: order.id,
-    area,
-    tableNo,
-    items: orderItems,
-    note: note || '',
-  };
-
-  // Chỉ giữ 29 dòng cũ + 1 dòng mới = tối đa 30 history gần nhất
-  const prevHistory = Array.isArray(prev.history) ? prev.history.slice(-29) : [];
-
-  members[card] = {
-    ...prev,
-    code: prev.code || card,
-    customerName: customerSnapshot.name || prev.customerName || prev.name || null,
-    name: customerSnapshot.name || prev.name || prev.customerName || null,
-    level: customerSnapshot.level || prev.level || prev.memberLevel || null,
-    memberLevel: customerSnapshot.level || prev.memberLevel || prev.level || null,
-    lastSeenAt: now,
-    ordersCount: (prev.ordersCount || 0) + 1,
-    history: [...prevHistory, orderHistoryItem],
-    updatedAt: now,
-  };
+members[card] = {
+  ...prev,
+  code: prev.code || card,
+  customerName: customerSnapshot.name || prev.customerName || prev.name || null,
+name: customerSnapshot.name || prev.name || prev.customerName || null,
+level: customerSnapshot.level || prev.level || prev.memberLevel || null,
+memberLevel: customerSnapshot.level || prev.memberLevel || prev.level || null,
+  lastSeenAt: now,
+  ordersCount: (prev.ordersCount || 0) + 1,
+  history: Array.isArray(prev.history)
+    ? [...prev.history, {
+        at: now,
+        type: 'ORDER',
+        orderId: order.id,  // <– thêm orderId
+        area,
+        tableNo,
+            items: orderItems, // mảng có cả note
+            note: note || ''   // note chung của đơn hàng
+      }]
+    : [{
+        at: now,
+        type: 'ORDER',
+        orderId: order.id,
+        area,
+        tableNo,
+            items: orderItems,
+            note: note || ''
+      }],
+  updatedAt: now,
+};
 
   saveMembers();
   io.emit('memberUpdated', { code: card, member: members[card] });
@@ -2853,6 +2672,8 @@ if (card) {
 
 app.get('/api/orders', maybeAuth, (req, res) => {
   try {
+    autoDoneOldOrdersByBusinessDay06();
+
     let list = [...orders];
     const { customerId, status, area, tableNo, includeClosed, from, to } = req.query || {};
 // Thêm đoạn sau:
@@ -3963,7 +3784,7 @@ async function localAiChatHandler(req, res) {
 
     const mode = resolveAiMode(req);
 
-const result = answerLocalFoodQuestion({
+const result = await answerHybridFoodQuestion({
   mode,
   message,
   history: Array.isArray(req.body?.history) ? req.body.history : [],
@@ -4071,9 +3892,10 @@ app.get('/api/local-ai/suggestions', maybeAuth, (req, res) => {
 app.get('/api/local-ai/hybrid-status', maybeAuth, (req, res) => {
   res.json({
     ok: true,
-    hybridEnabled: false,
-    localOnly: true,
-    message: 'Chatbot đang chạy local-only, không gọi AI bên thứ 3.',
+    hybridEnabled: HYBRID_AI_ENABLED,
+    hasLlmUrl: !!LLM_API_URL,
+    model: LLM_MODEL,
+    timeoutMs: HYBRID_AI_TIMEOUT_MS,
     mode: req.user?.role === 'admin' ? 'admin' : 'user',
   });
 });

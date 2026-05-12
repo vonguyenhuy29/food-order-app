@@ -734,12 +734,85 @@ React.useEffect(() => {
     setTimeout(() => URL.revokeObjectURL(url), 2500);
   }
 
+
+  async function syncImageNamesFromProductNames() {
+    try {
+      const previewRes = await axios.post(apiUrl('/api/products/sync-image-names-from-product-names'), {
+        dryRun: true,
+      });
+
+      const willRename = Number(previewRes?.data?.willRename || 0);
+      const sample = Array.isArray(previewRes?.data?.rows)
+        ? previewRes.data.rows.slice(0, 8)
+        : [];
+
+      if (willRename <= 0) {
+        alert('Không có ảnh nào cần cập nhật. Tên ảnh hiện tại đã khớp với Tên hàng.');
+        return;
+      }
+
+      const sampleText = sample
+        .map(x => `${x.from} → ${x.to}`)
+        .join('\n');
+
+      const ok = window.confirm(
+        `Hệ thống sẽ đổi tên ${willRename} ảnh theo cột Tên hàng.\n\n` +
+        `${sampleText}${willRename > sample.length ? '\n...' : ''}\n\n` +
+        'Việc này sẽ cập nhật products.json, foods.json và tên file ảnh trong các thư mục menu/SOURCE. Tiếp tục?'
+      );
+
+      if (!ok) return;
+
+      const res = await axios.post(apiUrl('/api/products/sync-image-names-from-product-names'), {
+        dryRun: false,
+      });
+
+      await Promise.all([loadProducts(), loadFoodsLite()]);
+
+      alert(
+        `Đã cập nhật tên ảnh thành công.\n` +
+        `Ảnh đổi tên: ${res?.data?.renamedImages || 0}\n` +
+        `Hàng hóa cập nhật: ${res?.data?.productsChanged || 0}\n` +
+        `Menu foods cập nhật: ${res?.data?.foodsChanged || 0}`
+      );
+    } catch (e) {
+      alert('Cập nhật tên ảnh thất bại: ' + (e?.response?.data?.error || e?.message || ''));
+    }
+  }
+
 function ReportPanel({ apiUrl,membersMap = {},    ALL_LEVELS = ['P','I','I+','V','One','One+','EC'] }) {
     
   // ====== Time range ======
-  const [preset, setPreset] = React.useState('today');
-  const [fromDate, setFromDate] = React.useState('');
-  const [toDate, setToDate] = React.useState('');
+const REPORT_UI_KEY = 'manage-products-report-ui';
+
+const readReportUi = () => {
+  try {
+    return JSON.parse(localStorage.getItem(REPORT_UI_KEY) || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const reportUi = readReportUi();
+
+const [preset, setPreset] = React.useState(reportUi.preset || 'today');
+const [fromDate, setFromDate] = React.useState(reportUi.fromDate || '');
+const [toDate, setToDate] = React.useState(reportUi.toDate || '');
+const [exchangeRate, setExchangeRate] = React.useState(
+  Number(reportUi.exchangeRate || 27000)
+);
+
+const usd = (x) =>
+  new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(+x || 0);
+
+const toUsd = React.useCallback((vnd) => {
+  const rate = Number(exchangeRate);
+  if (!Number.isFinite(rate) || rate <= 0) return 0;
+  return (Number(vnd) || 0) / rate;
+}, [exchangeRate]);
 
   // ====== Group filter (NHÓM HÀNG) ======
   const [selectedGroups] = React.useState(new Set());
@@ -759,45 +832,141 @@ const getMemberByCode = (map, code) => {
   return map[k] || map[String(k)] || null;                      // Object
 };
 
-  const isoRange = React.useMemo(() => {
-    const toISO = (d, end = false) => {
-      const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
-      return new Date(y, m, day, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0).toISOString();
-    };
-    const startEnd = (s, e) => ({ from: toISO(s), to: toISO(e, true) });
-    const today = new Date();
+const isoRange = React.useMemo(() => {
+  const BUSINESS_HOUR = 6;
+  const DAY_MS = 24 * 60 * 60 * 1000;
 
-    const startOfWeek = (d) => {
-      const c = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      const dow = (c.getDay() + 6) % 7; // Mon=0
-      c.setDate(c.getDate() - dow);
-      return c;
-    };
-    const endOfWeek = (d) => { const s = startOfWeek(d); const e = new Date(s); e.setDate(s.getDate() + 6); return e; };
-    const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
-    const endOfMonth   = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    const startOfYear  = (d) => new Date(d.getFullYear(), 0, 1);
-    const endOfYear    = (d) => new Date(d.getFullYear(), 11, 31);
+  const startAtBusinessHour = (d) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate(), BUSINESS_HOUR, 0, 0, 0);
 
-    switch (preset) {
-      case 'today':       return startEnd(today, today);
-      case 'yesterday':   { const y = new Date(today); y.setDate(y.getDate() - 1); return startEnd(y, y); }
-      case 'last7':       { const s = new Date(today); s.setDate(s.getDate() - 6); return startEnd(s, today); }
-      case 'last30':      { const s = new Date(today); s.setDate(s.getDate() - 29); return startEnd(s, today); }
-      case 'thisWeek':    return startEnd(startOfWeek(today), endOfWeek(today));
-      case 'lastWeek':    { const s = startOfWeek(today); s.setDate(s.getDate() - 7); const e = new Date(s); e.setDate(s.getDate() + 6); return startEnd(s, e); }
-      case 'thisMonth':   return startEnd(startOfMonth(today), endOfMonth(today));
-      case 'lastMonth':   { const s = startOfMonth(today); s.setMonth(s.getMonth() - 1); return startEnd(s, endOfMonth(s)); }
-      case 'thisYear':    return startEnd(startOfYear(today), endOfYear(today));
-      case 'lastYear':    { const s = startOfYear(today); s.setFullYear(s.getFullYear() - 1); return startEnd(s, endOfYear(s)); }
-      case 'custom': {
-        const from = fromDate ? `${fromDate}T06:00:00.000Z` : undefined;
-        const to   = toDate   ? `${toDate}T05:59:59.999Z`   : undefined;
-        return { from, to };
-      }
-      default:            return startEnd(today, today);
+  const endFromStart = (start, days = 1) =>
+    new Date(start.getTime() + days * DAY_MS - 1);
+
+  const shiftForBusinessDay = (d) =>
+    new Date(d.getTime() - BUSINESS_HOUR * 60 * 60 * 1000);
+
+  const parseYmd = (ymd) => {
+    const [y, m, d] = String(ymd || '').split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
+  };
+
+  const getBusinessWeekStart = (d) => {
+    const shifted = shiftForBusinessDay(d);
+    const base = new Date(shifted.getFullYear(), shifted.getMonth(), shifted.getDate());
+    const dow = (base.getDay() + 6) % 7; // Monday = 0
+    base.setDate(base.getDate() - dow);
+    return startAtBusinessHour(base);
+  };
+
+  const getBusinessMonthStart = (d) => {
+    const shifted = shiftForBusinessDay(d);
+    return new Date(shifted.getFullYear(), shifted.getMonth(), 1, BUSINESS_HOUR, 0, 0, 0);
+  };
+
+  const getBusinessYearStart = (d) => {
+    const shifted = shiftForBusinessDay(d);
+    return new Date(shifted.getFullYear(), 0, 1, BUSINESS_HOUR, 0, 0, 0);
+  };
+
+  const now = new Date();
+  const shiftedNow = shiftForBusinessDay(now);
+
+  let from;
+  let to;
+
+  switch (preset) {
+    case 'today': {
+      from = startAtBusinessHour(shiftedNow);
+      to = endFromStart(from, 1);
+      break;
     }
-  }, [preset, fromDate, toDate]);
+    case 'yesterday': {
+      const y = new Date(shiftedNow);
+      y.setDate(y.getDate() - 1);
+      from = startAtBusinessHour(y);
+      to = endFromStart(from, 1);
+      break;
+    }
+    case 'thisWeek': {
+      from = getBusinessWeekStart(now);
+      to = endFromStart(from, 7);
+      break;
+    }
+    case 'lastWeek': {
+      const thisWeekStart = getBusinessWeekStart(now);
+      from = new Date(thisWeekStart.getTime() - 7 * DAY_MS);
+      to = new Date(thisWeekStart.getTime() - 1);
+      break;
+    }
+    case 'thisMonth': {
+      from = getBusinessMonthStart(now);
+      const shifted = shiftForBusinessDay(now);
+      const nextMonthStart = new Date(
+        shifted.getFullYear(),
+        shifted.getMonth() + 1,
+        1,
+        BUSINESS_HOUR, 0, 0, 0
+      );
+      to = new Date(nextMonthStart.getTime() - 1);
+      break;
+    }
+    case 'lastMonth': {
+      const shifted = shiftForBusinessDay(now);
+      from = new Date(
+        shifted.getFullYear(),
+        shifted.getMonth() - 1,
+        1,
+        BUSINESS_HOUR, 0, 0, 0
+      );
+      const thisMonthStart = new Date(
+        shifted.getFullYear(),
+        shifted.getMonth(),
+        1,
+        BUSINESS_HOUR, 0, 0, 0
+      );
+      to = new Date(thisMonthStart.getTime() - 1);
+      break;
+    }
+    case 'thisYear': {
+      from = getBusinessYearStart(now);
+      const shifted = shiftForBusinessDay(now);
+      const nextYearStart = new Date(
+        shifted.getFullYear() + 1,
+        0,
+        1,
+        BUSINESS_HOUR, 0, 0, 0
+      );
+      to = new Date(nextYearStart.getTime() - 1);
+      break;
+    }
+    case 'lastYear': {
+      const shifted = shiftForBusinessDay(now);
+      from = new Date(shifted.getFullYear() - 1, 0, 1, BUSINESS_HOUR, 0, 0, 0);
+      const thisYearStart = new Date(shifted.getFullYear(), 0, 1, BUSINESS_HOUR, 0, 0, 0);
+      to = new Date(thisYearStart.getTime() - 1);
+      break;
+    }
+    case 'custom': {
+      const fromBase = parseYmd(fromDate);
+      const toBase = parseYmd(toDate);
+
+      from = fromBase ? startAtBusinessHour(fromBase) : undefined;
+      to = toBase ? endFromStart(startAtBusinessHour(toBase), 1) : undefined;
+      break;
+    }
+    default: {
+      from = startAtBusinessHour(shiftedNow);
+      to = endFromStart(from, 1);
+      break;
+    }
+  }
+
+  return {
+    from: from ? from.toISOString() : undefined,
+    to: to ? to.toISOString() : undefined,
+  };
+}, [preset, fromDate, toDate]);
 
   // ====== Maps from /api/products ======
   const [nameMap, setNameMap] = React.useState(new Map());   // imageKey -> product.name
@@ -805,16 +974,53 @@ const getMemberByCode = (map, code) => {
   const [codeMap, setCodeMap] = React.useState(new Map());   // imageKey -> productCode
   const [priceMap, setPriceMap] = React.useState(new Map()); // img:/code:/name: -> price
 
-  const keyFrom = (imageUrl, imageName, fallbackName='') => {
-    const pick = imageUrl || imageName || fallbackName || '';
-    return (String(pick).split('/').pop() || '').trim().toLowerCase();
-  };
+const keyFrom = (imageUrl, imageName, fallbackName = '', imageKey = '') => {
+  // Ưu tiên key ảnh để join products/foods đúng, kể cả order cũ chỉ có imageKey.
+  const pick = imageUrl || imageName || imageKey || fallbackName || '';
+  return (String(pick).split('/').pop() || '').trim().toLowerCase();
+};
 
-  const resolveItemName = React.useCallback((item) => {
-    const pick = item?.imageUrl || item?.imageName || item?.name || '';
-    const k = (String(pick).split('/').pop() || '').trim().toLowerCase();
-    return nameMap.get(k) || item?.name || item?.imageName || '(Không rõ tên)';
-  }, [nameMap]);
+const cleanImageNameForReport = (value) => {
+  let s = String(value || '').split('/').pop() || '';
+
+  // Bỏ đuôi file
+  s = s.replace(/\.[A-Za-z0-9]{2,5}(\?.*)?$/i, '');
+
+  // Bỏ timestamp cuối tên file:
+  // strawberry smoothie-1763843415030 -> strawberry smoothie
+  s = s.replace(/[-_\s]+\d{10,17}$/g, '');
+
+  s = s
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return s ? s.toUpperCase() : '';
+};
+
+const resolveItemName = React.useCallback((item) => {
+  // Ưu tiên tên snapshot đã lưu trong order.
+  // Không lấy imageName trước name vì order cũ có imageName dạng:
+  // strawberry smoothie-1763843415030.jpg
+  const directName = String(item?.name || item?.productName || '').trim();
+
+  if (directName) {
+    return directName.toUpperCase();
+  }
+
+  const pick = item?.imageUrl || item?.imageName || item?.imageKey || '';
+  const k = (String(pick).split('/').pop() || '').trim().toLowerCase();
+
+  const mappedName = nameMap.get(k);
+  if (mappedName) {
+    return String(mappedName).toUpperCase();
+  }
+
+  return (
+    cleanImageNameForReport(item?.imageName || item?.imageKey || pick) ||
+    '(Không rõ tên)'
+  );
+}, [nameMap]);
 
 const resolveItemCode = React.useCallback((item) => {
   const pick = item?.imageName || item?.imageKey ||
@@ -989,10 +1195,23 @@ if (name) {
 
   // ====== Report type ======
   // hanghoa_mon | hanghoa_nhom | hanghoa_ban | khachhang_tomtat | khachhang_chitiet
-  const [reportType, setReportType] = React.useState('orders_detail');
+const [reportType, setReportType] = React.useState(
+  reportUi.reportType || 'orders_detail'
+);
   const [loading, setLoading] = React.useState(false);
   const [reportData, setReportData] = React.useState(null);
-
+React.useEffect(() => {
+  localStorage.setItem(
+    REPORT_UI_KEY,
+    JSON.stringify({
+      preset,
+      fromDate,
+      toDate,
+      exchangeRate,
+      reportType,
+    })
+  );
+}, [preset, fromDate, toDate, exchangeRate, reportType]);
   // ====== Core builders ======
   const getLineRevenue = React.useCallback((it) => {
     const qty = Number(it?.qty) || 0;
@@ -1074,7 +1293,7 @@ const lookupCustomerByCode = React.useCallback((o) => {
       for (const o of orders) {
         let hit = false;
         for (const it of (o.items || [])) {
-          const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+          const k = keyFrom(it?.imageUrl, it?.imageName, it?.name, it?.imageKey);
           const g = deriveItemGroup(it, k);
           if (gset.size && !gset.has(g)) continue;
 
@@ -1100,7 +1319,7 @@ const lookupCustomerByCode = React.useCallback((o) => {
       for (const o of orders) {
         let hit = false;
         for (const it of (o.items || [])) {
-          const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+          const k = keyFrom(it?.imageUrl, it?.imageName, it?.name, it?.imageKey);
           const g = deriveItemGroup(it, k);
           if (gset.size && !gset.has(g)) continue;
 
@@ -1126,7 +1345,7 @@ const lookupCustomerByCode = React.useCallback((o) => {
         let hit = false;
         let sumQty = 0, sumRev = 0;
         for (const it of (o.items || [])) {
-          const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+          const k = keyFrom(it?.imageUrl, it?.imageName, it?.name, it?.imageKey);
           const g = deriveItemGroup(it, k);
           if (gset.size && !gset.has(g)) continue;
 
@@ -1147,10 +1366,12 @@ const lookupCustomerByCode = React.useCallback((o) => {
 // === Đơn hàng chi tiết ===
 if (type === 'orders_detail') {
   const norm = (s) => String(s || '').trim().toLowerCase();
-  const out = { totalOrders: 0, totalRevenue: 0, rows: [] };
+  const out = { totalOrders: 0, totalRevenue: 0, totalRevenueUSD: 0, rows: [] };
   const acceptedOrderIds = new Set();
+
   for (const o of orders) {
     let orderSum = 0;
+    const orderId = o?.id || o?.orderId || '';
     const staffId = o?.staff || '';
     const staffName = staffId ? (staffMap[staffId] || '') : '';
     const dateTime = o?.createdAt || '';
@@ -1158,23 +1379,28 @@ if (type === 'orders_detail') {
     const customerInfo = lookupCustomerByCode(o) || {};
     const memberCode = customerInfo.code || '';
     const memberName = customerInfo.name || '';
+
     for (const it of (o.items || [])) {
-      const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+      const k = keyFrom(it?.imageUrl, it?.imageName, it?.name, it?.imageKey);
       const code = resolveItemCode(it);
       const name = resolveItemName(it);
       const group = deriveItemGroup(it, k);
+
       const types = new Set();
       for (const key of foodsIndex.keys()) {
         const parts = String(key).split('|');
         if (parts.length === 2 && parts[1] === k) types.add(parts[0]);
       }
+
       const menuSet = menusOfImage.get(k) || new Set();
       const categoryParts = new Set();
       if (group) categoryParts.add(group);
       types.forEach(t => { if (t) categoryParts.add(t); });
       menuSet.forEach(m => { if (m) categoryParts.add(m); });
       const category = Array.from(categoryParts).join(', ');
+
       const qty = Number(it?.qty || 0);
+
       let price = Number(it?.price || 0);
       if (!price && priceMap) {
         const pImg  = priceMap.get(`img:${k}`);
@@ -1182,21 +1408,22 @@ if (type === 'orders_detail') {
         const pName = priceMap.get(`name:${norm(name)}`);
         price = pImg || pCode || pName || 0;
       }
+
       orderSum += qty * price;
 
-      // Tách dateTime thành ngày và giờ. Giờ chỉ lấy mỗi giờ, phút làm "00" (ví dụ 12:00).
-      let dateStr = '';
-      let timeStr = '';
+      let dateTimeText = '';
       if (dateTime) {
         const dtObj = new Date(dateTime);
-        const day   = String(dtObj.getDate()).padStart(2, '0');
+        const day = String(dtObj.getDate()).padStart(2, '0');
         const month = String(dtObj.getMonth() + 1).padStart(2, '0');
-        const year  = dtObj.getFullYear();
-        dateStr = `${day}/${month}/${year}`;
+        const year = dtObj.getFullYear();
         const hours = String(dtObj.getHours()).padStart(2, '0');
-        timeStr = `${hours}:00`;
+        const minutes = String(dtObj.getMinutes()).padStart(2, '0');
+        dateTimeText = `${day}/${month}/${year} ${hours}:${minutes}`;
       }
+
       out.rows.push({
+        orderId,
         staffId,
         staffName,
         code,
@@ -1206,17 +1433,20 @@ if (type === 'orders_detail') {
         memberName,
         qty,
         price,
-        date: dateStr,
-        time: timeStr,
+        priceUSD: toUsd(price),
+        dateTime: dateTimeText,
         table
       });
     }
+
     if (orderSum) {
       acceptedOrderIds.add(o.id || o._id || JSON.stringify(o));
       out.totalRevenue += orderSum;
     }
   }
+
   out.totalOrders = acceptedOrderIds.size;
+  out.totalRevenueUSD = toUsd(out.totalRevenue);
   return out;
 }
 if (type === 'khachhang_tomtat' || type === 'khachhang_chitiet') {
@@ -1251,7 +1481,7 @@ if (type === 'khachhang_tomtat' || type === 'khachhang_chitiet') {
 
     // Cộng dồn món
     for (const it of (o.items || [])) {
-      const k = keyFrom(it?.imageUrl, it?.imageName, it?.name);
+      const k = keyFrom(it?.imageUrl, it?.imageName, it?.name, it?.imageKey);
       const g = deriveItemGroup(it, k);
 
       // Lọc theo nhóm hàng nếu có
@@ -1301,7 +1531,8 @@ if (type === 'khachhang_tomtat' || type === 'khachhang_chitiet') {
   menusOfImage,
   foodsIndex,
   priceMap,
-  staffMap,     
+  staffMap,
+  toUsd,
 ]);
 
   // ====== Fetch orders & build report ======
@@ -1312,20 +1543,24 @@ const [reportOrders, setReportOrders] = React.useState([]); // đặt ngay dư�
 const fetchReport = React.useCallback(async () => {
   setLoading(true);
   try {
-    const toYmd = (s) => (s ? String(s).slice(0, 10) : '');
-    const r = await axios.get(apiUrl('/api/orders/report'), {
-      params: { from: toYmd(isoRange.from), to: toYmd(isoRange.to) },
+    const r = await axios.get(apiUrl('/api/orders'), {
+      params: {
+        status: 'DONE',
+        from: isoRange.from,
+        to: isoRange.to,
+      },
     });
+
     const orders = Array.isArray(r.data) ? r.data : [];
-    setReportOrders(orders);                    // lưu lại raw orders
-    setReportData(buildReport(orders, reportType)); // build 1 lần khi fetch
+    setReportOrders(orders);
+    setReportData(buildReport(orders, reportType));
   } catch (e) {
     alert('Không tải được báo cáo: ' + (e?.response?.data?.error || e?.message || ''));
     setReportData(null);
   } finally {
     setLoading(false);
   }
-}, [apiUrl, isoRange.from, isoRange.to, reportType]); // ❌ KHÔNG đưa buildReport vào đây
+}, [apiUrl, isoRange.from, isoRange.to, buildReport, reportType]);
 
 // === Guard: tránh bắn request chồng nhau ===
 const reportBusyRef = React.useRef(false);
@@ -1361,20 +1596,18 @@ React.useEffect(() => {
     const rows = [];
     const push = (arr) => rows.push(arr);
 
-    const presetLabel = (() => {
-      if (preset === 'custom') return `${fromDate || '…'} → ${toDate || '…'}`;
-      if (preset === 'today') return 'today';
-      if (preset === 'yesterday') return 'yesterday';
-      if (preset === 'last7') return 'last7';
-      if (preset === 'last30') return 'last30';
-      if (preset === 'thisWeek') return 'thisWeek';
-      if (preset === 'lastWeek') return 'lastWeek';
-      if (preset === 'thisMonth') return 'thisMonth';
-      if (preset === 'lastMonth') return 'lastMonth';
-      if (preset === 'thisYear') return 'thisYear';
-      if (preset === 'lastYear') return 'lastYear';
-      return preset;
-    })();
+const presetLabel = (() => {
+  if (preset === 'custom') return `${fromDate || '…'} → ${toDate || '…'}`;
+if (preset === 'today') return 'Hôm nay';
+if (preset === 'yesterday') return 'Hôm qua';
+if (preset === 'thisWeek') return 'Tuần này';
+if (preset === 'lastWeek') return 'Tuần trước';
+if (preset === 'thisMonth') return 'Tháng này';
+if (preset === 'lastMonth') return 'Tháng trước';
+if (preset === 'thisYear') return 'Năm nay';
+if (preset === 'lastYear') return 'Năm trước';
+  return preset;
+})();
 
     const typeLabel = (() => {
       if (reportType === 'orders_detail') return 'BÁO CÁO ĐƠN HÀNG — CHI TIẾT';
@@ -1423,10 +1656,46 @@ React.useEffect(() => {
         }
       });
 } else if (reportType === 'orders_detail') {
-  push(['Mã nhân viên','Tên nhân viên','Mã món','Tên món','Menu Category','Mã khách hàng','Tên khách hàng','Số lượng','Giá','Ngày','Giờ','Bàn']);
+  push([`Tỷ giá USD: ${Number(exchangeRate || 0).toLocaleString('vi-VN')}`]);
+  push([]);
+
+  push([
+    'Mã order',
+    'Mã nhân viên',
+    'Tên nhân viên',
+    'Mã món',
+    'Tên món',
+    'Menu Category',
+    'Mã khách hàng',
+    'Tên khách hàng',
+    'Số lượng',
+    'Giá',
+    'Giá USD',
+    'Ngày giờ',
+    'Bàn'
+  ]);
+
   (reportData.rows || []).forEach(r =>
-    push([r.staffId, r.staffName, r.code, r.name, r.category, r.memberCode, r.memberName, r.qty, r.price, r.date, r.time, r.table])
+    push([
+      r.orderId,
+      r.staffId,
+      r.staffName,
+      r.code,
+      r.name,
+      r.category,
+      r.memberCode,
+      r.memberName,
+      r.qty,
+      r.price,
+      r.priceUSD,
+      r.dateTime,
+      r.table
+    ])
   );
+
+  push([]);
+  push(['Tổng doanh thu (VND)', reportData.totalRevenue || 0]);
+  push(['Tổng doanh thu (USD)', reportData.totalRevenueUSD || 0]);
 }
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -1447,15 +1716,60 @@ React.useEffect(() => {
   };
 
 
-  const pageStyle = {
-    maxWidth: 920,
-    margin: '0 auto',
-    background: '#fff',
-    border: '1px solid #e5e7eb',
-    borderRadius: 12,
-    boxShadow: '0 10px 36px rgba(0,0,0,0.08)',
-  };
+const pageStyle = {
+  maxWidth: 1500,
+  margin: '0 auto',
+  background: '#fff',
+  border: '1px solid #e5e7eb',
+  borderRadius: 12,
+  boxShadow: '0 10px 36px rgba(0,0,0,0.08)',
+};
+const ordersDetailWrapStyle = {
+  width: '100%',
+  overflowX: 'auto',
+};
 
+const ordersDetailTableStyle = {
+  width: '100%',
+  minWidth: 1480,
+  borderCollapse: 'collapse',
+  tableLayout: 'fixed',
+};
+
+const ordersDetailThStyle = {
+  padding: '10px 8px',
+  background: '#f8fafc',
+  border: '1px solid #d1d5db',
+  textAlign: 'center',
+  whiteSpace: 'nowrap',
+  fontWeight: 700,
+  fontSize: 13,
+};
+
+const ordersDetailTdStyle = {
+  padding: '10px 8px',
+  border: '1px solid #e5e7eb',
+  verticalAlign: 'top',
+  fontSize: 13,
+  lineHeight: 1.35,
+  wordBreak: 'break-word',
+};
+
+const ordersDetailTdNowrapStyle = {
+  ...ordersDetailTdStyle,
+  whiteSpace: 'nowrap',
+  wordBreak: 'normal',
+};
+
+const ordersDetailTdCenterStyle = {
+  ...ordersDetailTdNowrapStyle,
+  textAlign: 'center',
+};
+
+const ordersDetailTdRightStyle = {
+  ...ordersDetailTdNowrapStyle,
+  textAlign: 'right',
+};  
   const handlePrint = () => {
     const container = document.getElementById('report-print-area');
     if (!container) {
@@ -1504,19 +1818,17 @@ React.useEffect(() => {
   </optgroup>
 </select>
 
-        <select value={preset} onChange={e => setPreset(e.target.value)}>
-          <option value="today">Hôm nay</option>
-          <option value="yesterday">Hôm qua</option>
-          <option value="last7">7 ngày qua</option>
-          <option value="last30">30 ngày qua</option>
-          <option value="thisWeek">Tuần này</option>
-          <option value="lastWeek">Tuần trước</option>
-          <option value="thisMonth">Tháng này</option>
-          <option value="lastMonth">Tháng trước</option>
-          <option value="thisYear">Năm nay</option>
-          <option value="lastYear">Năm trước</option>
-          <option value="custom">Tùy chọn…</option>
-        </select>
+<select value={preset} onChange={e => setPreset(e.target.value)}>
+  <option value="today">Hôm nay</option>
+  <option value="yesterday">Hôm qua</option>
+  <option value="thisWeek">Tuần này</option>
+  <option value="lastWeek">Tuần trước</option>
+  <option value="thisMonth">Tháng này</option>
+  <option value="lastMonth">Tháng trước</option>
+  <option value="thisYear">Năm nay</option>
+  <option value="lastYear">Năm trước</option>
+  <option value="custom">Tùy chọn…</option>
+</select>
 
         {preset === 'custom' && (
           <>
@@ -1526,8 +1838,21 @@ React.useEffect(() => {
           </>
         )}
 
-
-<button onClick={fetchReport} disabled={loading}>
+{reportType === 'orders_detail' && (
+  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+    <span>Tỷ giá USD</span>
+    <input
+      type="number"
+      min="1"
+      step="1"
+      value={exchangeRate}
+      onChange={(e) => setExchangeRate(e.target.value)}
+      placeholder="Nhập tỷ giá"
+      style={{ width: 120 }}
+    />
+  </div>
+)}
+<button onClick={safeFetchReport} disabled={loading}>
   {loading ? 'Đang tải…' : 'Xem báo cáo'}
 </button>
 <button onClick={exportReportXlsx} disabled={loading}>Export Excel</button>
@@ -1546,16 +1871,17 @@ React.useEffect(() => {
             {reportType === 'khachhang_tomtat' && 'BÁO CÁO KHÁCH HÀNG — HÀNG BÁN THEO KHÁCH'}
             {reportType === 'khachhang_chitiet' && 'BÁO CÁO KHÁCH HÀNG — CHI TIẾT KHÁCH ORDER'}
           </div>
-          <div style={{ color:'#6b7280', marginTop:4 }}>
-            Phạm vi: {preset !== 'custom'
-              ? (preset === 'today' ? 'Hôm nay' :
-                 preset === 'yesterday' ? 'Hôm qua' :
-                 preset === 'last7' ? '7 ngày qua' :
-                 preset === 'last30' ? '30 ngày qua' : preset)
-              : `${fromDate || '…'} → ${toDate || '…'}`}
-            {' · '}Tổng đơn: <b>{reportData?.totalOrders || 0}</b>
-            {' · '}Tổng doanh thu: <b>{money(reportData?.totalRevenue || 0)}</b>
-          </div>
+<div style={{ display:'flex', gap:16, flexWrap:'wrap', marginTop:8, fontSize:13 }}>
+  <div><b>Tổng đơn:</b> {reportData?.totalOrders || 0}</div>
+  <div><b>Tổng doanh thu (VND):</b> {money(reportData?.totalRevenue || 0)}</div>
+
+  {reportType === 'orders_detail' && (
+    <>
+      <div><b>Tỷ giá USD:</b> {Number(exchangeRate || 0).toLocaleString('vi-VN')}</div>
+      <div><b>Tổng doanh thu (USD):</b> {usd(reportData?.totalRevenueUSD || 0)}</div>
+    </>
+  )}
+</div>
         </div>
 
         <div style={{ padding: 16 }}>
@@ -1708,44 +2034,68 @@ React.useEffect(() => {
 {!loading && reportType === 'orders_detail' && (
   (() => {
     const rows = Array.isArray(reportData?.rows) ? reportData.rows : [];
-    if (!rows || rows.length === 0) return <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div>;
+    if (!rows || rows.length === 0) {
+      return <div style={{ color:'#6b7280' }}>Không có dữ liệu.</div>;
+    }
+
     return (
-      <table border="1" cellPadding="6" style={{ width:'100%', borderCollapse:'collapse' }}>
-        <thead>
-  <tr>
-    <th>Mã nhân viên</th>
-    <th>Tên nhân viên</th>
-    <th>Mã món</th>
-    <th>Tên món</th>
-    <th>Menu Category</th>
-    <th>Mã khách hàng</th>
-    <th>Tên khách hàng</th>
-    <th style={{ textAlign:'right' }}>Số lượng</th>
-    <th style={{ textAlign:'right' }}>Giá</th>
-    <th>Ngày</th>
-    <th>Giờ</th>
-    <th>Bàn</th>
-  </tr>
-</thead>
-<tbody>
-  {rows.map((r, idx) => (
-    <tr key={idx}>
-      <td>{r.staffId}</td>
-      <td>{r.staffName}</td>
-      <td>{r.code}</td>
-      <td>{r.name}</td>
-      <td>{r.category}</td>
-      <td>{r.memberCode}</td>
-      <td>{r.memberName}</td>
-      <td style={{ textAlign:'right' }}>{money(r.qty)}</td>
-      <td style={{ textAlign:'right' }}>{money(r.price)}</td>
-      <td>{r.date}</td>
-      <td>{r.time}</td>
-      <td>{r.table}</td>
-    </tr>
-  ))}
-</tbody>
-      </table>
+      <div style={ordersDetailWrapStyle}>
+        <table style={ordersDetailTableStyle}>
+          <colgroup>
+            <col style={{ width: 80 }} />
+            <col style={{ width: 90 }} />
+            <col style={{ width: 120 }} />
+            <col style={{ width: 80 }} />
+            <col style={{ width: 180 }} />
+            <col style={{ width: 130 }} />
+            <col style={{ width: 90 }} />
+            <col style={{ width: 160 }} />
+            <col style={{ width: 70 }} />
+            <col style={{ width: 95 }} />
+            <col style={{ width: 95 }} />
+            <col style={{ width: 150 }} />
+            <col style={{ width: 110 }} />
+          </colgroup>
+
+          <thead>
+            <tr>
+              <th style={ordersDetailThStyle}>Mã order</th>
+              <th style={ordersDetailThStyle}>Mã nhân viên</th>
+              <th style={ordersDetailThStyle}>Tên nhân viên</th>
+              <th style={ordersDetailThStyle}>Mã món</th>
+              <th style={ordersDetailThStyle}>Tên món</th>
+              <th style={ordersDetailThStyle}>Menu Category</th>
+              <th style={ordersDetailThStyle}>Mã khách hàng</th>
+              <th style={ordersDetailThStyle}>Tên khách hàng</th>
+              <th style={ordersDetailThStyle}>Số lượng</th>
+              <th style={ordersDetailThStyle}>Giá</th>
+              <th style={ordersDetailThStyle}>Giá USD</th>
+              <th style={ordersDetailThStyle}>Ngày giờ</th>
+              <th style={ordersDetailThStyle}>Bàn</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {rows.map((r, idx) => (
+              <tr key={`${r.orderId}-${r.code}-${idx}`}>
+                <td style={ordersDetailTdCenterStyle}>{r.orderId}</td>
+                <td style={ordersDetailTdCenterStyle}>{r.staffId}</td>
+                <td style={ordersDetailTdNowrapStyle}>{r.staffName}</td>
+                <td style={ordersDetailTdCenterStyle}>{r.code}</td>
+                <td style={ordersDetailTdStyle}>{r.name}</td>
+                <td style={ordersDetailTdStyle}>{r.category}</td>
+                <td style={ordersDetailTdCenterStyle}>{r.memberCode}</td>
+                <td style={ordersDetailTdStyle}>{r.memberName}</td>
+                <td style={ordersDetailTdCenterStyle}>{r.qty}</td>
+                <td style={ordersDetailTdRightStyle}>{money(r.price)}</td>
+                <td style={ordersDetailTdRightStyle}>{usd(r.priceUSD)}</td>
+                <td style={ordersDetailTdNowrapStyle}>{r.dateTime}</td>
+                <td style={ordersDetailTdNowrapStyle}>{r.table}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   })()
 )}
@@ -2605,7 +2955,96 @@ out.push(...rows2.map(o => ({
 const PAGE_SIZE = 50;                // số bản ghi mỗi trang (có thể tăng 80/100 nếu máy khỏe)
 const cancelRef = React.useRef(null); // axios cancel cho request hiện tại
 const reloadTimerRef = React.useRef(null); // debounce cho socket customersUpdated
+const [customerApiStatus, setCustomerApiStatus] = React.useState(null);
+const [syncingApi, setSyncingApi] = React.useState(false);
+const [syncCursor, setSyncCursor] = React.useState(0);
 
+const loadCustomerApiStatus = React.useCallback(async () => {
+  try {
+    const r = await axios.get(apiUrl('/api/customer-api/status'), {
+      params: { _ts: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    setCustomerApiStatus(r.data || null);
+  } catch {
+    setCustomerApiStatus({
+      ok: false,
+      lastError: 'Không gọi được /api/customer-api/status',
+    });
+  }
+}, [apiUrl]);
+
+React.useEffect(() => {
+  loadCustomerApiStatus();
+  const t = setInterval(loadCustomerApiStatus, 60 * 1000);
+  return () => clearInterval(t);
+}, [loadCustomerApiStatus]);
+
+async function checkCustomerApiNow() {
+  const id = window.prompt('Nhập mã khách để test API:', '20242');
+  if (!id) return;
+
+  try {
+    const r = await axios.post(apiUrl('/api/customer-api/check'), { id });
+    setCustomerApiStatus(r.data?.apiStatus || null);
+
+    if (r.data?.ok) {
+      alert(
+        `API OK\n` +
+        `Mã: ${r.data.member?.code || ''}\n` +
+        `Tên: ${r.data.member?.name || ''}\n` +
+        `Level: ${r.data.member?.level || ''}\n` +
+        `Nguồn: ${r.data.source || ''}`
+      );
+      await loadCustomers({ q: kSearch, page });
+    } else {
+      alert('API không trả được dữ liệu khách này.');
+    }
+  } catch (e) {
+    alert('Check API lỗi: ' + (e.response?.data?.error || e.message));
+    await loadCustomerApiStatus();
+  }
+}
+
+async function syncCustomersFromApiBatch(force = false) {
+  if (syncingApi) return;
+
+  const msg = force
+    ? 'Sync lại khách hàng từ API? Chỉ chạy 20 khách/lần để tránh làm nặng API.'
+    : 'Cập nhật khách cũ từ API? Hệ thống chỉ chạy 20 khách/lần, không chạy ồ ạt.';
+
+  if (!window.confirm(msg)) return;
+
+  try {
+    setSyncingApi(true);
+
+    const r = await axios.post(apiUrl('/api/customers/sync-from-api'), {
+      cursor: syncCursor,
+      batchSize: 20,
+      delayMs: 250,
+      force,
+    });
+
+    const data = r.data || {};
+    setSyncCursor(data.nextCursor || 0);
+    await loadCustomerApiStatus();
+    await loadCustomers({ q: kSearch, page });
+
+    alert(
+      `Sync xong batch nhỏ.\n` +
+      `Đã xử lý: ${data.requested || 0}\n` +
+      `Cập nhật OK: ${data.updated || 0}\n` +
+      `Có thay đổi tên/level: ${data.changed || 0}\n` +
+      `Lỗi: ${data.failed || 0}\n` +
+      `Tiến độ: ${data.nextCursor || 0}/${data.total || 0}\n` +
+      `${data.done ? 'Đã hết danh sách.' : 'Bấm Sync tiếp để chạy batch tiếp theo.'}`
+    );
+  } catch (e) {
+    alert('Sync API thất bại: ' + (e.response?.data?.error || e.message));
+  } finally {
+    setSyncingApi(false);
+  }
+}
 
 // Lấy danh sách backup từ server
 async function listBackups() {
@@ -2898,6 +3337,57 @@ function normalizeCustomers(items) {
         {/* Toolbar */}
         <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:10 }}>
           <button onClick={()=>setShowAdd(true)} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#111', color:'#fff', padding:'8px 12px', fontSize:12 }}>+ Thêm khách hàng</button>
+          <div style={{
+  display:'flex',
+  alignItems:'center',
+  gap:6,
+  border:'1px solid #e5e7eb',
+  borderRadius:8,
+  padding:'6px 8px',
+  background: customerApiStatus?.ok ? '#ecfdf5' : '#fef2f2',
+  fontSize:12
+}}>
+  <span style={{
+    width:8,
+    height:8,
+    borderRadius:'50%',
+    background: customerApiStatus?.ok ? '#16a34a' : '#ef4444',
+    display:'inline-block'
+  }} />
+  <b>Customer API:</b>
+  <span>{customerApiStatus?.ok ? 'Online' : 'Offline/Fallback'}</span>
+  {customerApiStatus?.lastOkAt && (
+    <span style={{ color:'#6b7280' }}>
+      OK: {new Date(customerApiStatus.lastOkAt).toLocaleTimeString()}
+    </span>
+  )}
+</div>
+
+<button
+  type="button"
+  onClick={checkCustomerApiNow}
+  style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}
+>
+  Check API
+</button>
+
+<button
+  type="button"
+  disabled={syncingApi}
+  onClick={() => syncCustomersFromApiBatch(false)}
+  style={{ border:'1px solid #2563eb', borderRadius:6, background:'#eff6ff', color:'#1d4ed8', padding:'8px 12px', fontSize:12 }}
+>
+  {syncingApi ? 'Đang sync…' : 'Sync khách từ API'}
+</button>
+
+<button
+  type="button"
+  disabled={syncingApi}
+  onClick={() => setSyncCursor(0)}
+  style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}
+>
+  Reset Sync
+</button>
           <button type="button" onClick={exportCsv} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}>Export CSV</button>
           <input ref={importRef} type="file" accept=".csv" hidden onChange={e=>{ if(e.target.files?.[0]) importCsv(e.target.files[0]); e.target.value=''; }} />
           <button type="button" onClick={()=>importRef.current?.click()} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}>Import CSV</button>
@@ -3655,6 +4145,24 @@ function normalizeCustomers(items) {
     }}
   >
     Export Excel
+  </button>
+
+
+  <button
+    type="button"
+    onClick={syncImageNamesFromProductNames}
+    style={{
+      border: '1px solid #2563eb',
+      borderRadius: 6,
+      background: '#eff6ff',
+      color: '#1d4ed8',
+      padding: '8px 12px',
+      fontSize: 12,
+      fontWeight: 700,
+    }}
+    title="Đổi tên file ảnh theo cột Tên hàng"
+  >
+    Đồng bộ tên ảnh
   </button>
 
   <div

@@ -879,7 +879,7 @@
       "V-One"
     ],
     "createdAt": 1760892072344,
-    "updatedAt": 1763844744676,
+    "updatedAt": 1777077450996,
     "itemGroup": "HOTEL"
   },
   {
@@ -1203,7 +1203,7 @@
   {
     "id": "KAGOSHIMA-JAPANESE-WAGYU.jpg",
     "productCode": "H71",
-    "name": "KAGOSHIMA JAPANESE WAGYU",
+    "name": "KAGOSHIMA JAPANESE WAGYU BEEF RIBEYE",
     "menuType": "đồ ăn",
     "group": "VIP MENU",
     "price": 2080000,
@@ -1215,7 +1215,7 @@
       "V-One"
     ],
     "createdAt": 1760892072377,
-    "updatedAt": 1763844744676,
+    "updatedAt": 1775220911505,
     "itemGroup": "HOTEL"
   },
   {
@@ -1349,11 +1349,11 @@
   },
   {
     "id": "sim_000000__0.jpg",
-    "productCode": "",
-    "name": "sim 000000 0",
-    "menuType": "khác",
+    "productCode": "VIP",
+    "name": "Donnafugata Tancredi Edizione Limitata",
+    "menuType": "đồ uống",
     "group": "WINE MENU - CHINESE",
-    "price": 0,
+    "price": 1736800,
     "imageName": "sim_000000__0.jpg",
     "imageUrl": "/images/WINE MENU - CHINESE/sim_000000__0.jpg",
     "levelAccess": [
@@ -1362,8 +1362,8 @@
       "V-One"
     ],
     "createdAt": 1760892072390,
-    "updatedAt": 1763844404607,
-    "itemGroup": "Khác"
+    "updatedAt": 1776659510527,
+    "itemGroup": "Beverage"
   },
   {
     "id": "sim_000001__0.jpg",
@@ -2302,11 +2302,11 @@
     "menuType": "đồ uống",
     "itemGroup": "Beverage",
     "price": 35000,
-    "imageName": "CELERY APPLE JUICE-1763840808065.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/CELERY APPLE JUICE-1763840808065.jpg",
-    "id": "CELERY APPLE JUICE-1763840808065.jpg",
+    "imageName": "CELERY APPLE JUICE.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/CELERY APPLE JUICE.jpg",
+    "id": "CELERY APPLE JUICE.jpg",
     "createdAt": 1763840809314,
-    "updatedAt": 1763844864694,
+    "updatedAt": 1777185884355,
     "menus": [
       "DRINKS VIP"
     ]
@@ -2332,11 +2332,11 @@
     "menuType": "đồ uống",
     "itemGroup": "Beverage",
     "price": 35000,
-    "imageName": "PASSION FRUIT JUICE-1763840949129.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/PASSION FRUIT JUICE-1763840949129.jpg",
-    "id": "PASSION FRUIT JUICE-1763840949129.jpg",
+    "imageName": "PASSION FRUIT JUICE.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/PASSION FRUIT JUICE.jpg",
+    "id": "PASSION FRUIT JUICE.jpg",
     "createdAt": 1763840950827,
-    "updatedAt": 1763844864694,
+    "updatedAt": 1777185904198,
     "menus": [
       "DRINKS VIP"
     ]
@@ -2347,11 +2347,11 @@
     "menuType": "đồ uống",
     "itemGroup": "Beverage",
     "price": 25080,
-    "imageName": "CHAMOMILE TEA-1763841200655.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/CHAMOMILE TEA-1763841200655.jpg",
-    "id": "CHAMOMILE TEA-1763841200655.jpg",
+    "imageName": "CHAMOMILE TEA.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/CHAMOMILE TEA.jpg",
+    "id": "CHAMOMILE TEA.jpg",
     "createdAt": 1763841202891,
-    "updatedAt": 1763844864694,
+    "updatedAt": 1777185893913,
     "menus": [
       "DRINKS VIP"
     ]
@@ -2392,11 +2392,11 @@
     "menuType": "đồ uống",
     "itemGroup": "Beverage",
     "price": 35000,
-    "imageName": "WATERMELON JUICE-1763841450075.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/WATERMELON JUICE-1763841450075.jpg",
-    "id": "WATERMELON JUICE-1763841450075.jpg",
+    "imageName": "WATERMELON JUICE.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/WATERMELON JUICE.jpg",
+    "id": "WATERMELON JUICE.jpg",
     "createdAt": 1763841455632,
-    "updatedAt": 1763841455632,
+    "updatedAt": 1777185874145,
     "menus": [
       "DRINKS VIP"
     ]
@@ -2482,11 +2482,11 @@
     "menuType": "đồ uống",
     "itemGroup": "Beverage",
     "price": 60000,
-    "imageName": "STRAWBERRY SMOOTHIE-1763843415030.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/STRAWBERRY SMOOTHIE-1763843415030.jpg",
-    "id": "STRAWBERRY SMOOTHIE-1763843415030.jpg",
+    "imageName": "STRAWBERRY SMOOTHIE.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/STRAWBERRY SMOOTHIE.jpg",
+    "id": "STRAWBERRY SMOOTHIE.jpg",
     "createdAt": 1763843416309,
-    "updatedAt": 1763843416309,
+    "updatedAt": 1777185848815,
     "menus": [
       "DRINKS VIP"
     ]
@@ -2519,6 +2519,41 @@
     "updatedAt": 1763844864694,
     "menus": [
       "DRINKS"
+    ]
+  },
+  {
+    "name": "FRIED EGG BOIL EGG",
+    "productCode": "S15",
+    "menuType": "đồ ăn",
+    "itemGroup": "Snack Menu",
+    "price": 7000,
+    "imageName": "FRIED EGG BOIL EGG.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/FRIED EGG BOIL EGG.jpg",
+    "id": "FRIED EGG BOIL EGG.jpg",
+    "createdAt": 1775221960695,
+    "updatedAt": 1775221960695,
+    "menus": [
+      "SNACK MENU",
+      "CLUB MENU",
+      "HOTEL MENU",
+      "VIP MENU",
+      "SNACK TRAVEL"
+    ]
+  },
+  {
+    "name": "CAESAR SALAD",
+    "productCode": "H38",
+    "menuType": "đồ ăn",
+    "itemGroup": "HOTEL",
+    "price": 390000,
+    "imageName": "CAESAR SALAD.jpg",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/CAESAR SALAD.jpg",
+    "id": "CAESAR SALAD.jpg",
+    "createdAt": 1775397567321,
+    "updatedAt": 1775397567321,
+    "menus": [
+      "VIP MENU",
+      "HOTEL MENU"
     ]
   }
 ]

@@ -25,29 +25,51 @@ function nextOrderId(list){
 }
 
 /** Enrich 1 item theo imageKey */
-function enrichItem(item, foods, products){
-  const key = String(item.imageKey || item.imageName || '').toLowerCase();
-  let name = null, price = 0, group = null;
+function enrichItem(item, foods, products) {
+  const isOffMenu = !!item?.isOffMenu;
 
-  // Ưu tiên products.json (có price, group/itemGroup)
+if (isOffMenu) {
+  const offMenuName =
+    String(item?.name || item?.imageName || '').trim() || '(Off menu)';
+
+  return {
+    isOffMenu: true,
+    imageKey: '',
+    imageName: '',
+    name: offMenuName,
+    qty: Number(item?.qty || 0),
+    price: Number(item?.price || 0) || 0,
+    group: 'OFF MENU',
+    note: String(item?.note || '').trim(),
+    productCode: '',
+  };
+}
+
+  const key = String(item.imageKey || item.imageName || '').toLowerCase();
+  let name = null, price = 0, group = null, productCode = null;
+
   const p = products.find(x => (x.imageName || '').toLowerCase() === key);
-  if (p){
-    name  = p.name || p.productName || name;
+  if (p) {
+    name = p.name || p.productName || name;
     price = Number(p.price || 0);
     group = p.itemGroup || p.group || null;
+    productCode = p.productCode || p.code || null;
   }
-  // Fallback foods.json (có type, order…)
-  if (!name){
+
+  if (!name) {
     const f = foods.find(x => basenameLower(x.imageUrl) === key);
     if (f) name = f.name || name || key;
   }
+
   return {
+    isOffMenu: false,
     imageKey: key,
     name: name || key,
     qty: Number(item.qty || 0),
     price,
     group,
-    note: item.note || ''
+    note: item.note || '',
+    productCode,
   };
 }
 
@@ -198,19 +220,21 @@ if (!staff || !String(staff).trim() || !/^\d+$/.test(String(staff).trim())) {
     const items = itemsRaw.map(it => enrichItem(it, foods, products));
 
     // (tuỳ chọn) kiểm tra tồn kho khi consumeStock=true
-    if (consumeStock){
-      const missing = [];
-      for (const it of items){
-        const f = foods.find(x => basenameLower(x.imageUrl) === it.imageKey);
-        const avail = Number(f?.quantity ?? Infinity);
-        if (Number.isFinite(avail) && it.qty > avail){
-          missing.push({ imageName: it.imageKey, available: avail });
-        }
-      }
-      if (missing.length){
-        return res.status(409).json({ error:'Not enough stock', missing });
-      }
+if (consumeStock) {
+  const missing = [];
+  for (const it of items) {
+    if (it.isOffMenu) continue;
+
+    const f = foods.find(x => basenameLower(x.imageUrl) === it.imageKey);
+    const avail = Number(f?.quantity ?? Infinity);
+    if (Number.isFinite(avail) && it.qty > avail) {
+      missing.push({ imageName: it.imageKey, available: avail });
     }
+  }
+  if (missing.length) {
+    return res.status(409).json({ error: 'Not enough stock', missing });
+  }
+}
 
     const id = nextOrderId(orders);
     const now = new Date().toISOString();
@@ -254,6 +278,48 @@ router.post('/:id/status',  (req,res)=>{
   res.json({ ok:true, order: orders[i] });
 });
 
+router.post('/:id/item-price', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { itemIndex, price } = req.body || {};
+
+    const orders = readJson(ORDERS_FILE, []);
+    const i = orders.findIndex(o => String(o.id) === String(id));
+    if (i < 0) return res.status(404).json({ error: 'Order not found' });
+
+    const idx = Number(itemIndex);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= (orders[i].items || []).length) {
+      return res.status(400).json({ error: 'Invalid itemIndex' });
+    }
+
+    const val = Number(price);
+    if (!Number.isFinite(val) || val < 0) {
+      return res.status(400).json({ error: 'Price must be a non-negative number' });
+    }
+
+    const item = orders[i].items[idx];
+
+    item.isOffMenu = true;
+    item.group = 'OFF MENU';
+    item.name = String(item?.name || item?.imageName || '(Off menu)').trim() || '(Off menu)';
+    item.price = val;
+    item.lineTotal = val * Number(item?.qty || 0);
+
+    orders[i].updatedAt = new Date().toISOString();
+
+    writeJson(ORDERS_FILE, orders);
+
+    emitIO(req, 'orderUpdated', {
+      orderId: orders[i].id,
+      status: orders[i].status,
+      order: orders[i],
+    });
+
+    res.json({ ok: true, order: orders[i], item });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'Save item price failed' });
+  }
+});
 /** POST /api/orders/:id/close  (đúng với FE hiện tại: “Thu bàn”) */
 router.post('/:id/close',(req,res)=>{
   const { id } = req.params;
