@@ -2,6 +2,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const sqliteStore = require('../sqliteStore');
 
 const router = express.Router();
 
@@ -15,13 +16,44 @@ const CUSTOMERS_FILE= path.join(DATA_DIR, 'customers.json');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const readJson = (p, fb=[]) => { try { return JSON.parse(fs.readFileSync(p,'utf8')); } catch { return fb; } };
-const writeJson = (p, d) => fs.writeFileSync(p, JSON.stringify(d,null,2));
+const readJson = (p, fb=[]) => {
+  try {
+    if (p === ORDERS_FILE) return sqliteStore.loadOrders();
+    if (p === PRODUCTS_FILE) return sqliteStore.loadProducts();
+    if (p === FOODS_FILE) return sqliteStore.loadFoods();
+
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch {
+    return fb;
+  }
+};
+
+const writeJson = (p, d) => {
+  if (p === ORDERS_FILE) {
+    sqliteStore.replaceAllOrders(Array.isArray(d) ? d : []);
+    return;
+  }
+
+  if (p === FOODS_FILE) {
+    sqliteStore.replaceAllFoods(Array.isArray(d) ? d : []);
+    return;
+  }
+
+  fs.writeFileSync(p, JSON.stringify(d, null, 2));
+};
+
 const basenameLower = (p) => (String(p || '').split('/').pop() || '').toLowerCase();
 
-function nextOrderId(list){
-  const max = list.reduce((m,o)=>Number.isFinite(+o.id)?Math.max(m,+o.id):m,0);
-  return String(max+1);
+function nextOrderId(_list){
+  return sqliteStore.getNextOrderId();
+}
+
+function persistOrderForMainServer(req, order) {
+  if (req?.app?.locals?.persistOrderFromRouter) {
+    return req.app.locals.persistOrderFromRouter(order);
+  }
+  sqliteStore.upsertOrder(order);
+  return true;
 }
 
 /** Enrich 1 item theo imageKey */
@@ -117,7 +149,7 @@ router.get('/', (req, res) => {
     // Tự động chuyển đơn của những ngày trước sang DONE
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    let changed = false;
+    const changedOrders = [];
 
     all.forEach((o) => {
       const orderTime = new Date(o.createdAt).getTime();
@@ -128,7 +160,8 @@ router.get('/', (req, res) => {
         o.status !== 'DONE'
       ) {
         o.status = 'DONE';
-        changed = true;
+        o.updatedAt = new Date().toISOString();
+        changedOrders.push(o);
 
         emitIO(req, 'orderUpdated', {
           orderId: o.id,
@@ -138,7 +171,7 @@ router.get('/', (req, res) => {
       }
     });
 
-    if (changed) writeJson(ORDERS_FILE, all);
+    changedOrders.forEach(o => persistOrderForMainServer(req, o));
 
     let rows = [...all];
 
@@ -254,7 +287,7 @@ if (consumeStock) {
     };
 
     orders.unshift(order);
-    writeJson(ORDERS_FILE, orders);
+    persistOrderForMainServer(req, order);
 
     emitIO(req, 'orderPlaced', { order }); // FE đang lắng nghe 'orderPlaced'
     return res.json({ ok:true, id, order });
@@ -273,7 +306,7 @@ router.post('/:id/status',  (req,res)=>{
 
   orders[i].status = status || orders[i].status;
   if (reason) orders[i].cancelReason = reason;
-  writeJson(ORDERS_FILE, orders);
+  persistOrderForMainServer(req, orders[i]);
   emitIO(req, 'orderUpdated', { orderId:id, status:orders[i].status, order:orders[i] });
   res.json({ ok:true, order: orders[i] });
 });
@@ -283,12 +316,11 @@ router.post('/:id/item-price', (req, res) => {
     const { id } = req.params;
     const { itemIndex, price } = req.body || {};
 
-    const orders = readJson(ORDERS_FILE, []);
-    const i = orders.findIndex(o => String(o.id) === String(id));
-    if (i < 0) return res.status(404).json({ error: 'Order not found' });
+    const order = sqliteStore.getOrderById(id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
 
     const idx = Number(itemIndex);
-    if (!Number.isInteger(idx) || idx < 0 || idx >= (orders[i].items || []).length) {
+    if (!Number.isInteger(idx) || idx < 0 || idx >= (order.items || []).length) {
       return res.status(400).json({ error: 'Invalid itemIndex' });
     }
 
@@ -297,25 +329,28 @@ router.post('/:id/item-price', (req, res) => {
       return res.status(400).json({ error: 'Price must be a non-negative number' });
     }
 
-    const item = orders[i].items[idx];
+    const item = order.items[idx];
 
     item.isOffMenu = true;
     item.group = 'OFF MENU';
+    item.itemGroup = 'OFF MENU';
+    item.productCode = item.productCode || 'H100';
+    item.code = item.code || 'H100';
     item.name = String(item?.name || item?.imageName || '(Off menu)').trim() || '(Off menu)';
     item.price = val;
     item.lineTotal = val * Number(item?.qty || 0);
 
-    orders[i].updatedAt = new Date().toISOString();
+    order.updatedAt = new Date().toISOString();
 
-    writeJson(ORDERS_FILE, orders);
+    persistOrderForMainServer(req, order);
 
     emitIO(req, 'orderUpdated', {
-      orderId: orders[i].id,
-      status: orders[i].status,
-      order: orders[i],
+      orderId: order.id,
+      status: order.status,
+      order,
     });
 
-    res.json({ ok: true, order: orders[i], item });
+    res.json({ ok: true, order, item });
   } catch (e) {
     res.status(500).json({ error: e?.message || 'Save item price failed' });
   }
@@ -327,7 +362,8 @@ router.post('/:id/close',(req,res)=>{
   const i = orders.findIndex(o => String(o.id) === String(id));
   if (i<0) return res.status(404).json({ error:'Order not found' });
   orders[i].tableClosed = true;
-  writeJson(ORDERS_FILE, orders);
+  orders[i].closedAt = new Date().toISOString();
+  persistOrderForMainServer(req, orders[i]);
   emitIO(req, 'orderUpdated', { orderId:id, status:orders[i].status, order:orders[i] });
   res.json({ ok:true });
 });
@@ -343,15 +379,16 @@ router.get('/report',  (req,res)=>{
   try {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    let changed = false;
+    const changedOrders = [];
     all.forEach(o => {
       const orderTime = new Date(o.createdAt).getTime();
       if (orderTime < todayStart && o.status !== 'CANCELLED' && o.status !== 'DONE') {
         o.status = 'DONE';
-        changed = true;
+        o.updatedAt = new Date().toISOString();
+        changedOrders.push(o);
       }
     });
-    if (changed) writeJson(ORDERS_FILE, all);
+    changedOrders.forEach(o => persistOrderForMainServer(req, o));
   } catch (e) {
     // Ignore errors
   }

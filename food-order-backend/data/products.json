@@ -721,21 +721,21 @@
     "itemGroup": "Snack Menu"
   },
   {
-    "id": "TOKOYAKI.jpg",
+    "id": "TAKOYAKI.png",
     "productCode": "S02",
-    "name": "TOKOYAKI",
+    "name": "TAKOYAKI",
     "menuType": "đồ ăn",
     "group": "CLUB MENU",
     "price": 25000,
-    "imageName": "TOKOYAKI.jpg",
-    "imageUrl": "/images/CLUB MENU/TOKOYAKI.jpg",
+    "imageName": "TAKOYAKI.png",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/TAKOYAKI.png",
     "levelAccess": [
       "P",
       "I-I+",
       "V-One"
     ],
     "createdAt": 1760892072326,
-    "updatedAt": 1763844949927,
+    "updatedAt": 1778753433741,
     "itemGroup": "Snack Menu"
   },
   {
@@ -2527,11 +2527,11 @@
     "menuType": "đồ ăn",
     "itemGroup": "Snack Menu",
     "price": 7000,
-    "imageName": "FRIED EGG BOIL EGG.jpg",
-    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/FRIED EGG BOIL EGG.jpg",
-    "id": "FRIED EGG BOIL EGG.jpg",
+    "imageName": "FRIED EGG BOIL EGG.png",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/FRIED EGG BOIL EGG.png",
+    "id": "FRIED EGG BOIL EGG.png",
     "createdAt": 1775221960695,
-    "updatedAt": 1775221960695,
+    "updatedAt": 1778755183354,
     "menus": [
       "SNACK MENU",
       "CLUB MENU",
@@ -2554,6 +2554,21 @@
     "menus": [
       "VIP MENU",
       "HOTEL MENU"
+    ]
+  },
+  {
+    "name": "Mini Baguette",
+    "productCode": "S17",
+    "menuType": "đồ ăn",
+    "itemGroup": "Snack Menu",
+    "price": 50000,
+    "imageName": "Mini Baguette.png",
+    "imageUrl": "http://192.168.101.70:5000/images/SOURCE/Mini Baguette.png",
+    "id": "Mini Baguette.png",
+    "createdAt": 1779076547781,
+    "updatedAt": 1779076803114,
+    "menus": [
+      "SNACK MENU"
     ]
   }
 ]

@@ -40,7 +40,45 @@ axios.interceptors.request.use(async (config) => {
   return config;
 });
 
-const TOKEN_KEY = 'food-admin-token';
+const AUTH_STORAGE_KEY = 'auth';
+const LEGACY_TOKEN_KEY = 'food-admin-token';
+let __authExpiredNotified = false;
+
+function dispatchAuthExpired(message = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục sử dụng app.') {
+  if (__authExpiredNotified) return;
+
+  __authExpiredNotified = true;
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('food-auth-expired', {
+      detail: { message },
+    }));
+  }
+}
+
+function notifyAuthExpired(error) {
+  const url = String(error?.config?.url || '');
+
+  // Đăng nhập sai cũng trả 401, không được xem là hết hạn phiên.
+  if (url.includes('/api/login')) return;
+
+  dispatchAuthExpired();
+}
+
+function getJwtExpirationMs(token) {
+  try {
+    const payloadPart = String(token || '').split('.')[1];
+    if (!payloadPart) return null;
+
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=');
+    const payload = JSON.parse(atob(padded));
+
+    return payload?.exp ? Number(payload.exp) * 1000 : null;
+  } catch {
+    return null;
+  }
+}
 
 axios.interceptors.response.use(
   (res) => {
@@ -50,12 +88,11 @@ axios.interceptors.response.use(
   (error) => {
     __axios_done();
     const status = error?.response?.status;
+
     if (status === 401) {
-      // Phiên đăng nhập hết hạn / token hỏng
-      localStorage.removeItem(TOKEN_KEY);
-      alert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
-      window.location.reload();
+      notifyAuthExpired(error);
     }
+
     return Promise.reject(error);
   }
 );
@@ -69,7 +106,18 @@ const API =
   process.env.REACT_APP_API_URL ||
   process.env.REACT_APP_API_BASE ||
   '';
-const socket = API ? io(API) : io();
+const socketOptions = {
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 500,
+  reconnectionDelayMax: 5000,
+  randomizationFactor: 0.5,
+  timeout: 20000,
+  transports: ['polling', 'websocket'],
+  upgrade: true,
+};
+
+const socket = API ? io(API, socketOptions) : io(socketOptions);
 
 const apiUrl = (p) => `${API || ''}${p}`;
 const resolveImg = (u) => {
@@ -114,8 +162,54 @@ const ORDER_STATUS = {
 };
 const ORDER_FILTERS = ['OPEN', 'PENDING', 'IN_PROGRESS', 'DONE', 'CANCELLED', 'ALL'];
 
-const getImageName = (url) => (url || '').split('/').pop()?.toLowerCase() || '';
+const getImageName = (url) => {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+
+  // Chuẩn hóa cùng cách với trang User: bỏ query/hash, decode URL và so sánh không phân biệt hoa/thường.
+  const cleanPath = raw.split(/[?#]/)[0];
+  const lastPart = cleanPath.split('/').pop() || '';
+
+  try {
+    return decodeURIComponent(lastPart).trim().toLowerCase();
+  } catch {
+    return lastPart.trim().toLowerCase();
+  }
+};
 const tableKeyOf = (area, tableNo) => `${area}#${tableNo}`;
+const tableStatusTextOf = (o) => o?.tableClosed ? 'Done (thu bàn)' : 'Pending';
+const tableStatusColorOf = (o) => o?.tableClosed ? '#16a34a' : '#f59e0b';
+const normalizeOrderSearchText = (v) =>
+  String(v || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[_\-./]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const getOrderCustomerName = (o = {}) =>
+  String(
+    o.customerName ||
+      (o.customer && typeof o.customer === 'object' ? o.customer.name : '') ||
+      ''
+  ).trim();
+
+const getOrderCustomerDisplay = (o = {}) => {
+  const member = String(o.memberCard || o.customer?.code || '').trim();
+  const name = getOrderCustomerName(o);
+
+  if (member) return `${member} - ${name || 'Chưa có thông tin'}`;
+  return name || 'Chưa có thông tin';
+};
+
+const getOrderSearchText = (o = {}) => {
+  const member = String(o.memberCard || o.customer?.code || '').replace(/\s+/g, '').trim();
+  const name = getOrderCustomerName(o);
+  const level = String(o.customer?.level || o.customerLevel || '').trim();
+
+  return normalizeOrderSearchText(`${member} ${name} ${level}`);
+};
 
 function sanitizeMenuName(name) {
   return String(name || '')
@@ -192,6 +286,49 @@ function CustomerInsightsPanel({ apiUrl, resolveImg }) {
   React.useEffect(() => {
     loadOverview(false);
   }, [loadOverview]);
+
+  React.useEffect(() => {
+    let timer = null;
+
+    const onMemberUpdated = (payload = {}) => {
+      const updatedCode = String(payload.code || payload.member?.code || '')
+        .replace(/\s+/g, '')
+        .trim();
+      const currentCode = String(customerCode || '').replace(/\s+/g, '').trim();
+
+      if (!updatedCode || !currentCode || updatedCode !== currentCode) return;
+
+      clearTimeout(timer);
+      timer = setTimeout(() => loadCustomer(currentCode), 350);
+    };
+
+    socket.on('memberUpdated', onMemberUpdated);
+
+    return () => {
+      clearTimeout(timer);
+      socket.off('memberUpdated', onMemberUpdated);
+    };
+  }, [loadCustomer, customerCode]);
+
+  React.useEffect(() => {
+    let timer = null;
+
+    const onCustomersUpdated = () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        await loadOverview(true);
+        const clean = String(customerCode || '').replace(/\s+/g, '').trim();
+        if (clean) await loadCustomer(clean);
+      }, 500);
+    };
+
+    socket.on('customersUpdated', onCustomersUpdated);
+
+    return () => {
+      clearTimeout(timer);
+      socket.off('customersUpdated', onCustomersUpdated);
+    };
+  }, [loadOverview, loadCustomer, customerCode]);
 
   const topItems = overview?.topItems || [];
   const topCustomers = overview?.topCustomers || [];
@@ -498,16 +635,57 @@ export default function AdminFoodList() {
   // ===== Auth state =====
   const [auth, setAuth] = useState(() => {
     try {
-      const raw = localStorage.getItem('auth');
+      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
       if (parsed?.token) setAuthHeader(parsed.token);
       return parsed;
     } catch { return null; }
   });
+  const [authExpiredNotice, setAuthExpiredNotice] = useState(null);
   const isLoggedIn = !!auth?.token;
   const role = auth?.role; // 'admin' | 'kitchen'
   const isAdmin = role === 'admin';
   const isKitchen = role === 'kitchen';
+
+  useEffect(() => {
+    const onAuthExpired = (ev) => {
+      setAuthExpiredNotice(
+        ev?.detail?.message ||
+        'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục sử dụng app.'
+      );
+    };
+
+    window.addEventListener('food-auth-expired', onAuthExpired);
+    return () => window.removeEventListener('food-auth-expired', onAuthExpired);
+  }, []);
+
+  useEffect(() => {
+    if (!auth?.token) return;
+
+    const expMs = getJwtExpirationMs(auth.token);
+    if (!expMs) return;
+
+    const delay = expMs - Date.now();
+    const showExpired = () => dispatchAuthExpired();
+
+    if (delay <= 0) {
+      showExpired();
+      return;
+    }
+
+    const t = setTimeout(showExpired, Math.min(delay, 2147483647));
+    return () => clearTimeout(t);
+  }, [auth?.token]);
+
+  const confirmAuthExpired = useCallback(() => {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    setAuthHeader(null);
+    setAuth(null);
+    setAuthExpiredNotice(null);
+    setApiError(null);
+    __authExpiredNotified = false;
+  }, []);
 
   // ===== App state =====
   const [foods, setFoods] = useState([]);
@@ -552,22 +730,28 @@ useEffect(() => {
 }, []);
 const foodsReqRef = useRef(null);
 const fetchFoods = useCallback(async () => {
-  if (foodsReqRef.current) return foodsReqRef.current; // nếu đang chạy, trả về promise cũ
+  if (foodsReqRef.current) return foodsReqRef.current;
+
   foodsReqRef.current = (async () => {
     try {
-      const res = await axios.get(apiUrl('/api/foods'));
+      const res = await axios.get(apiUrl('/api/foods'), {
+        timeout: 8000,
+      });
+
       const data = res.data || [];
       setFoods(data);
       setApiError(null);
       return data;
     } catch (e) {
       setApiError(e?.message || 'API error');
-      setFoods([]);
-      return [];
+
+      // Không setFoods([]), giữ dữ liệu cũ nếu server chập chờn
+      return null;
     } finally {
-      foodsReqRef.current = null; // mở khoá
+      foodsReqRef.current = null;
     }
   })();
+
   return foodsReqRef.current;
 }, []);
 
@@ -610,39 +794,56 @@ const fetchStatusHistory = useCallback(async (params = {}) => {
     }
   }, []);
 
-  // âm báo + giọng đọc
-  const playBeep = useCallback(() => {
+  // Chuông báo đơn mới — không sử dụng giọng đọc.
+  const playOrderBell = useCallback(() => {
     try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AC();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sine'; o.frequency.value = 880;
-      o.connect(g); g.connect(ctx.destination);
-      g.gain.setValueAtTime(0.0001, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-      o.start(); o.stop(ctx.currentTime + 0.5);
-    } catch {}
+      // Hủy giọng đọc còn sót lại nếu trang vừa được cập nhật từ phiên bản cũ.
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      const ctx = new AudioCtx();
+      const startAt = ctx.currentTime + 0.01;
+
+      // Hai nốt ngắn tạo cảm giác giống chuông thông báo, dễ nghe nhưng không quá dài.
+      const notes = [
+        { frequency: 880, start: 0, duration: 0.24, gain: 0.18 },
+        { frequency: 1174.66, start: 0.18, duration: 0.42, gain: 0.16 },
+      ];
+
+      notes.forEach(({ frequency, start, duration, gain }) => {
+        const oscillator = ctx.createOscillator();
+        const volume = ctx.createGain();
+        const noteStart = startAt + start;
+        const noteEnd = noteStart + duration;
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, noteStart);
+
+        volume.gain.setValueAtTime(0.0001, noteStart);
+        volume.gain.exponentialRampToValueAtTime(gain, noteStart + 0.025);
+        volume.gain.exponentialRampToValueAtTime(0.0001, noteEnd);
+
+        oscillator.connect(volume);
+        volume.connect(ctx.destination);
+        oscillator.start(noteStart);
+        oscillator.stop(noteEnd + 0.02);
+      });
+
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+
+      window.setTimeout(() => {
+        ctx.close().catch(() => {});
+      }, 1000);
+    } catch (e) {
+      console.warn('Không phát được chuông báo order:', e?.message || e);
+    }
   }, []);
-  const speakName = useCallback((raw) => {
-    const s = String(raw || '').trim();
-    const noExt = s.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
-    const m = noExt.match(/^([A-Za-z]+\d+|\d+[A-Za-z]+)/);
-    if (m) return m[1].toUpperCase();
-    return noExt.replace(/[-_.]+/g, ' ').trim().toLowerCase();
-  }, []);
-  const speakSequence = useCallback((arr, gapMs = 1000) => {
-    if (!('speechSynthesis' in window)) { playBeep(); return; }
-    let t = 0;
-    arr.forEach((txt) => {
-      const u = new SpeechSynthesisUtterance(String(txt || '').replace(/[-_.]/g, ' '));
-      u.lang = 'vi-VN';
-      u.rate = 0.8;
-      setTimeout(() => window.speechSynthesis.speak(u), t);
-      t += gapMs;
-    });
-  }, [playBeep]);
 const humanizeName = useCallback((s) =>
   String(s||'')
     .replace(/\.(jpe?g|png|gif|webp|bmp|tiff?|jfif|heic|heif)$/i,'')
@@ -896,6 +1097,7 @@ const [fromDate, setFromDate]   = useState('');
 const [toDate, setToDate]       = useState('');
 const [activeTable, setActiveTable] = useState(null);
 const [orderSort, setOrderSort] = useState('time_desc');
+const [orderCustomerSearch, setOrderCustomerSearch] = useState('');
 const [offMenuPriceDrafts, setOffMenuPriceDrafts] = useState({});
 // PHẢI đặt state này lên trước resolveItemCode
 const [productCodeByImage, setProductCodeByImage] = useState({});
@@ -905,6 +1107,30 @@ const [autoPrint, setAutoPrint] = useState(() => {
   return raw ? raw === 'true' : true;
 });
 useEffect(() => { localStorage.setItem('autoPrint', String(autoPrint)); }, [autoPrint]);
+
+const autoPrintClientIdRef = useRef('');
+if (!autoPrintClientIdRef.current) {
+  try {
+    const saved = sessionStorage.getItem('food-admin-print-client-id');
+    const id = saved || `admin-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    sessionStorage.setItem('food-admin-print-client-id', id);
+    autoPrintClientIdRef.current = id;
+  } catch {
+    autoPrintClientIdRef.current = `admin-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+}
+
+const claimAutoPrint = useCallback(async (orderId) => {
+  if (!orderId) return false;
+
+  const res = await axios.post(
+    apiUrl(`/api/orders/${encodeURIComponent(orderId)}/claim-print`),
+    { clientId: autoPrintClientIdRef.current },
+    { timeout: 3000 }
+  );
+
+  return Boolean(res?.data?.claimed);
+}, []);
 
 // Load danh sách sản phẩm để map imageName -> mã món (productCode)
 useEffect(() => {
@@ -1174,106 +1400,77 @@ const buildRange = useCallback(() => {
 const didInitRef = useRef(false);
   // ===== Effects =====
 useEffect(() => {
-  if (!isLoggedIn || didInitRef.current) return;
-  didInitRef.current = true;
+  if (!isLoggedIn) {
+    didInitRef.current = false;
+    return;
+  }
+
+  // Chỉ fetch dữ liệu khởi tạo 1 lần sau khi login.
+  // Không dùng didInitRef để bỏ qua việc gắn socket listener,
+  // vì nếu tab/autoPrint thay đổi React sẽ cleanup listener cũ trước khi effect chạy lại.
+  if (!didInitRef.current) {
+    didInitRef.current = true;
     (async () => {
       await fetchFoods();
       setLevelConfig(await fetchMenuLevels());
       if (tab === 'orders') await fetchOrders();
     })();
-
-    socket.on('foodAdded', debounceFetch);
-    socket.on('foodStatusUpdated', debounceFetch);
-    socket.on('foodDeleted', debounceFetch);
-    socket.on('foodsDeleted', debounceFetch);
-
-    socket.on('foodsReordered', debounceFetch);
-    socket.on('foodLevelsUpdated', debounceFetch);
-    let __mlTimer = null;
-const onMenuLevelsUpdated = () => {
-  clearTimeout(__mlTimer);
-  __mlTimer = setTimeout(async () => {
-    setLevelConfig(await fetchMenuLevels());
-  }, 400); // gộp các burst trong 400ms thành 1 lần fetch
-};
-socket.on('menuLevelsUpdated', onMenuLevelsUpdated);
-    socket.on('statusHistoryAdded', async () => { if (showHistoryRef.current) await fetchStatusHistory(); });
-
-    const onQty = ({ imageName, quantity }) => {
-      const key = String(imageName || '').toLowerCase();
-      if (!key) return;
-      setFoods((prev) =>
-        prev.map((f) =>
-          getImageName(f.imageUrl) === key ? { ...f, quantity, status: quantity <= 0 ? 'Sold Out' : 'Available' } : f
-        )
-      );
-    };
-    socket.on('foodQuantityUpdated', onQty);
-
-    // ==== orderPlaced ====
-    const onOrderPlaced = async ({ order }) => {
-      const normalize = (o = {}) => ({ ...o, cancelReason: o.cancelReason ?? o.reason ?? o?.meta?.cancelReason ?? o?.statusReason ?? null });
-      const ord = normalize(order || {});
-       setOrders(prev => {
-   const map = new Map(prev.map(o => [o.id, o]));
-   map.set(ord.id, { ...(map.get(ord.id) || {}), ...ord });
-   const arr = Array.from(map.values());
-   arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-   return arr;
- });
-setActiveTable((prev) => {
-  if (prev) return prev;
-  if (ord?.area && ord?.tableNo) {
-    return { area: ord.area, tableNo: ord.tableNo };
   }
-  return prev;
-});
-      const staff = (ord?.staff || '').toUpperCase();
-      const dishNames = (ord?.items || []).map(i => speakName(i.name || i.imageName || i.imageKey));
-      speakSequence([staff, ...dishNames], 1000);
 
-      if (autoPrint) {
-        try { await printOrderSmart(ord); } catch (e) { console.warn('Auto print failed:', e?.message || e); }
-      }
-    };
+  socket.on('foodAdded', debounceFetch);
+  socket.on('foodStatusUpdated', debounceFetch);
+  socket.on('foodDeleted', debounceFetch);
+  socket.on('foodsDeleted', debounceFetch);
+  socket.on('foodsReordered', debounceFetch);
+  socket.on('foodLevelsUpdated', debounceFetch);
 
-    const onOrderUpdated = (payload = {}) => {
-      const { orderId, status, order, reason, cancelReason, area: areaHint, tableNo: tableHint } = payload;
-      const reasonFinal = cancelReason ?? reason ?? order?.cancelReason ?? order?.reason ?? null;
+  let __mlTimer = null;
+  const onMenuLevelsUpdated = () => {
+    clearTimeout(__mlTimer);
+    __mlTimer = setTimeout(async () => {
+      setLevelConfig(await fetchMenuLevels());
+    }, 400); // gộp các burst trong 400ms thành 1 lần fetch
+  };
 
-      setOrders(prev =>
-        prev.map(o => {
-          if (o.id !== orderId) return o;
-          const merged = { ...o, ...(order || {}), status };
-          if (reasonFinal) merged.cancelReason = reasonFinal;
-          merged.area = merged.area ?? areaHint ?? o.area;
-          merged.tableNo = merged.tableNo ?? tableHint ?? o.tableNo;
-          return merged;
-        })
-      );
-    };
+  socket.on('menuLevelsUpdated', onMenuLevelsUpdated);
+  socket.on('statusHistoryAdded', async () => {
+    if (showHistoryRef.current) await fetchStatusHistory();
+  });
 
+  const onQty = ({ imageName, quantity }) => {
+    const key = String(imageName || '').toLowerCase();
+    if (!key) return;
 
+    setFoods((prev) =>
+      prev.map((f) =>
+        getImageName(f.imageUrl) === key
+          ? { ...f, quantity, status: quantity <= 0 ? 'Sold Out' : 'Available' }
+          : f
+      )
+    );
+  };
 
-    return () => {
-      socket.off('foodAdded', debounceFetch);
-      socket.off('foodStatusUpdated', debounceFetch);
-      socket.off('foodDeleted', debounceFetch);
-      socket.off('foodsDeleted', debounceFetch);
+  socket.on('foodQuantityUpdated', onQty);
 
-      socket.off('foodsReordered', debounceFetch);
-      socket.off('foodLevelsUpdated', debounceFetch);
-
-      socket.off('statusHistoryAdded');
-      socket.off('foodQuantityUpdated', onQty);
-      socket.off('orderPlaced', onOrderPlaced);
-      socket.off('orderUpdated', onOrderUpdated);
-      socket.off('menuLevelsUpdated', onMenuLevelsUpdated);
-    };
+  return () => {
+    clearTimeout(__mlTimer);
+    socket.off('foodAdded', debounceFetch);
+    socket.off('foodStatusUpdated', debounceFetch);
+    socket.off('foodDeleted', debounceFetch);
+    socket.off('foodsDeleted', debounceFetch);
+    socket.off('foodsReordered', debounceFetch);
+    socket.off('foodLevelsUpdated', debounceFetch);
+    socket.off('statusHistoryAdded');
+    socket.off('foodQuantityUpdated', onQty);
+    socket.off('menuLevelsUpdated', onMenuLevelsUpdated);
+  };
 }, [
-  isLoggedIn, tab,
-  fetchFoods, fetchOrders, debounceFetch, fetchStatusHistory,
-  printOrderSmart, speakName, speakSequence, autoPrint
+  isLoggedIn,
+  tab,
+  fetchFoods,
+  fetchOrders,
+  debounceFetch,
+  fetchStatusHistory,
 ]);
 
   useEffect(() => {
@@ -1350,23 +1547,15 @@ useEffect(() => {
       arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       return arr;
     });
-setActiveTable((prev) => {
-  if (prev) return prev;
-  if (ord?.area && ord?.tableNo) {
-    return { area: ord.area, tableNo: ord.tableNo };
-  }
-  return prev;
-});
-    // Đọc tên món an toàn (name || imageName || imageKey)
-    const staff = (ord?.staff || '').toUpperCase();
-    const dishNames = (ord?.items || []).map((i) =>
-      speakName(i?.name || i?.imageName || i?.imageKey)
-    );
-    speakSequence([staff, ...dishNames], 1000);
+    // Chỉ phát chuông khi có order mới, không đọc mã nhân viên hoặc tên món.
+    playOrderBell();
 
-    // Tự in nếu bật Auto print + chưa in lần nào
+    // Tự in nếu bật Auto print. claimAutoPrint đảm bảo nhiều tab/máy Admin chỉ 1 nơi được in.
     if (autoPrint && !printedRef.has(ord.id)) {
       try {
+        const claimed = await claimAutoPrint(ord.id);
+        if (!claimed) return;
+
         await printOrderSmart(ord);
         printedRef.add(ord.id);
       } catch (e) {
@@ -1397,7 +1586,7 @@ setActiveTable((prev) => {
     socket.off('orderPlaced', onOrderPlaced);
     socket.off('orderUpdated', onOrderUpdated);
   };
-}, [isLoggedIn, autoPrint, printOrderSmart, speakName, speakSequence]);
+}, [isLoggedIn, autoPrint, claimAutoPrint, printOrderSmart, playOrderBell]);
 
 
 
@@ -1446,7 +1635,9 @@ setActiveTable((prev) => {
       const res = await axios.post(apiUrl('/api/login'), { username, password });
       const { token, role, username: uname } = res.data || {};
       const info = { token, role, username: uname };
-      localStorage.setItem('auth', JSON.stringify(info));
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(info));
+      __authExpiredNotified = false;
+      setAuthExpiredNotice(null);
       setAuth(info);
       setAuthHeader(token);
       setApiError(null);
@@ -1457,7 +1648,10 @@ setActiveTable((prev) => {
     }
   };
   const handleLogout = () => {
-    localStorage.removeItem('auth');
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    __authExpiredNotified = false;
+    setAuthExpiredNotice(null);
     setAuth(null);
     setAuthHeader(null);
   };
@@ -1587,20 +1781,45 @@ const handleAddMenu = async () => {
 
 
 
-  const handleDrop = async (targetId) => {
-    if (!isAdmin) return;
-    if (!draggedId || draggedId === targetId) return;
-    const updated = [...foods];
-    const i1 = updated.findIndex(f => f.id === draggedId);
-    const i2 = updated.findIndex(f => f.id === targetId);
-    if (i1 === -1 || i2 === -1) return;
-    const [drag] = updated.splice(i1, 1);
-    updated.splice(i2, 0, drag);
-    const reordered = updated.map((f, idx) => ({ ...f, order: idx }));
-    setFoods(reordered);
-    try { await axios.post(apiUrl('/api/reorder-foods'), { orderedIds: reordered.map(f => f.id) }); setApiError(null); }
-    catch (e) { setApiError(e?.message || 'API error'); }
-  };
+const handleDrop = async (targetId) => {
+  if (!isAdmin) return;
+
+  const fromId = String(draggedId || '');
+  const toId = String(targetId || '');
+
+  if (!fromId || !toId || fromId === toId) {
+    setDraggedId(null);
+    return;
+  }
+
+  const updated = [...foods];
+
+  const i1 = updated.findIndex(f => String(f.id) === fromId);
+  const i2 = updated.findIndex(f => String(f.id) === toId);
+
+  if (i1 === -1 || i2 === -1) {
+    setDraggedId(null);
+    return;
+  }
+
+  const [drag] = updated.splice(i1, 1);
+  updated.splice(i2, 0, drag);
+
+  const reordered = updated.map((f, idx) => ({ ...f, order: idx }));
+
+  setFoods(reordered);
+  setDraggedId(null);
+
+  try {
+    await axios.post(apiUrl('/api/reorder-foods'), {
+      orderedIds: reordered.map(f => f.id),
+    });
+    setApiError(null);
+  } catch (e) {
+    setApiError(e?.response?.data?.error || e?.message || 'API error');
+    fetchFoods();
+  }
+};
 
   // ===== Quantity actions =====
   const changeQty = async (id, delta) => {
@@ -1621,11 +1840,17 @@ const normalize = (s) => String(s || '')
   const isSoldOutPage = selectedType === SOLD_OUT_KEY;
   const listRaw = isSoldOutPage ? foods.filter(f => f.status === 'Sold Out') : foods.filter(f => f.type === selectedType);
 
+  // Một món có thể nằm trong nhiều menu nên trang Sold out phải gộp theo ảnh.
+  // Dùng key đã chuẩn hóa để tránh hiện trùng khi tên file chỉ khác chữ hoa/thường,
+  // URL encode hoặc có query/hash.
   const foodsByType = [];
-  const seenNames = new Set();
+  const seenImageKeys = new Set();
   for (const f of listRaw) {
-    const name = (f.imageUrl || '').split('/').pop() || f.imageUrl;
-    if (!seenNames.has(name)) { seenNames.add(name); foodsByType.push(f); }
+    const imageKey = getImageName(f.imageUrl) || `food-id:${String(f.id ?? '')}`;
+    if (seenImageKeys.has(imageKey)) continue;
+
+    seenImageKeys.add(imageKey);
+    foodsByType.push(f);
   }
 
 const normQ = normalize(searchQuery);
@@ -1634,7 +1859,7 @@ const tokens = normQ ? normQ.split(' ') : [];
 const foodsForDisplay = normQ
   ? foodsByType.filter((f) => {
       const type = normalize(f.type);
-      const img = normalize((f.imageUrl || '').split('/').pop());
+      const img = normalize(getImageName(f.imageUrl));
       const code = normalize(f.productCode);
       const name = normalize(f.productName);
 
@@ -1650,15 +1875,38 @@ const foodsForDisplay = normQ
     if (tab === 'orders' && isLoggedIn) fetchOrders();
   }, [tab, orderFilter, isLoggedIn, fetchOrders]);
 
-  const filteredOrders = useMemo(() => {
-    if (orderFilter === 'OPEN') {
-      return orders.filter(
-        o => o.status === ORDER_STATUS.PENDING || o.status === ORDER_STATUS.IN_PROGRESS
-      );
-    }
-    if (orderFilter === 'ALL') return orders;
-    return orders.filter(o => o.status === orderFilter);
-  }, [orders, orderFilter]);
+const filteredOrders = useMemo(() => {
+  let rows = [];
+
+  if (orderFilter === 'OPEN') {
+    rows = orders.filter(
+      o => o.status === ORDER_STATUS.PENDING || o.status === ORDER_STATUS.IN_PROGRESS
+    );
+  } else if (orderFilter === 'ALL') {
+    rows = orders;
+  } else {
+    rows = orders.filter(o => o.status === orderFilter);
+  }
+
+  const qRaw = String(orderCustomerSearch || '').trim();
+  if (qRaw) {
+    const qCompact = qRaw.replace(/\s+/g, '').toLowerCase();
+    const qNorm = normalizeOrderSearchText(qRaw);
+    const qTokens = qNorm.split(' ').filter(Boolean);
+
+    rows = rows.filter((o) => {
+      const member = String(o.memberCard || o.customer?.code || '').replace(/\s+/g, '').toLowerCase();
+      const hay = getOrderSearchText(o);
+
+      const matchMember = qCompact && member.includes(qCompact);
+      const matchName = qTokens.length > 0 && qTokens.every((t) => hay.includes(t));
+
+      return matchMember || matchName;
+    });
+  }
+
+  return [...rows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+}, [orders, orderFilter, orderCustomerSearch]);
 
   const imageUrlByName = useCallback((imageName) => {
     const f = foods.find(x => getImageName(x.imageUrl) === String(imageName || '').toLowerCase());
@@ -1718,6 +1966,145 @@ const saveOffMenuPrice = useCallback(async (orderId, itemIndex) => {
   }
 }, [offMenuPriceDrafts]);
 
+const getOrderStaffDisplay = (o = {}) => {
+  const code = String(o.staff || '').replace(/\s+/g, '').trim();
+  const name = String(staffMap?.[code] || '').trim();
+
+  if (!code) return 'Chưa có thông tin';
+  return `${code} - ${name || 'Chưa có thông tin'}`;
+};
+
+const renderAdminOrderItems = (order = {}, { allowOffMenuPrice = false } = {}) => (
+  <div style={{ display: 'grid', gap: 8 }}>
+    {(order.items || []).map((it, idx) => {
+      const isOffMenu = Boolean(it?.isOffMenu);
+      const imgName = isOffMenu ? '' : getImageName(it.imageName || it.imageKey || it.imageUrl || '');
+      const url = isOffMenu ? null : imageUrlByName(imgName);
+      const code = isOffMenu
+        ? String(it.productCode || it.code || 'H100').trim()
+        : String(resolveItemCode(it) || '').trim();
+      const name = isOffMenu
+        ? `OFF MENU${it.name ? ` - ${String(it.name).trim()}` : ''}`
+        : humanizeName(it.name || imgName || 'Chưa có tên món');
+      const qty = Math.max(1, Number(it.qty || it.quantity || 1));
+      const draftKey = `${order.id}:${idx}`;
+
+      return (
+        <div
+          key={draftKey}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '42px 72px minmax(0, 1fr) auto',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 10px',
+            border: '1px solid #e5e7eb',
+            borderRadius: 10,
+            background: '#fff',
+          }}
+        >
+          {url ? (
+            <img
+              src={url}
+              alt=""
+              style={{
+                width: 42,
+                height: 42,
+                objectFit: 'cover',
+                borderRadius: 7,
+                border: '1px solid #eee',
+              }}
+            />
+          ) : (
+            <div style={{ width: 42, height: 42 }} />
+          )}
+
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 900,
+              color: isOffMenu ? '#7c3aed' : '#1d4ed8',
+              wordBreak: 'break-word',
+            }}
+          >
+            {code || '---'}
+          </div>
+
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', lineHeight: 1.35 }}>
+              {name}
+            </div>
+
+            {it.note && (
+              <div style={{ marginTop: 3, fontSize: 12, color: '#92400e', lineHeight: 1.35 }}>
+                📝 {it.note}
+              </div>
+            )}
+
+            {isOffMenu && allowOffMenuPrice && (
+              <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, color: '#6b7280' }}>
+                  Giá hiện tại: <b>{Number(it.price || 0).toLocaleString('vi-VN')}</b>
+                </span>
+
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={offMenuPriceDrafts[draftKey] ?? (it.price ?? '')}
+                  onChange={(e) =>
+                    setOffMenuPriceDrafts((prev) => ({
+                      ...prev,
+                      [draftKey]: e.target.value.replace(/[^\d.]/g, ''),
+                    }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveOffMenuPrice(order.id, idx);
+                  }}
+                  placeholder="Nhập giá"
+                  style={{
+                    width: 100,
+                    padding: '4px 6px',
+                    border: '1px solid #ddd',
+                    borderRadius: 6,
+                  }}
+                />
+
+                <button
+                  onClick={() => saveOffMenuPrice(order.id, idx)}
+                  style={{
+                    padding: '4px 8px',
+                    background: '#7c3aed',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              minWidth: 38,
+              textAlign: 'right',
+              fontSize: 18,
+              fontWeight: 900,
+              color: '#111827',
+            }}
+          >
+            x{qty}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+);
+
   // ===== Login screen =====
   if (!isLoggedIn) {
     return (
@@ -1753,6 +2140,53 @@ const saveOffMenuPrice = useCallback(async (orderId, itemIndex) => {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', height: '100vh', overflowX: 'hidden' }}>
+      {authExpiredNotice && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999999,
+            background: 'rgba(17,24,39,0.72)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              width: 'min(420px, 100%)',
+              background: '#fff',
+              borderRadius: 14,
+              boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
+              padding: 22,
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 42, marginBottom: 8 }}>🔐</div>
+            <h2 style={{ margin: '0 0 8px', color: '#111827' }}>Phiên đăng nhập đã hết hạn</h2>
+            <p style={{ margin: '0 0 18px', color: '#4b5563', lineHeight: 1.5 }}>
+              {authExpiredNotice}
+            </p>
+            <button
+              type="button"
+              onClick={confirmAuthExpired}
+              style={{
+                minWidth: 120,
+                padding: '10px 18px',
+                border: 'none',
+                borderRadius: 10,
+                background: '#2563eb',
+                color: '#fff',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
       {/* Sidebar */}
       <div style={{ background: '#111', color: '#fff', padding: 16, overflowY: 'auto', overflowX: 'hidden', width: 260, minWidth: 260 }}>
         <div style={{ marginBottom: 12 }}>
@@ -1885,10 +2319,51 @@ const saveOffMenuPrice = useCallback(async (orderId, itemIndex) => {
             </div>
           </>
         ) : tab === 'orders' ? (
-          // Orders sidebar
-          <div style={{ display: 'grid', gap: 8 }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>Order filters</div>
-            <div style={{ fontWeight: 700, marginTop: 10 }}>Date range</div>
+  // Orders sidebar
+  <div style={{ display: 'grid', gap: 8 }}>
+    <div style={{ fontWeight: 700, marginBottom: 6 }}>Order filters</div>
+
+    {/* Search member number / customer name */}
+    <label style={{ fontSize: 12, color: '#9ca3af' }}>
+      Search member / customer
+    </label>
+
+    <input
+      value={orderCustomerSearch}
+      onChange={(e) => {
+        setOrderCustomerSearch(e.target.value);
+        setActiveTable(null);
+      }}
+      placeholder="VD: 01, 1613, Tech Vegas..."
+      style={{
+        padding: 8,
+        background: '#1f2937',
+        color: '#fff',
+        border: '1px solid #374151',
+        borderRadius: 6,
+      }}
+    />
+
+    {orderCustomerSearch.trim() && (
+      <button
+        onClick={() => {
+          setOrderCustomerSearch('');
+          setActiveTable(null);
+        }}
+        style={{
+          padding: 8,
+          borderRadius: 6,
+          border: '1px solid #4b5563',
+          background: '#374151',
+          color: '#fff',
+          cursor: 'pointer',
+        }}
+      >
+        Clear search
+      </button>
+    )}
+
+    <div style={{ fontWeight: 700, marginTop: 10 }}>Date range</div>
 
             <select
               value={dateRange}
@@ -2110,11 +2585,32 @@ const saveOffMenuPrice = useCallback(async (orderId, itemIndex) => {
 
               return (
                 <div
-                  key={food.id}
+                  key={getImageName(food.imageUrl) || `food-${food.id}`}
                   draggable={isAdmin}
-                  onDragStart={() => isAdmin && setDraggedId(food.id)}
-                  onDragOver={(e) => isAdmin && e.preventDefault()}
-                  onDrop={() => isAdmin && handleDrop(food.id)}
+onDragStart={(e) => {
+  if (!isAdmin) return;
+
+  setDraggedId(String(food.id));
+
+  try {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(food.id));
+  } catch {}
+}}
+onDragEnd={() => setDraggedId(null)}
+onDragOver={(e) => {
+  if (!isAdmin) return;
+  e.preventDefault();
+
+  try {
+    e.dataTransfer.dropEffect = 'move';
+  } catch {}
+}}
+onDrop={(e) => {
+  if (!isAdmin) return;
+  e.preventDefault();
+  handleDrop(food.id);
+}}
                   style={{
                     width: 220,
                     display: 'flex',
@@ -2130,7 +2626,37 @@ const saveOffMenuPrice = useCallback(async (orderId, itemIndex) => {
                 >
                   {/* Image */}
                   <div style={{ width: '100%', overflow: 'visible', background: '#fff', position: 'relative' }}>
-                    <img src={resolveImg(food.imageUrl)} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                    <img
+  src={resolveImg(food.imageUrl)}
+  alt=""
+  draggable={false}
+  onDragStart={(e) => e.preventDefault()}
+  style={{
+    width: '100%',
+    height: 'auto',
+    display: 'block',
+    userSelect: 'none',
+    WebkitUserDrag: 'none',
+  }}
+/>
+{isAdmin && (
+  <div
+    style={{
+      position: 'absolute',
+      left: 8,
+      bottom: 8,
+      background: 'rgba(17,24,39,0.9)',
+      color: '#fff',
+      padding: '2px 7px',
+      fontSize: 12,
+      borderRadius: 999,
+      fontWeight: 700,
+      pointerEvents: 'none',
+    }}
+  >
+    ↕ Drag
+  </div>
+)}
                     {isAdmin && (
                       <div
                         style={{
@@ -2257,9 +2783,9 @@ const saveOffMenuPrice = useCallback(async (orderId, itemIndex) => {
         </div>
       ) : tab === 'orders' ? (
         // ====== ORDERS MAIN ======
-        <div style={{ padding: 16, background: '#fff8dc', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 420px', gap: 12 }}>
+        <div style={{ padding: 16, background: '#fff8dc', overflow: 'hidden', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 420px', gap: 12, minHeight: 0 }}>
           {/* Left: table tiles */}
-          <div style={{ overflowY: 'auto', paddingRight: 4 }}>
+          <div style={{ overflowY: 'auto', paddingRight: 4, minHeight: 0, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
               <h2 style={{ margin: 0 }}>Orders</h2>
               <span style={{ fontSize: 12, color: '#555' }}>
@@ -2344,10 +2870,125 @@ const saveOffMenuPrice = useCallback(async (orderId, itemIndex) => {
           </div>
 
           {/* Right: details panel */}
-          <div style={{ overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 10, background: '#fff' }}>
-            {!activeTable ? (
-              <div style={{ padding: 16, color: '#6b7280' }}>{ordersLoading ? 'Loading orders…' : 'Chọn một bàn để xem chi tiết order.'}</div>
-            ) : (
+          <div style={{ overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 10, background: '#fff', minHeight: 0 }}>
+{!activeTable ? (
+  <div style={{ padding: 12 }}>
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 700 }}>
+        Latest Orders
+      </div>
+
+      <div style={{ fontSize: 28, fontWeight: 900, color: '#111827' }}>
+        {ordersLoading ? 'Loading…' : `${filteredOrders.length} order(s)`}
+      </div>
+
+      <div style={{ fontSize: 12, color: '#6b7280' }}>
+        Đơn mới nhất nằm trên cùng. Bấm vào bàn bên trái để xem riêng từng bàn.
+      </div>
+    </div>
+
+    {filteredOrders.length === 0 ? (
+      <div style={{ color: '#6b7280', padding: 12, background: '#f9fafb', borderRadius: 10 }}>
+        Không có order phù hợp bộ lọc hiện tại.
+      </div>
+    ) : (
+      <div style={{ display: 'grid', gap: 12 }}>
+        {filteredOrders.slice(0, 100).map((o) => {
+          const pillStyle = {
+            PENDING: { bg: '#fee2e2', fg: '#991b1b', label: 'PENDING' },
+            IN_PROGRESS: { bg: '#dbeafe', fg: '#1d4ed8', label: 'IN PROGRESS' },
+            DONE: { bg: '#dcfce7', fg: '#065f46', label: 'DONE' },
+            CANCELLED: { bg: '#f3f4f6', fg: '#374151', label: 'CANCELLED' },
+          }[o.status] || { bg: '#eee', fg: '#333', label: o.status };
+
+          return (
+            <div
+              key={o.id}
+              onClick={() => setActiveTable({ area: o.area, tableNo: o.tableNo })}
+              style={{
+                border: '1px solid #dbe3ee',
+                borderRadius: 14,
+                overflow: 'hidden',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0,0,0,.06)',
+                background: '#fff',
+              }}
+            >
+              <div
+                style={{
+                  padding: 12,
+                  background: '#111827',
+                  color: '#fff',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 900 }}>
+                    Table {o.tableNo || '---'}
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.82 }}>
+                    {o.area || 'No area'} • Order #{o.id}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <div
+                    style={{
+                      display: 'inline-block',
+                      fontSize: 12,
+                      background: pillStyle.bg,
+                      color: pillStyle.fg,
+                      padding: '3px 8px',
+                      borderRadius: 999,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {pillStyle.label}
+                  </div>
+                  <div style={{ fontSize: 11, marginTop: 5, opacity: 0.85 }}>
+                    {o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ padding: 12, background: '#fff' }}>
+                <div style={{ fontSize: 14, color: '#374151', marginBottom: 6 }}>
+                  Staff: <b style={{ color: '#111827' }}>{getOrderStaffDisplay(o)}</b>
+                </div>
+
+                <div
+                  style={{
+                    marginBottom: 10,
+                    padding: '8px 10px',
+                    border: '1px solid #fed7aa',
+                    borderRadius: 9,
+                    background: '#fff7ed',
+                    color: '#9a3412',
+                    fontSize: 15,
+                    lineHeight: 1.35,
+                  }}
+                >
+                  Customer: <b style={{ fontSize: 16 }}>{getOrderCustomerDisplay(o)}</b>
+                </div>
+
+                {renderAdminOrderItems(o)}
+
+                <div style={{ marginTop: 10, fontSize: 13, color: '#374151' }}>
+                  Table:{' '}
+                  <b style={{ color: tableStatusColorOf(o) }}>
+                    {tableStatusTextOf(o)}
+                  </b>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </div>
+) : (
               <div style={{ padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
                   <div>
@@ -2384,188 +3025,158 @@ const saveOffMenuPrice = useCallback(async (orderId, itemIndex) => {
                         }[o.status] || { bg: '#eee', fg: '#333', label: o.status };
 
                         return (
-                          <div key={o.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden' }}>
-                            <div style={{ padding: 10, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{ fontWeight: 700 }}>Order #{o.id}</div>
-                                <div style={{ fontSize: 12, color: '#6b7280' }}>{new Date(o.createdAt).toLocaleString()}</div>
-                                <div style={{ fontSize: 12, background: pillStyle.bg, color: pillStyle.fg, padding: '2px 8px', borderRadius: 999 }}>
+                          <div
+                            key={o.id}
+                            style={{
+                              border: '1px solid #dbe3ee',
+                              borderRadius: 12,
+                              overflow: 'hidden',
+                              background: '#fff',
+                              boxShadow: '0 3px 10px rgba(0,0,0,.05)',
+                            }}
+                          >
+                            <div
+                              style={{
+                                padding: 14,
+                                background: '#f8fafc',
+                                borderBottom: '1px solid #e5e7eb',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'flex-start',
+                                  justifyContent: 'space-between',
+                                  gap: 10,
+                                }}
+                              >
+                                <div>
+                                  <div style={{ fontSize: 22, fontWeight: 900, color: '#111827' }}>
+                                    Order #{o.id}
+                                  </div>
+                                  <div style={{ marginTop: 2, fontSize: 13, color: '#6b7280' }}>
+                                    {o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}
+                                  </div>
+                                </div>
+
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    background: pillStyle.bg,
+                                    color: pillStyle.fg,
+                                    padding: '4px 9px',
+                                    borderRadius: 999,
+                                    fontWeight: 800,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
                                   {pillStyle.label}
                                 </div>
                               </div>
-<div style={{ fontSize: 12, color: '#6b7280' }}>
-  Staff: <b>{staffMap[o.staff] ? o.staff + ' - ' + staffMap[o.staff] : (o.staff || '')}</b>
-  {' · '}
-  {/* Tính tên khách từ customerName hoặc snapshot o.customer.name */}
-  {(() => {
-    const custName =
-      (o.customerName != null && o.customerName !== undefined)
-        ? o.customerName
-        : (o.customer && typeof o.customer === 'object' ? (o.customer.name || '') : '');
-    return (
-      <>
-        Customer: <b>{
-          o.memberCard
-            ? (custName ? `${o.memberCard} - ${custName}` : o.memberCard)
-            : (custName || '')
-        }</b>
-      </>
-    );
-  })()}
-</div>
+
+                              <div style={{ marginTop: 12, display: 'grid', gap: 7 }}>
+                                <div style={{ fontSize: 16, color: '#374151' }}>
+                                  Staff: <b style={{ color: '#111827' }}>{getOrderStaffDisplay(o)}</b>
+                                </div>
+
+                                <div
+                                  style={{
+                                    padding: '9px 10px',
+                                    border: '1px solid #fed7aa',
+                                    borderRadius: 9,
+                                    background: '#fff7ed',
+                                    color: '#9a3412',
+                                    fontSize: 16,
+                                    lineHeight: 1.35,
+                                  }}
+                                >
+                                  Customer: <b style={{ fontSize: 17 }}>{getOrderCustomerDisplay(o)}</b>
+                                </div>
+
+                                <div style={{ fontSize: 15, color: '#374151' }}>
+                                  Table:{' '}
+                                  <b style={{ color: tableStatusColorOf(o) }}>
+                                    {tableStatusTextOf(o)}
+                                  </b>
+                                  {o.tableClosed && o.closedAt ? (
+                                    <span style={{ color: '#9ca3af', fontSize: 12 }}>
+                                      {' '}• {new Date(o.closedAt).toLocaleString()}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </div>
                             </div>
 
-                            <div style={{ padding: 10 }}>
-                              {/* items */}
-<div
-  style={{
-    display: 'grid',
-    gridTemplateColumns: '1fr auto',
-    rowGap: 6,
-    alignItems: 'center',
-  }}
->
-{o.items.map((it, idx) => {
-  const isOffMenu = Boolean(it?.isOffMenu);
-  const imgName = isOffMenu ? '' : getImageName(it.imageName || it.imageKey || '');
-  const url = isOffMenu ? null : imageUrlByName(imgName);
-  const code = isOffMenu ? '' : resolveItemCode(it);
-  const label = isOffMenu
-    ? String(it.name || '(Off menu)').trim()
-    : humanizeName(it.name || imgName);
-  const displayName = isOffMenu ? label : (code ? `${code} - ${label}` : label);
-  const draftKey = `${o.id}:${idx}`;
+                            <div style={{ padding: 12 }}>
+                              <div
+                                style={{
+                                  marginBottom: 8,
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                  color: '#6b7280',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: 0.5,
+                                }}
+                              >
+                                Order items
+                              </div>
 
-    return (
-      <React.Fragment key={idx}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {url ? (
-            <img
-              src={url}
-              alt=""
-              style={{
-                width: 38,
-                height: 38,
-                objectFit: 'cover',
-                borderRadius: 6,
-                border: '1px solid #eee',
-              }}
-            />
-          ) : (
-            <div style={{ width: 38 }} />
-          )}
+                              {renderAdminOrderItems(o, { allowOffMenuPrice: true })}
 
-<div style={{ fontSize: 12 }}>
-{isOffMenu ? (
-  <div>
-    <div>
-      <span style={{ fontWeight: 700, color: '#7c3aed', marginRight: 6 }}>
-        OFF MENU
-      </span>
-      <span style={{ fontWeight: 600 }}>
-        {String(it.name || '(Off menu)').trim()}
-      </span>
-      {it.note ? ` – ${it.note}` : ''}
-    </div>
+                              {o.note && (
+                                <div
+                                  style={{
+                                    marginTop: 10,
+                                    padding: '8px 10px',
+                                    fontSize: 13,
+                                    color: '#374151',
+                                    background: '#f9fafb',
+                                    borderRadius: 8,
+                                  }}
+                                >
+                                  📝 {o.note}
+                                </div>
+                              )}
 
-    <div style={{ marginTop: 4, fontSize: 11, color: '#6b7280' }}>
-      Giá hiện tại: <b>{Number(it.price || 0).toLocaleString('vi-VN')}</b>
-    </div>
-
-    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-      <input
-        type="number"
-        inputMode="numeric"
-        min="0"
-        value={offMenuPriceDrafts[draftKey] ?? (it.price ?? '')}
-        onChange={(e) =>
-          setOffMenuPriceDrafts((prev) => ({
-            ...prev,
-            [draftKey]: e.target.value.replace(/[^\d.]/g, ''),
-          }))
-        }
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') saveOffMenuPrice(o.id, idx);
-        }}
-        placeholder="Nhập giá"
-        style={{
-          width: 100,
-          padding: '4px 6px',
-          border: '1px solid #ddd',
-          borderRadius: 6
-        }}
-      />
-
-      <button
-        onClick={() => saveOffMenuPrice(o.id, idx)}
-        style={{
-          padding: '4px 8px',
-          background: '#7c3aed',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 6,
-          cursor: 'pointer',
-          fontSize: 12
-        }}
-      >
-        Save
-      </button>
-    </div>
-  </div>
-) : (
-  <>
-    {displayName}
-    {it.note ? ` – ${it.note}` : ''}
-  </>
-)}
-</div>
-        </div>
-
-        <div style={{ fontWeight: 700 }}>x{it.qty}</div>
-      </React.Fragment>
-    );
-  })}
-</div>
-
-
-                              {o.note && <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>📝 {o.note}</div>}
                               {(o.status === ORDER_STATUS.CANCELLED && o.cancelReason) && (
-                                <div style={{ marginTop: 8, fontSize: 12, color: '#991b1b' }}>
+                                <div style={{ marginTop: 10, fontSize: 13, color: '#991b1b' }}>
                                   ❌ Lý do hủy: <b>{o.cancelReason}</b>
                                 </div>
                               )}
 
-                              {/* actions */}
                               {(o.status === ORDER_STATUS.PENDING || o.status === ORDER_STATUS.IN_PROGRESS) && (
-                                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                                   <button
                                     onClick={() => printOrderSmart(o)}
-                                    style={{ padding: '6px 10px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}
+                                    style={{ padding: '7px 11px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
                                     title="In bill cho bếp"
                                   >
                                     Print
                                   </button>
+
                                   {o.status === ORDER_STATUS.PENDING && (
                                     <button
                                       onClick={() => setOrderStatus(o.id, ORDER_STATUS.IN_PROGRESS)}
-                                      style={{ padding: '6px 10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}
+                                      style={{ padding: '7px 11px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
                                     >
                                       Start
                                     </button>
                                   )}
+
                                   <button
                                     onClick={() => setOrderStatus(o.id, ORDER_STATUS.DONE)}
-                                    style={{ padding: '6px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}
+                                    style={{ padding: '7px 11px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
                                   >
                                     Done
                                   </button>
+
                                   <button
                                     onClick={async () => {
                                       const reason = window.prompt('Lý do hủy đơn?', '');
                                       if (reason == null) return;
                                       await setOrderStatus(o.id, ORDER_STATUS.CANCELLED, reason);
                                     }}
-                                    style={{ padding: '6px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}
+                                    style={{ padding: '7px 11px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
                                   >
                                     Cancel
                                   </button>

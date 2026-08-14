@@ -1,18 +1,39 @@
-﻿'use strict';
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
+let sqliteStore = null;
+try {
+  sqliteStore = require('../sqliteStore');
+} catch {}
 // Danh sách khu vực và dải số bàn chuẩn của app
 const AREA_DEFS = [
   { name: 'Roulette 1', ranges: [[101, 117]] },
   { name: 'Roulette 2', ranges: [[201, 231]] },
   { name: 'Roulette 3', ranges: [[301, 317]] },
-  { name: 'Multi', ranges: [[501, 510]] },
-  { name: 'Non - Smoking', ranges: [[1001, 1008]] },
-  { name: 'Reception 2', ranges: [[1009, 1024]] },
-  { name: 'Center', ranges: [[1025, 1030], [5001, 5008], [3001, 3027]] },
+
+  // Theo sơ đồ vị trí máy cập nhật ngày 06/08/2026
+  { name: 'Reception 1', tables: [7001, 7002, 7003, 7004, 7005, 7006, 7007, 7008] },
+  { name: 'Reception 2', ranges: [[1001, 1004], [1009, 1020]] },
+  { name: 'Center', tables: [
+    1005, 1006, 1007, 1008,
+    1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030,
+    3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008,
+    3012, 3014, 3015, 3016, 3017, 3018, 3019, 3020, 3021,
+    3022, 3023, 3024, 3025, 3026, 3027,
+  ] },
+  { name: 'Multi', tables: [
+    501, 502, 503, 504, 505, 506, 507, 508, 509, 510,
+    8001, 8002, 8003, 8004, 8005, 8006,
+  ] },
   { name: 'Table', ranges: [[11, 15], [21, 25]] },
-  { name: '2 Floor', ranges: [[2001, 2028]] },
+  { name: '2 Floor', tables: [
+    1021, 3013,
+    2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009,
+    2010, 2011, 2012, 2013, 2014, 2016, 2018,
+    2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028,
+    8007, 8008, 8009,
+  ] },
 ];
 function readJsonSafe(file, fallback) {
   try {
@@ -31,6 +52,95 @@ function writeJsonSafe(file, data) {
   const tmp = `${file}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
   fs.renameSync(tmp, file);
+}
+
+// ===== Local AI storage helpers: ưu tiên SQLite, fallback JSON =====
+function loadAiTraining(paths = {}) {
+  try {
+    if (sqliteStore?.listLocalAiTraining) {
+      return sqliteStore.listLocalAiTraining(1000);
+    }
+  } catch {}
+  return readJsonSafe(paths.training, []);
+}
+
+function insertAiTraining(row, paths = {}) {
+  try {
+    if (sqliteStore?.insertLocalAiTraining) {
+      return sqliteStore.insertLocalAiTraining(row);
+    }
+  } catch {}
+
+  const list = readJsonSafe(paths.training, []);
+  list.push(row);
+  writeJsonSafe(paths.training, list.slice(-1000));
+  return row;
+}
+
+function loadAiMemory(paths = {}) {
+  try {
+    if (sqliteStore?.listLocalAiMemory) {
+      return sqliteStore.listLocalAiMemory(1000);
+    }
+  } catch {}
+  return readJsonSafe(paths.memory, []);
+}
+
+function insertAiMemory(row, paths = {}) {
+  try {
+    if (sqliteStore?.insertLocalAiMemory) {
+      return sqliteStore.insertLocalAiMemory(row);
+    }
+  } catch {}
+
+  const list = readJsonSafe(paths.memory, []);
+  list.push(row);
+  writeJsonSafe(paths.memory, list.slice(-1000));
+  return row;
+}
+
+function loadAiPending(paths = {}) {
+  try {
+    if (sqliteStore?.listLocalAiPendingLearning) {
+      return sqliteStore.listLocalAiPendingLearning(1000);
+    }
+  } catch {}
+  return readJsonSafe(paths.pendingLearning, []);
+}
+
+function insertAiPending(row, paths = {}) {
+  try {
+    if (sqliteStore?.insertLocalAiPendingLearning) {
+      return sqliteStore.insertLocalAiPendingLearning(row);
+    }
+  } catch {}
+
+  const list = readJsonSafe(paths.pendingLearning, []);
+  list.push(row);
+  writeJsonSafe(paths.pendingLearning, list.slice(-1000));
+  return row;
+}
+
+function updateAiPending(id, patch = {}, paths = {}) {
+  try {
+    if (sqliteStore?.updateLocalAiPendingLearning) {
+      return sqliteStore.updateLocalAiPendingLearning(id, patch);
+    }
+  } catch {}
+
+  const pending = readJsonSafe(paths.pendingLearning, []);
+  const idx = pending.findIndex((x) => String(x.id) === String(id));
+  if (idx < 0) return null;
+
+  pending[idx] = {
+    ...pending[idx],
+    ...patch,
+    id: pending[idx].id,
+    updatedAt: patch.updatedAt || new Date().toISOString(),
+  };
+
+  writeJsonSafe(paths.pendingLearning, pending);
+  return pending[idx];
 }
 
 function removeVietnameseAccent(str) {
@@ -94,6 +204,29 @@ function getBusinessRangeYesterday(now = new Date()) {
 
 function getRangeFromMessage(message) {
   const m = norm(message);
+  // Phân tích “n tháng gần đây”
+  const monthMatch = m.match(/(\d+)\s*thang/);
+  if (monthMatch) {
+    const numMonths = parseInt(monthMatch[1], 10);
+    if (Number.isFinite(numMonths) && numMonths > 0 && numMonths <= 12) {
+      const to = new Date();
+      const from = new Date(to);
+      from.setMonth(from.getMonth() - numMonths);
+      return { from, to, label: `${numMonths} tháng gần đây` };
+    }
+  }
+
+  // Phân tích “n năm gần đây”
+  const yearMatch = m.match(/(\d+)\s*nam/);
+  if (yearMatch) {
+    const numYears = parseInt(yearMatch[1], 10);
+    if (Number.isFinite(numYears) && numYears > 0 && numYears <= 10) {
+      const to = new Date();
+      const from = new Date(to);
+      from.setFullYear(from.getFullYear() - numYears);
+      return { from, to, label: `${numYears} năm gần đây` };
+    }
+  }
   if (m.includes('hom qua')) return getBusinessRangeYesterday();
   if (m.includes('hom nay') || m.includes('today')) return getBusinessRangeToday();
   if (m.includes('7 ngay') || m.includes('tuan nay') || m.includes('last 7')) {
@@ -119,14 +252,43 @@ function inRange(order, range) {
 }
 
 function loadData(paths = {}) {
-  const orders = readJsonSafe(paths.orders, []);
-  const foods = readJsonSafe(paths.foods, []);
-  const productsRaw = readJsonSafe(paths.products, []);
-  const products = Array.isArray(productsRaw) ? productsRaw : (Array.isArray(productsRaw?.rows) ? productsRaw.rows : []);
-  const members = readJsonSafe(paths.members, {});
-  const training = readJsonSafe(paths.training, []);
-  const memory = readJsonSafe(paths.memory, []);
-  const pendingLearning = readJsonSafe(paths.pendingLearning, []);
+  let orders = [];
+  let members = {};
+  let productsRaw = [];
+
+  try {
+    orders = sqliteStore ? sqliteStore.loadOrders() : readJsonSafe(paths.orders, []);
+  } catch {
+    orders = readJsonSafe(paths.orders, []);
+  }
+
+    let foods = [];
+  try {
+    foods = sqliteStore ? sqliteStore.loadFoods() : readJsonSafe(paths.foods, []);
+  } catch {
+    foods = readJsonSafe(paths.foods, []);
+  }
+
+  try {
+    productsRaw = sqliteStore ? sqliteStore.loadProducts() : readJsonSafe(paths.products, []);
+  } catch {
+    productsRaw = readJsonSafe(paths.products, []);
+  }
+
+  try {
+    members = sqliteStore ? sqliteStore.loadMembers() : readJsonSafe(paths.members, {});
+  } catch {
+    members = readJsonSafe(paths.members, {});
+  }
+
+  const products = Array.isArray(productsRaw)
+    ? productsRaw
+    : (Array.isArray(productsRaw?.rows) ? productsRaw.rows : []);
+
+  const training = loadAiTraining(paths);
+  const memory = loadAiMemory(paths);
+  const pendingLearning = loadAiPending(paths);
+
   return { orders, foods, products, members, training, memory, pendingLearning };
 }
 
@@ -216,8 +378,18 @@ function compactCode(v) {
   return String(v || '').replace(/[^A-Za-z0-9]/g, '').trim();
 }
 
+function isTimeLikeToken(t) {
+  const raw = removeVietnameseAccent(String(t || '')).toLowerCase().trim();
+  if (!raw) return false;
+  // Tránh hiểu nhầm giờ thành mã khách: 3h, 12h, 15:32, 12gio...
+  return (
+    /^\d{1,2}(?:h|g|gio)$/.test(raw) ||
+    /^\d{1,2}:\d{1,2}$/.test(raw)
+  );
+}
+
 function isCodeStopToken(t) {
-  return /^(nay|này|co|có|hay|thuong|thường|an|ăn|uong|uống|order|goi|gọi|gio|giờ|luc|lúc|may|mấy|ghi|chu|chú|note|mon|món|gi|gì|chua|chưa|ko|khong|không|k|cho|da|đã|tung|từng)$/i.test(String(t || ''));
+  return /^(nay|này|co|có|hay|thuong|thường|thich|thích|like|favorite|an|ăn|uong|uống|order|goi|gọi|gio|giờ|luc|lúc|may|mấy|ghi|chu|chú|note|mon|món|gi|gì|chua|chưa|ko|khong|không|k|cho|da|đã|tung|từng|trong|ngay|ngày|tuan|tuần|thang|tháng|nam|năm|qua|gan|gần|nhat|nhất|lan|lần|cuoi|cuối|moi|mới|bao|nhieu|nhiêu|so|số)$/i.test(String(t || ''));
 }
 
 function looksLikeCustomerQuestion(message) {
@@ -253,6 +425,118 @@ function pickCodeAfterToken(tokens, startIdx) {
   }
   return compactCode(parts.join(''));
 }
+/**
+ * Trong trường hợp câu hỏi có chứa thời gian cụ thể (\"lúc ... ngày ...\"), hàm lấy mã khách
+ * mặc định có thể không bắt được do có quá nhiều số. Hàm này quét ngược từ cuối câu
+ * để tìm mã khách, bỏ qua các token thuộc về ngày tháng sau từ \"ngay\". Nếu gặp
+ * token \"ngay\" khi quét từ cuối, dừng lại để tránh nhầm lẫn năm/tháng/ngày thành mã.
+ */
+function stripSpecificDateTimeText(message) {
+  let s = removeVietnameseAccent(String(message || '')).toLowerCase();
+
+  // Chuẩn hóa dấu phân cách để regex dễ bắt hơn.
+  s = s.replace(/[–—−]/g, '-');
+
+  // 3h ngày 13/05/2026, 12h ngay 12/05/2026, 12:30 ngày 12/05/2026
+  // Đây là lỗi chính: nếu không bỏ cụm này, "3h" dễ bị hiểu là mã khách.
+  s = s.replace(
+    /\b\d{1,2}(?::\d{1,2})?\s*(?:h|gio|g)\s*(?:ngay\s*)?\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?/g,
+    ' '
+  );
+
+  // lúc/khoảng/tầm/cỡ/gần 12h ngày 12/05/2026
+  // luc 12:30 ngay 12/05/2026
+  s = s.replace(
+    /\b(?:luc|khoang|tam|co|gan|around|about)\s*\d{1,2}(?::\d{1,2})?\s*(?:h|gio|g)?\s*(?:ngay\s*)?\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?/g,
+    ' '
+  );
+
+  // ngày 12/05/2026 lúc/khoảng 12h, 12/05/2026 12h
+  s = s.replace(
+    /\b(?:ngay\s*)?\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\s*(?:luc|khoang|tam|co|gan|around|about)?\s*\d{1,2}(?::\d{1,2})?\s*(?:h|gio|g)\b/g,
+    ' '
+  );
+
+  // 03/05/2026 15:32 hoặc 03/05 15:32
+  s = s.replace(
+    /\b\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\s+\d{1,2}:\d{1,2}\b/g,
+    ' '
+  );
+
+  // 15:32 03/05/2026
+  s = s.replace(
+    /\b\d{1,2}:\d{1,2}\s+\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\b/g,
+    ' '
+  );
+
+  // ngày 12/05/2026
+  s = s.replace(
+    /\bngay\s*\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?/g,
+    ' '
+  );
+
+  // ngày rời rạc còn lại: 12/05/2026
+  s = s.replace(
+    /\b\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\b/g,
+    ' '
+  );
+
+  // lúc/khoảng/tầm/cỡ/gần 12h / lúc 12:30
+  s = s.replace(
+    /\b(?:luc|khoang|tam|co|gan|around|about)\s*\d{1,2}(?::\d{1,2})?\s*(?:h|gio|g)?/g,
+    ' '
+  );
+
+  // Giờ đứng một mình: 3h, 12h, 15:32
+  s = s.replace(/\b\d{1,2}(?::\d{1,2})?\s*(?:h|gio|g)\b/g, ' ');
+  s = s.replace(/\b\d{1,2}:\d{1,2}\b/g, ' ');
+
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+function findCustomerCodeAfterTime(message) {
+  const cleaned = stripSpecificDateTimeText(message);
+  const tokens = norm(cleaned).split(' ').filter(Boolean);
+
+  // Ưu tiên mã sau marker rõ ràng: "khách hàng 1", "khách 1", "member 1".
+  // Làm bước này trước để câu "3h ngày ... khách hàng 1" không bị hiểu nhầm 3h là mã.
+  for (let i = 0; i < tokens.length; i += 1) {
+    if (['khach', 'customer', 'member', 'card'].includes(tokens[i])) {
+      const code = pickCodeAfterToken(tokens, i + 1);
+      if (code && !isTimeLikeToken(code) && looksLikeRealCustomerCode(code)) return code;
+    }
+  }
+
+  // Ưu tiên mã khách ở đầu câu sau khi đã bỏ ngày/giờ:
+  // "03/05/2026 15:32 1 đã order gì" => còn "1 da order gi".
+  if (tokens.length >= 2) {
+    const firstRaw = tokens[0];
+    const first = compactCode(firstRaw);
+    if (
+      first &&
+      !isTimeLikeToken(firstRaw) &&
+      !isTimeLikeToken(first) &&
+      !isCodeStopToken(first) &&
+      /^[a-z0-9]{1,12}$/i.test(first) &&
+      looksLikeRealCustomerCode(first)
+    ) {
+      return first;
+    }
+  }
+
+  // Fallback: quét ngược tìm mã số cuối cùng còn lại, bỏ qua token giống giờ.
+  for (let i = tokens.length - 1; i >= 0; i -= 1) {
+    const t = tokens[i];
+    const code = compactCode(t);
+    if (isTimeLikeToken(t) || isTimeLikeToken(code)) continue;
+    if (looksLikeRealCustomerCode(code) && !isCodeStopToken(code)) {
+      return code;
+    }
+  }
+
+  return '';
+}
+
 function looksLikeRealCustomerCode(v) {
   const s = compactCode(v);
   if (!s) return false;
@@ -297,8 +581,9 @@ function getCustomerCodeFromMessage(message, context = {}) {
 
   // 3) Bắt câu thiếu chữ khách: "1 hay uống gì", "1 có ăn cơm chiên không?".
   if (tokens.length >= 2 && looksLikeCustomerQuestion(message)) {
-    const first = compactCode(tokens[0]);
-   if (first && !isCodeStopToken(first) && /^[a-z0-9]{1,12}$/i.test(first) && looksLikeRealCustomerCode(first)) {
+    const firstRaw = tokens[0];
+    const first = compactCode(firstRaw);
+   if (first && !isTimeLikeToken(firstRaw) && !isTimeLikeToken(first) && !isCodeStopToken(first) && /^[a-z0-9]{1,12}$/i.test(first) && looksLikeRealCustomerCode(first)) {
   return first;
 }
   }
@@ -747,7 +1032,7 @@ function answerHasCustomerOrderedItem({ code, customerOrders, maps, members, mes
   ].filter(Boolean).join('\n');
 }
 
-function answerCustomerTop({ code, customerOrders, maps, members, type }) {
+function answerCustomerTop({ code, customerOrders, maps, members, type, range = null }) {
   const name = customerOrders[0] ? customerNameFromOrder(customerOrders[0], members) : (members[code]?.name || members[code]?.customerName || '');
   const level = customerOrders[0] ? customerLevelFromOrder(customerOrders[0], members) : (members[code]?.level || members[code]?.memberLevel || '');
   const title = name ? `${name}${level ? ` - level ${level}` : ''} (${code})` : `khách ${code} (chưa có tên khách trong dữ liệu)`;
@@ -763,14 +1048,16 @@ function answerCustomerTop({ code, customerOrders, maps, members, type }) {
   }
 
   const top = buildItemStats(customerOrders, maps, filterFn);
-  if (!customerOrders.length) return `Chưa thấy lịch sử order của khách ${code}.`;
-  if (!top.length) return `Có ${customerOrders.length} order của ${title}, nhưng chưa thấy dữ liệu phù hợp để trả lời nhóm này.`;
+  const scope = range?.label || 'toàn bộ lịch sử';
+
+  if (!customerOrders.length) return `Chưa thấy lịch sử order của khách ${code} trong ${scope}.`;
+  if (!top.length) return `Có ${customerOrders.length} order của ${title} trong ${scope}, nhưng chưa thấy dữ liệu phù hợp để trả lời nhóm này.`;
 
   return [
     `${heading}:`,
-    `- Tổng lịch sử: ${customerOrders.length} order`,
+    `- Phạm vi: ${scope}`,
+    `- Tổng: ${customerOrders.length} order`,
     formatTopItems(top, 8),
-
   ].join('\n');
 }
 
@@ -840,10 +1127,11 @@ function answerCustomerOrdersInRange({ code, customerOrders, maps, members, rang
     scopeText = 'món ăn đã order';
   }
 
-  const topItems = buildItemStats(customerOrders, maps, filterFn).slice(0, 8);
+  const allItemStats = buildItemStats(customerOrders, maps, filterFn);
+  const topItems = allItemStats.slice(0, 8);
   const latest = customerOrders[0];
   const latestItems = formatOrderItems(latest, maps, filterFn);
-  const totalQty = topItems.reduce((sum, it) => sum + it.qty, 0);
+  const totalQty = allItemStats.reduce((sum, it) => sum + it.qty, 0);
 
   if (filterFn && !topItems.length) {
     return `Có ${customerOrders.length} order của ${title} trong ${label}, nhưng chưa thấy ${scopeText} phù hợp trong các order đó.`;
@@ -867,7 +1155,7 @@ function isCustomerOrderSummaryIntent(message) {
   const hasOrderWord = /\b(order|goi|goi mon|dat mon)\b/.test(m);
   const hasDateWord = /\b(hom nay|hom qua|7 ngay|30 ngay|tuan nay|thang nay|gan day|today|yesterday)\b/.test(m);
   const askExist = /\b(co|da|chua|ko|khong|k)\b/.test(m) && hasOrderWord;
-  const askWhat = /\b(order gi|goi gi|goi mon gi|an gi|uong gi|mon gi)\b/.test(m);
+  const askWhat = /\b(order gi|order nhung gi|da order nhung gi|goi gi|goi nhung gi|da goi nhung gi|goi mon gi|an gi|uong gi|mon gi)\b/.test(m);
   const askLatest = /\b(lan gan nhat|gan nhat|moi nhat|last order|latest order)\b/.test(m);
   return (hasOrderWord && (hasDateWord || askExist || askWhat || askLatest)) || (hasDateWord && /\b(an|uong)\b/.test(m));
 }
@@ -1306,11 +1594,13 @@ function buildDefinedTableKeys() {
   const keys = [];
 
   for (const area of AREA_DEFS) {
+    const numbers = new Set((area.tables || []).map(Number).filter(Number.isFinite));
+
     for (const [from, to] of area.ranges || []) {
-      for (let n = Number(from); n <= Number(to); n += 1) {
-        keys.push(`${area.name}|${n}`);
-      }
+      for (let n = Number(from); n <= Number(to); n += 1) numbers.add(n);
     }
+
+    for (const n of numbers) keys.push(`${area.name}|${n}`);
   }
 
   return keys;
@@ -1740,6 +2030,8 @@ return `${label} có ${tables.size}/${allTables.size} bàn đã có order.`;
     `- Số bàn đã order: ${new Set(rows.map(getTableKey).filter(Boolean)).size}`,
   ].join('\n');
 }
+
+
 function answerTopItemsToday({ orders, maps, message }) {
   const range = getRangeFromMessage(message) || getBusinessRangeToday();
   const rows = (orders || []).filter((o) => o.status !== 'CANCELLED' && inRange(o, range));
@@ -1803,7 +2095,135 @@ function answerTopCustomers({ orders, members, message }) {
   const label = range?.label ? ` trong ${range.label}` : '';
   return [`Top khách order nhiều${label}:`, top.map((x, i) => `${i + 1}. ${x.name || 'chưa có tên khách trong dữ liệu'} (${x.code})${x.level ? ` - level ${x.level}` : ''} — ${x.orders} order, ${x.items} phần${x.lastAt ? `, gần nhất ${fmtDateTime(x.lastAt)}` : ''}`).join('\n')].join('\n');
 }
+function extractItemTextForCustomerRanking(message = '') {
+  let m = norm(message);
 
+  // Bỏ các cụm thời gian để không nhầm thành tên món.
+  m = m.replace(/\b\d+\s*(ngay|tuan|thang|nam)\s*(qua|gan day)?\b/g, ' ');
+  m = m.replace(/\b(hom nay|hom qua|today|yesterday|gan day|trong|qua)\b/g, ' ');
+
+  const stop = new Set([
+    'khach', 'customer', 'member', 'ai', 'nao', 'top',
+    'order', 'goi', 'dat', 'mon', 'food', 'item',
+    'nhieu', 'nhat', 'it', 'xem', 'cho', 'minh',
+    'da', 'co', 'chua', 'khong', 'ko', 'k',
+  ]);
+
+  const tokens = m
+    .split(/\s+/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .filter((x) => !stop.has(x));
+
+  return tokens.join(' ').trim();
+}
+
+function wantsTopCustomersByItemQuestion(message = '') {
+  const m = norm(message);
+  const padded = ` ${m} `;
+
+  const hasCustomerAsk =
+    padded.includes(' khach ') ||
+    padded.includes(' customer ') ||
+    padded.includes(' member ') ||
+    padded.includes(' ai ');
+
+  const hasOrderWord =
+    padded.includes(' order ') ||
+    padded.includes(' goi ') ||
+    padded.includes(' dat ');
+
+  const hasTopWord =
+    padded.includes(' nhieu nhat ') ||
+    padded.includes(' top ') ||
+    padded.includes(' order nhieu ') ||
+    padded.includes(' goi nhieu ');
+
+  const wanted = extractItemTextForCustomerRanking(message);
+
+  return hasCustomerAsk && hasOrderWord && hasTopWord && wanted.length >= 2;
+}
+
+function answerTopCustomersByItem({ orders, members, maps, message }) {
+  const range = getRangeFromMessage(message) || null;
+  const label = range?.label || 'toàn bộ lịch sử';
+  const wanted = extractItemTextForCustomerRanking(message);
+
+  if (!wanted) {
+    return 'Bạn cho mình tên món rõ hơn để mình thống kê khách order món đó nhiều nhất nhé.';
+  }
+
+  const rows = validOrdersInRange(orders, range);
+  const stats = new Map();
+
+  rows.forEach((o) => {
+    const code = getOrderCustomerCode(o);
+    if (!code) return;
+
+    let matchedQty = 0;
+    let matchedNames = new Map();
+
+    for (const raw of o.items || []) {
+      const it = enrichItem(raw, maps);
+      if (!itemMatchesKeyword(it, wanted)) continue;
+
+      matchedQty += it.qty;
+      const itemKey = it.productCode || it.name;
+      matchedNames.set(itemKey, (matchedNames.get(itemKey) || 0) + it.qty);
+    }
+
+    if (matchedQty <= 0) return;
+
+    const cur = stats.get(code) || {
+      code,
+      name: getOrderCustomerName(o, members),
+      level: getOrderCustomerLevel(o, members),
+      orderCount: 0,
+      totalQty: 0,
+      lastAt: null,
+      items: new Map(),
+    };
+
+    cur.orderCount += 1;
+    cur.totalQty += matchedQty;
+
+    for (const [itemName, qty] of matchedNames.entries()) {
+      cur.items.set(itemName, (cur.items.get(itemName) || 0) + qty);
+    }
+
+    const t = o.createdAt || o.updatedAt || '';
+    if (t && (!cur.lastAt || new Date(t) > new Date(cur.lastAt))) {
+      cur.lastAt = t;
+    }
+
+    if (!cur.name) cur.name = getOrderCustomerName(o, members);
+    if (!cur.level) cur.level = getOrderCustomerLevel(o, members);
+
+    stats.set(code, cur);
+  });
+
+  const top = Array.from(stats.values())
+    .sort((a, b) =>
+      b.totalQty - a.totalQty ||
+      b.orderCount - a.orderCount ||
+      new Date(b.lastAt || 0) - new Date(a.lastAt || 0)
+    )
+    .slice(0, 10);
+
+  if (!top.length) {
+    return `Chưa thấy khách nào order món liên quan "${displayWantedText(wanted)}" trong ${label}.`;
+  }
+
+  return [
+    `Top khách order món liên quan "${displayWantedText(wanted)}" nhiều nhất trong ${label}:`,
+    top.map((x, i) => {
+      const name = x.name || 'chưa có tên khách trong dữ liệu';
+      const level = x.level ? ` - level ${x.level}` : '';
+      const last = x.lastAt ? `, gần nhất ${fmtDateTime(x.lastAt)}` : '';
+      return `${i + 1}. ${name} (${x.code})${level} — ${x.orderCount} order, ${x.totalQty} phần${last}`;
+    }).join('\n'),
+  ].join('\n');
+}
 function answerRevenueSummary({ orders, message }) {
   const range = getRangeFromMessage(message) || getBusinessRangeToday();
   const rows = (orders || []).filter((o) => o.status !== 'CANCELLED' && inRange(o, range));
@@ -2088,12 +2508,14 @@ function answerGeneralAppQuestion({ message = '', mode = 'user' } = {}) {
     return base.join('\n');
   }
 
-  const askWhatApp =
-    m.includes('day la phan mem gi') ||
-    m.includes('phan mem gi') ||
-    m.includes('app gi') ||
-    m.includes('food order la gi') ||
-    m.includes('he thong nay la gi');
+const askWhatApp =
+  m.includes('day la phan mem gi') ||
+  m.includes('phan mem gi') ||
+  m.includes('app gi') ||
+  m.includes('app nay la gi') ||
+  m.includes('ung dung nay la gi') ||
+  m.includes('food order la gi') ||
+  m.includes('he thong nay la gi');
 
   if (askWhatApp) {
     return [
@@ -2487,7 +2909,47 @@ function wantsGeneralNotesQuestion(message = '') {
     'note mon an',
   ]);
 }
+/**
+ * Check if the message is asking for top customers (khách) rather than top items.
+ * Examples: “top khách order nhiều”, “khách order nhiều nhất 7 ngày qua”, “top member”.
+ */
+function wantsTopCustomersQuestion(message = '') {
+  const m = norm(message);
+  const padded = ` ${m} `;
+  // Nếu câu chứa từ liên quan đến món ăn thì không phải hỏi top khách.
+  const hasItemWord =
+    padded.includes(' mon ') ||
+    padded.includes(' food ') ||
+    padded.includes(' item ') ||
+    padded.includes(' do an ') ||
+    padded.includes(' do uong ');
+  if (hasItemWord) return false;
 
+  // Xác định có từ “khach”, “customer” hoặc “member”.
+  const hasCustomerWord =
+    padded.includes(' khach ') ||
+    padded.includes(' customer ') ||
+    padded.includes(' member ');
+  if (!hasCustomerWord) return false;
+
+  // Nhận diện các cụm từ top khách.
+  return (
+    hasPhrase(m, [
+      'top khach',
+      'top khách',
+      'khach order nhieu',
+      'khach dat nhieu',
+      'khach goi nhieu',
+      'khach nhieu nhat',
+      'khach order nhieu nhat',
+      'top member',
+      'khach order nhieu nhat trong',
+      'khach order nhieu trong',
+    ]) ||
+    (hasCustomerWord &&
+      hasPhrase(m, ['top', 'order nhieu', 'dat nhieu', 'goi nhieu', 'nhieu nhat']))
+  );
+}
 function wantsRevenueQuestion(message = '') {
   return hasPhrase(message, [
     'doanh thu',
@@ -2672,7 +3134,7 @@ function answerLocalFoodQuestion({ mode = 'user', message = '', history = [], co
 
   const m = norm(msg);
   const range = getRangeFromMessage(msg);
-
+  const specificRange = parseSpecificDateTimeRange(msg);
   // 4) Câu hỏi chung về app.
   const generalAnswer = answerGeneralAppQuestion({ message: msg, mode });
   if (generalAnswer) {
@@ -2704,6 +3166,47 @@ function answerLocalFoodQuestion({ mode = 'user', message = '', history = [], co
     };
   }
 
+  // 6.0) Ưu tiên xử lý câu hỏi nhanh theo khách trước analytics tổng quan.
+  // Ví dụ: "Khách hàng - 1 hay ăn gì?", "Khách hàng - 1 đã order bao nhiêu lần trong 30 ngày qua?".
+  if (
+    !specificRange &&
+    typeof parseCustomerQuestion === 'function' &&
+    typeof answerCustomerEngine === 'function'
+  ) {
+    const parsedCustomer = parseCustomerQuestion(msg, history, context);
+    if (parsedCustomer && parsedCustomer.intent) {
+      const engineAnswer = answerCustomerEngine(parsedCustomer, { orders, members, maps });
+      if (engineAnswer) {
+        return {
+          ok: true,
+          mode,
+          provider: 'local',
+          answer: engineAnswer,
+        };
+      }
+    }
+  }
+
+// 6.0) Top khách theo món cụ thể.
+// Ví dụ: "Khách nào order món KIMBAP nhiều nhất?"
+if (wantsTopCustomersByItemQuestion(msg)) {
+  return {
+    ok: true,
+    mode,
+    provider: 'local',
+    answer: answerTopCustomersByItem({ orders, members, maps, message: msg }),
+  };
+}
+
+// 6.1) Top khách: ưu tiên trả lời câu hỏi top khách theo số order.
+if (wantsTopCustomersQuestion(msg)) {
+  return {
+    ok: true,
+    mode,
+    provider: 'local',
+    answer: answerTopCustomers({ orders, members, message: msg }),
+  };
+}
   // 7) Ưu tiên top món/bán chạy trước analytics tổng quan.
   // Fix lỗi: "Gợi ý món bán chạy hôm nay" không được trả tổng quan order.
   if (wantsTopItemsQuestion(msg)) {
@@ -2750,7 +3253,68 @@ function answerLocalFoodQuestion({ mode = 'user', message = '', history = [], co
       }),
     };
   }
+  // 9.5) Ưu tiên xử lý câu hỏi có ngày/giờ cụ thể trước Customer Question Engine.
+// Ví dụ:
+// - lúc 12h ngày 12/05/2026 1 đã order gì?
+// - 03/05/2026 15:32 1 đã order gì?
+if (specificRange) {
+  let timeCode = '';
 
+  // Ưu tiên lấy mã khách sau khi đã loại bỏ ngày/giờ.
+  // Tránh lỗi 03/05/2026 bị hiểu thành khách 03.
+  if (typeof findCustomerCodeAfterTime === 'function') {
+    timeCode = findCustomerCodeAfterTime(msg);
+  }
+
+  if (!timeCode) {
+    timeCode = getCustomerCodeFromMessage(msg, context);
+  }
+
+  if (!timeCode && isCurrentCustomerReference(msg)) {
+    timeCode = getLastCustomerCodeFromHistory(history);
+  }
+
+  if (timeCode) {
+    const ans = answerCustomerOrdersAtDateTime({
+      code: timeCode,
+      range: specificRange,
+      orders,
+      members,
+      maps,
+    });
+
+    if (ans) {
+      return {
+        ok: true,
+        mode,
+        provider: 'local',
+        answer: ans,
+      };
+    }
+  }
+}
+// --- Begin Customer Question Engine ---
+// Không cho engine này chạy nếu câu có ngày/giờ cụ thể,
+// vì nó có thể hiểu nhầm ngày/tháng như 03/05 thành mã khách 03.
+if (
+  !specificRange &&
+  typeof parseCustomerQuestion === 'function' &&
+  typeof answerCustomerEngine === 'function'
+) {
+  const parsedCustomer = parseCustomerQuestion(msg, history, context);
+  if (parsedCustomer && parsedCustomer.intent) {
+    const engineAnswer = answerCustomerEngine(parsedCustomer, { orders, members, maps });
+    if (engineAnswer) {
+      return {
+        ok: true,
+        mode,
+        provider: 'local',
+        answer: engineAnswer,
+      };
+    }
+  }
+}
+// --- End Customer Question Engine ---
   // 11) Xác định mã khách.
   let code = getCustomerCodeFromMessage(msg, context);
   const smartIntent = detectLocalSmartIntent(msg);
@@ -2759,7 +3323,11 @@ function answerLocalFoodQuestion({ mode = 'user', message = '', history = [], co
   if (!code && isCurrentCustomerReference(msg)) {
     code = getLastCustomerCodeFromHistory(history);
   }
-
+// 11.1.5) Nếu chưa có mã và câu hỏi có ngày/giờ cụ thể, thử lấy mã ở cuối câu
+if (!code && specificRange) {
+  const altCode = findCustomerCodeAfterTime(msg);
+  if (altCode) code = altCode;
+}
   // 11.2) Nếu user hỏi tên khách thay vì mã, chỉ search tên khi câu thật sự giống tên.
   if (!code && smartIntent && canSearchCustomerNameFromQuestion(msg)) {
     const nameMatch = resolveCustomerByNameLocal({ message: msg, orders, members });
@@ -2785,7 +3353,18 @@ function answerLocalFoodQuestion({ mode = 'user', message = '', history = [], co
       answer: missingCustomerCodeAnswer(msg),
     };
   }
-
+// 11.4) Nếu đã xác định mã khách và có khoảng thời gian cụ thể, ưu tiên trả lời ngay
+if (code && specificRange) {
+  const ans = answerCustomerOrdersAtDateTime({ code, range: specificRange, orders, members, maps });
+  if (ans) {
+    return {
+      ok: true,
+      mode,
+      provider: 'local',
+      answer: ans,
+    };
+  }
+}
   const customerOrders = code ? getCustomerOrders(orders, code, range) : [];
 
   let answer = '';
@@ -2837,6 +3416,7 @@ function answerLocalFoodQuestion({ mode = 'user', message = '', history = [], co
       maps,
       members,
       type,
+      range,
     });
   } else if (
     code &&
@@ -3127,7 +3707,7 @@ function recordLocalFoodAiFeedback({
   };
 
   if (detected.safe && detected.autoApprove) {
-    const memory = readJsonSafe(paths.memory, []);
+        const memory = loadAiMemory(paths);
     const duplicated = memory.some((m) =>
       norm(m.type) === norm(row.type) &&
       norm(m.phrase) === norm(row.phrase) &&
@@ -3136,8 +3716,7 @@ function recordLocalFoodAiFeedback({
     );
 
     if (!duplicated) {
-      memory.push(row);
-      writeJsonSafe(paths.memory, memory.slice(-1000));
+            insertAiMemory(row, paths);
     }
 
     return {
@@ -3148,9 +3727,7 @@ function recordLocalFoodAiFeedback({
     };
   }
 
-  const pending = readJsonSafe(paths.pendingLearning, []);
-  pending.push(row);
-  writeJsonSafe(paths.pendingLearning, pending.slice(-1000));
+    insertAiPending(row, paths);
 
   return {
     ok: true,
@@ -3161,7 +3738,7 @@ function recordLocalFoodAiFeedback({
 }
 
 function listLocalFoodAiPending({ paths = {} } = {}) {
-  const pending = readJsonSafe(paths.pendingLearning, []);
+  const pending = loadAiPending(paths);
   return {
     ok: true,
     items: pending.filter((x) => x.status === 'pending')
@@ -3174,20 +3751,22 @@ function approveLocalFoodAiLearning({
   by = 'admin',
   paths = {}
 } = {}) {
-  const pending = readJsonSafe(paths.pendingLearning, []);
-  const idx = pending.findIndex((x) => String(x.id) === String(id));
+  const pending = loadAiPending(paths);
+  const found = pending.find((x) => String(x.id) === String(id));
 
-  if (idx < 0) {
+  if (!found) {
     return { ok: false, error: 'Không tìm thấy nội dung cần duyệt.' };
   }
 
-  const row = pending[idx];
-  row.status = approve ? 'approved' : 'rejected';
-  row.reviewedBy = by;
-  row.reviewedAt = new Date().toISOString();
+  const row = {
+    ...found,
+    status: approve ? 'approved' : 'rejected',
+    reviewedBy: by,
+    reviewedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 
-  pending[idx] = row;
-  writeJsonSafe(paths.pendingLearning, pending);
+  updateAiPending(id, row, paths);
 
   if (!approve) {
     return {
@@ -3197,9 +3776,7 @@ function approveLocalFoodAiLearning({
     };
   }
 
-  const memory = readJsonSafe(paths.memory, []);
-  memory.push({ ...row, status: 'approved' });
-  writeJsonSafe(paths.memory, memory.slice(-1000));
+  insertAiMemory({ ...row, status: 'approved' }, paths);
 
   return {
     ok: true,
@@ -3212,30 +3789,35 @@ function trainLocalFoodAI({ content = '', source = 'chatbox-admin', by = 'admin'
   const text = String(content || '').trim();
   if (!text) return { ok: false, error: 'Thiếu nội dung training.' };
   if (text.length > 5000) return { ok: false, error: 'Nội dung training quá dài, tối đa 5000 ký tự.' };
-  const file = paths.training;
-  const list = readJsonSafe(file, []);
+
   const row = {
-    id: Date.now() + Math.random(),
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     at: new Date().toISOString(),
     by,
     source,
     tags,
     content: text,
   };
-  list.push(row);
-  writeJsonSafe(file, list.slice(-1000));
-  return { ok: true, message: 'Đã lưu training. Chatbot sẽ dùng nội dung này làm ghi nhớ bổ sung.', training: row };
+
+  const saved = insertAiTraining(row, paths);
+
+  return {
+    ok: true,
+    message: 'Đã lưu training. Chatbot sẽ dùng nội dung này làm ghi nhớ bổ sung.',
+    training: saved || row
+  };
 }
 
 function listLocalFoodAiSuggestions(mode = 'user') {
   const common = [
-    '1 hay ăn gì?',
-    '1 hay uống gì?',
-    '1 từng ăn cơm chiên chưa?',
-    '1 hay order lúc mấy giờ?',
-    '1 hay ghi chú gì?',
-    '1 không thích gì?',
-    'Gợi ý món cho 1',
+    'Khách hàng - 1 hay ăn gì?',
+    'Khách hàng - 1 hay uống gì?',
+    'Khách hàng - 1 từng ăn cơm chiên chưa?',
+    'Khách hàng - 1 hay order lúc mấy giờ?',
+    'Khách hàng - 1 hay ghi chú gì?',
+    'Khách hàng - 1 không thích gì?',
+    'Gợi ý món cho khách hàng - 1',
+    'Order ngày/giờ - khách hàng - 1 khoảng 3h ngày 13/05/2026 đã order gì?',
     'Top món hôm nay',
     'Món nào đang Sold Out?',
     'Bàn 1001 hôm nay gọi món gì?',
@@ -3253,6 +3835,538 @@ function listLocalFoodAiSuggestions(mode = 'user') {
   }
 
   return common;
+}
+/* ----------------------------------------------------------------------- */
+/* Customer Question Engine
+ *
+ * Các hàm bên dưới giúp chatbot hiểu và trả lời các câu hỏi nâng cao về khách hàng,
+ * như "123 đã order bao nhiêu lần trong 30 ngày qua?", "123 lần gần nhất order khi nào?",
+ * hoặc "123 đã order những gì hôm nay?".
+ */
+
+// Phân tích khoảng thời gian trong câu. Hỗ trợ dạng "n ngày", "n tuần", "hôm nay", "hôm qua".
+function parseCustomerTimeRange(message) {
+  const m = norm(message);
+  const dayMatch = m.match(/(\d+)\s*ngay/);
+  if (dayMatch) {
+    const numDays = parseInt(dayMatch[1], 10);
+    if (Number.isFinite(numDays) && numDays > 0 && numDays <= 365) {
+      const to = new Date();
+      const from = new Date(to);
+      from.setDate(from.getDate() - numDays);
+      return { from, to, label: `${numDays} ngày gần đây` };
+    }
+  }
+  const weekMatch = m.match(/(\d+)\s*tuan/);
+  if (weekMatch) {
+    const numWeeks = parseInt(weekMatch[1], 10);
+    if (Number.isFinite(numWeeks) && numWeeks > 0 && numWeeks <= 52) {
+      const to = new Date();
+      const from = new Date(to);
+      from.setDate(from.getDate() - numWeeks * 7);
+      return { from, to, label: `${numWeeks} tuần gần đây` };
+    }
+  }
+  return getRangeFromMessage(message); // fallback: hôm nay, hôm qua, 7 ngày, 30 ngày
+}
+
+// Nhận diện câu hỏi dạng "hay/thường/thích ... gì" để trả lời đúng là TOP món,
+// không bị hiểu nhầm thành câu liệt kê order.
+function isCustomerHabitTopQuestion(message) {
+  const m = norm(message);
+  const padded = ` ${m} `;
+  const hasHabitWord = [
+    ' hay ',
+    ' thuong ',
+    ' thich ',
+    ' like ',
+    ' favorite ',
+    ' ua thich ',
+    ' so thich ',
+    ' mon quen ',
+    ' mon ruot ',
+  ].some((x) => padded.includes(x));
+
+  const asksWhat = /\b(an gi|uong gi|order gi|order mon gi|goi gi|goi mon gi|mon gi|thich gi|so thich gi)\b/.test(m);
+  return hasHabitWord && asksWhat;
+}
+
+function getCustomerTopTypeFromQuestion(message) {
+  const m = norm(message);
+  const padded = ` ${m} `;
+
+  if (/\b(uong gi|do uong|nuoc|drink|beverage|coffee|cafe|tea|juice|smoothie)\b/.test(m) || padded.includes(' uong ')) {
+    return 'drinks';
+  }
+
+  if (/\b(an gi|mon an|food|dish|com|mi|pho|rice|noodle)\b/.test(m) || padded.includes(' an ')) {
+    return 'foods';
+  }
+
+  return 'all';
+}
+
+// Nhận diện câu hỏi kiểm tra một món cụ thể: "từng ăn cơm chiên chưa", "có uống avocado smoothie chưa".
+function isCustomerSpecificItemCheckQuestion(message) {
+  const m = norm(message);
+  if (/\b(order gi|goi gi|goi mon gi|an gi|uong gi|mon gi)\b/.test(m)) return false;
+  return isHasItemIntent(message) || (
+    (
+      /\b(tung|da tung|da|co)\b.*\b(an|uong|order|goi)\b/.test(m) ||
+      /\b(an|uong|order|goi)\b.*\b(chua|khong|ko|k)\b/.test(m)
+    ) &&
+    extractWantedItemText(message).split(/\s+/).filter(Boolean).length > 0
+  );
+}
+
+// Nhận diện câu hỏi order theo thời gian/tồn tại/danh sách.
+function isCustomerOrderSummaryQuestionForEngine(message) {
+  const m = norm(message);
+  const hasDateWord = /\b(hom nay|hom qua|\d+ ngay|\d+ tuan|\d+ thang|\d+ nam|7 ngay|30 ngay|tuan nay|thang nay|gan day|today|yesterday)\b/.test(m);
+  const asksOrderExist = /\b(co order|co goi|co dat|da order|da goi|da dat)\b/.test(m) && /\b(khong|ko|k|chua)\b/.test(m);
+  const asksWhatOrdered = /\b(da order nhung gi|order nhung gi|da goi nhung gi|goi nhung gi|da order gi|order gi|goi gi|goi mon gi)\b/.test(m);
+  return hasDateWord || asksOrderExist || asksWhatOrdered;
+}
+
+// Nhận diện intent của câu hỏi về khách hàng.
+function parseCustomerIntent(message) {
+  const m = norm(message);
+
+  // Hỏi số lần order: "1 đã order bao nhiêu lần trong 30 ngày qua?"
+  if (/\b(bao nhieu|may lan|so lan|so order|how many|number of)\b/.test(m)) {
+    return 'customer_order_count';
+  }
+
+  // Hỏi lần order gần nhất: "1 lần gần nhất order khi nào?"
+  if (/\b(lan gan nhat|lan cuoi|gan nhat|last order|latest order|lan moi nhat|moi nhat)\b/.test(m)) {
+    return 'customer_last_order';
+  }
+
+  // Hỏi khung giờ/thời gian khách hay order: "1 hay order lúc mấy giờ?"
+  if (/\b(may gio|gio nao|luc nao|khung gio|thoi gian|time|when|buoi nao)\b/.test(m)) {
+    return 'customer_order_time';
+  }
+
+  // Gợi ý món cho khách.
+  if (/\b(goi y|recommend|suggest|nen goi|nen an|nen uong|tu van|nen cho)\b/.test(m)) {
+    return 'customer_recommendation';
+  }
+
+  // Không thích/cần tránh. Đặt trước ghi chú vì rewrite có thể thêm chữ "ghi chú".
+  if (isCustomerDislikeIntent(message)) {
+    return 'customer_dislikes';
+  }
+
+  // Ghi chú/yêu cầu/preference dạng note.
+  if (/\b(ghi chu|note|yeu cau|request|preference)\b/.test(m)) {
+    return 'customer_notes';
+  }
+
+  // Câu hỏi thói quen/top món: "1 hay ăn gì", "1 thích uống gì", "1 thường order món gì".
+  if (isCustomerHabitTopQuestion(message) || isOpenEndedLikeQuestion(message)) {
+    const type = getCustomerTopTypeFromQuestion(message);
+    if (type === 'drinks') return 'customer_top_drinks';
+    if (type === 'foods') return 'customer_top_foods';
+    return 'customer_top_all';
+  }
+
+  // Câu hỏi order theo thời gian/tồn tại/danh sách: "1 hôm nay có order không", "1 đã order những gì hôm nay".
+  // Đặt trước kiểm tra món cụ thể để câu "đã order những gì" không bị hiểu thành hỏi một món tên "những gì".
+  if (isCustomerOrderSummaryQuestionForEngine(message) || isCustomerOrderSummaryIntent(message)) {
+    return 'customer_order_summary';
+  }
+
+  // Câu kiểm tra khách đã từng ăn/uống/gọi một món cụ thể chưa.
+  if (isCustomerSpecificItemCheckQuestion(message)) {
+    return 'customer_has_item';
+  }
+
+  // Hỏi đã ăn/uống/order gì nhưng không có chữ hay/thường/thích: trả danh sách món trong phạm vi.
+  if (/\b(order gi|goi gi|goi mon gi|an gi|uong gi|mon gi|da order gi|da an gi|da uong gi)\b/.test(m)) {
+    return 'customer_order_items_list';
+  }
+
+  return null;
+}
+
+// Phân tích câu hỏi về khách.
+function parseCustomerQuestion(message, history = [], context = {}) {
+  if (!looksLikeCustomerQuestion(message)) return null;
+  let code = getCustomerCodeFromMessage(message, context);
+  if (!code && typeof isCurrentCustomerReference === 'function' && isCurrentCustomerReference(message)) {
+    code = getLastCustomerCodeFromHistory(history);
+  }
+  if (!code) return null;
+  const intent = parseCustomerIntent(message);
+  if (!intent) return null;
+  const range = parseCustomerTimeRange(message) || null;
+  return { code, intent, range, message };
+}
+
+// Trả lời câu hỏi nâng cao về khách hàng dựa trên intent.
+function answerCustomerEngine(parsed, { orders, members, maps }) {
+  if (!parsed || !parsed.code) return null;
+  const { code, intent, range, message } = parsed;
+  const customerOrders = getCustomerOrders(orders, code, range);
+  const firstOrder = customerOrders[0];
+  const name = firstOrder
+    ? customerNameFromOrder(firstOrder, members)
+    : (members[code]?.name || members[code]?.customerName || '');
+  const title = name ? `${name} (${code})` : `khách ${code} (chưa có tên khách trong dữ liệu)`;
+
+  if (intent === 'customer_has_item') {
+    return answerHasCustomerOrderedItem({ code, customerOrders, maps, members, message });
+  }
+
+  if (intent === 'customer_top_foods' || intent === 'customer_top_drinks' || intent === 'customer_top_all') {
+    const type = intent === 'customer_top_drinks'
+      ? 'drinks'
+      : intent === 'customer_top_foods'
+        ? 'foods'
+        : 'all';
+    return answerCustomerTop({ code, customerOrders, maps, members, type, range });
+  }
+
+  if (intent === 'customer_recommendation') {
+    return answerRecommendation({ code, customerOrders, maps, members, orders });
+  }
+
+  if (intent === 'customer_dislikes') {
+    return answerCustomerDislikes({ code, customerOrders, maps, members });
+  }
+
+  if (intent === 'customer_notes') {
+    return answerCustomerNotes({ code, customerOrders, maps, members });
+  }
+
+  if (intent === 'customer_order_time') {
+    return answerCustomerTime({ code, customerOrders, maps, members });
+  }
+
+  // Đếm số order.
+  if (intent === 'customer_order_count') {
+    const count = customerOrders.length;
+    const label = range?.label || 'toàn bộ lịch sử';
+    if (count === 0) {
+      return 'Chưa thấy ' + title + ' có order trong ' + label + '.';
+    }
+    return title + ' có ' + count + ' order trong ' + label + '.';
+  }
+
+  // Lần order gần nhất.
+  if (intent === 'customer_last_order') {
+    const label = range?.label || '';
+    if (customerOrders.length === 0) {
+      return 'Chưa thấy ' + title + ' có order' + (label ? ' trong ' + label : '') + '.';
+    }
+    const latest = customerOrders[0];
+    const dt = fmtDateTime(latest.createdAt || latest.updatedAt);
+    const place = [latest.area, latest.tableNo ? 'bàn ' + latest.tableNo : '']
+      .filter(Boolean).join(' - ');
+    const items = formatOrderItems(latest, maps) || '';
+    let line = 'Lần order gần nhất của ' + title + ' là ' + dt;
+    if (place) line += ' tại ' + place;
+    if (items) line += ' — ' + items;
+    return line;
+  }
+
+  // Liệt kê/tóm tắt món đã order theo thời gian.
+  if (intent === 'customer_order_items_list' || intent === 'customer_order_summary') {
+    return answerCustomerOrdersInRange({
+      code,
+      customerOrders,
+      maps,
+      members,
+      range,
+      message,
+    });
+  }
+
+  return null;
+}
+
+const DEFAULT_SPECIFIC_TIME_WINDOW_MINUTES = 45;
+
+function getSpecificTimeWindowMinutes() {
+  const raw = Number(process.env.LOCAL_AI_TIME_WINDOW_MINUTES || DEFAULT_SPECIFIC_TIME_WINDOW_MINUTES);
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_SPECIFIC_TIME_WINDOW_MINUTES;
+  // Chặn quá rộng để tránh hỏi 12h mà gom gần cả ngày.
+  return Math.min(180, Math.max(5, Math.round(raw)));
+}
+
+function parseSpecificDateTimeRange(message) {
+  const raw = String(message || '');
+  const msg = removeVietnameseAccent(raw).toLowerCase();
+
+  const makeRange = (dayInput, monthInput, yearInput, hourInput = null, minuteInput = 0, sourceLabel = '') => {
+    const day = parseInt(dayInput, 10);
+    const month = parseInt(monthInput, 10);
+    let year = yearInput ? parseInt(yearInput, 10) : new Date().getFullYear();
+
+    if (year < 100) year += 2000;
+
+    const monthIndex = month - 1;
+
+    if (
+      !Number.isFinite(day) ||
+      !Number.isFinite(monthIndex) ||
+      !Number.isFinite(year) ||
+      day < 1 ||
+      day > 31 ||
+      month < 1 ||
+      month > 12
+    ) {
+      return null;
+    }
+
+    // Có giờ cụ thể: lấy theo khoảng gần đúng ±N phút.
+    // Ví dụ hỏi "khoảng 12h" thì order 11:50 hoặc 12:10 vẫn được tính.
+    if (hourInput !== null && hourInput !== undefined && hourInput !== '') {
+      const hour = parseInt(hourInput, 10);
+      const minute = minuteInput ? parseInt(minuteInput, 10) : 0;
+
+      if (
+        !Number.isFinite(hour) ||
+        !Number.isFinite(minute) ||
+        hour < 0 ||
+        hour > 23 ||
+        minute < 0 ||
+        minute > 59
+      ) {
+        return null;
+      }
+
+      const target = new Date(year, monthIndex, day, hour, minute, 0, 0);
+      const windowMinutes = getSpecificTimeWindowMinutes();
+      const from = new Date(target.getTime() - windowMinutes * 60 * 1000);
+      const to = new Date(target.getTime() + windowMinutes * 60 * 1000);
+
+      const dateLabel = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+      const timeLabel = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      const prefix = sourceLabel ? `${sourceLabel} ` : '';
+
+      return {
+        from,
+        to,
+        target,
+        isApproximateTime: true,
+        timeWindowMinutes: windowMinutes,
+        label: `${prefix}${dateLabel} ${timeLabel} (±${windowMinutes} phút)`,
+      };
+    }
+
+    // Chỉ có ngày, lấy cả ngày theo ngày lịch thường.
+    const from = new Date(year, monthIndex, day, 0, 0, 0);
+    const to = new Date(year, monthIndex, day, 23, 59, 59, 999);
+
+    return {
+      from,
+      to,
+      label: `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`,
+    };
+  };
+
+  const makeRelativeDateRange = (dateObj, hourInput = null, minuteInput = 0, sourceLabel = '') => {
+    return makeRange(
+      dateObj.getDate(),
+      dateObj.getMonth() + 1,
+      dateObj.getFullYear(),
+      hourInput,
+      minuteInput,
+      sourceLabel
+    );
+  };
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  let match;
+
+  // Hỗ trợ relative date + giờ:
+  // "hôm nay khoảng 12h", "khoảng 12h hôm nay", "hôm qua lúc 12:30".
+  match = msg.match(
+    /\b(hom nay|today|hom qua|yesterday)\b.*\b(?:luc|khoang|tam|co|gan|around|about)?\s*(\d{1,2})(?::(\d{1,2}))?\s*(?:h|gio|g)\b/
+  );
+  if (match) {
+    const d = (match[1] === 'hom qua' || match[1] === 'yesterday') ? yesterday : today;
+    return makeRelativeDateRange(d, match[2], match[3] || 0, match[1]);
+  }
+
+  match = msg.match(
+    /\b(?:luc|khoang|tam|co|gan|around|about)\s*(\d{1,2})(?::(\d{1,2}))?\s*(?:h|gio|g)?\b.*\b(hom nay|today|hom qua|yesterday)\b/
+  );
+  if (match) {
+    const d = (match[3] === 'hom qua' || match[3] === 'yesterday') ? yesterday : today;
+    return makeRelativeDateRange(d, match[1], match[2] || 0, match[3]);
+  }
+
+  // 1) lúc/khoảng/tầm/cỡ 12h ngày 12/05/2026
+  //    luc 12:30 ngay 12/05/2026
+  match = msg.match(
+    /\b(?:luc|khoang|tam|co|gan|around|about)\s*(\d{1,2})(?::(\d{1,2}))?\s*(?:h|gio|g)?\s*(?:ngay\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/
+  );
+  if (match) {
+    return makeRange(match[3], match[4], match[5], match[1], match[2] || 0);
+  }
+
+  // 1.1) 12h ngày 12/05/2026, 12:30 ngày 12/05/2026
+  match = msg.match(
+    /\b(\d{1,2})(?::(\d{1,2}))?\s*(?:h|gio|g)\s*(?:ngay\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/
+  );
+  if (match) {
+    return makeRange(match[3], match[4], match[5], match[1], match[2] || 0);
+  }
+
+  // 2) ngày 12/05/2026 lúc/khoảng 12h
+  //    ngay 12/05/2026 luc 12:30
+  match = msg.match(
+    /\b(?:ngay\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\s*(?:luc|khoang|tam|co|gan|around|about)\s*(\d{1,2})(?::(\d{1,2}))?\s*(?:h|gio|g)?\b/
+  );
+  if (match) {
+    return makeRange(match[1], match[2], match[3], match[4], match[5] || 0);
+  }
+
+  // 2.1) ngày 12/05/2026 12h
+  match = msg.match(
+    /\b(?:ngay\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\s+(\d{1,2})\s*(?:h|gio|g)\b/
+  );
+  if (match) {
+    return makeRange(match[1], match[2], match[3], match[4], 0);
+  }
+
+  // 3) 03/05/2026 15:32
+  //    03/05 15:32
+  match = msg.match(
+    /\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\s+(\d{1,2}):(\d{1,2})\b/
+  );
+  if (match) {
+    return makeRange(match[1], match[2], match[3], match[4], match[5]);
+  }
+
+  // 4) 15:32 03/05/2026
+  match = msg.match(
+    /\b(\d{1,2}):(\d{1,2})\s+(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/
+  );
+  if (match) {
+    return makeRange(match[3], match[4], match[5], match[1], match[2]);
+  }
+
+  // 4.1) Chỉ có giờ, không có ngày: mặc định hiểu là hôm nay.
+  // Ví dụ: "khách hàng - 1 khoảng 12h đã order gì?"
+  match = msg.match(
+    /\b(?:luc|khoang|tam|co|gan|around|about)\s*(\d{1,2})(?::(\d{1,2}))?\s*(?:h|gio|g)\b/
+  );
+  if (match) {
+    return makeRelativeDateRange(today, match[1], match[2] || 0, 'hôm nay');
+  }
+
+  // 5) ngày 12/05/2026 hoặc chỉ 12/05/2026
+  match = msg.match(
+    /\b(?:ngay\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/
+  );
+  if (match) {
+    return makeRange(match[1], match[2], match[3], null, 0);
+  }
+
+  return null;
+}
+
+/**
+ * Trả lời câu hỏi của khách theo thời gian cụ thể.
+ * Ví dụ: “lúc 12h ngày 12/05/2026 1 đã order gì?”
+ */
+function answerCustomerOrdersAtDateTime({ code, range, orders = [], members = {}, maps = {} }) {
+  if (!range || !code) return null;
+
+  const sameCustomer = (o) =>
+    o.status !== 'CANCELLED' &&
+    String(o.memberCard || o.customer?.code || '').trim() === String(code).trim();
+
+  const rows = (orders || []).filter((o) => sameCustomer(o) && inRange(o, range));
+
+  const anyOrder = (orders || []).find((o) => sameCustomer(o));
+  const name = rows[0]
+    ? customerNameFromOrder(rows[0], members)
+    : anyOrder
+      ? customerNameFromOrder(anyOrder, members)
+      : members[code]?.name || members[code]?.customerName || '';
+
+  const title = name ? `${name} (${code})` : `khách ${code}`;
+
+  const minutesFromTarget = (order) => {
+    if (!range.target) return null;
+    const t = new Date(order?.createdAt || order?.updatedAt || 0).getTime();
+    const targetMs = new Date(range.target).getTime();
+    if (!Number.isFinite(t) || !Number.isFinite(targetMs)) return null;
+    return Math.round(Math.abs(t - targetMs) / 60000);
+  };
+
+  const formatDistance = (mins) => {
+    if (mins === null || mins === undefined) return '';
+    if (mins === 0) return 'trùng thời điểm hỏi';
+    if (mins < 60) return `cách khoảng ${mins} phút`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `cách khoảng ${h} giờ${m ? ` ${m} phút` : ''}`;
+  };
+
+  const formatRows = (list, { showDistance = false } = {}) => {
+    const sorted = [...list].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    return sorted.map((o, idx) => {
+      const dt = fmtDateTime(o.createdAt || o.updatedAt);
+      const place = [o.area, o.tableNo ? `bàn ${o.tableNo}` : ''].filter(Boolean).join(' - ');
+      const items = formatOrderItems(o, maps) || '';
+      const distance = showDistance ? formatDistance(minutesFromTarget(o)) : '';
+      let line = `${idx + 1}. ${dt}`;
+      if (distance) line += ` (${distance})`;
+      if (place) line += ` tại ${place}`;
+      if (items) line += ` — ${items}`;
+      return line;
+    });
+  };
+
+  // Có order trong khoảng gần đúng.
+  if (rows.length) {
+    const lines = formatRows(rows, { showDistance: Boolean(range.target) });
+    const intro = range.isApproximateTime
+      ? `Có ${rows.length} order của ${title} gần thời điểm ${range.label}:`
+      : `Có ${rows.length} order của ${title} lúc ${range.label}:`;
+    return [intro, lines.join('\n')].join('\n');
+  }
+
+  // Không có trong khoảng gần đúng thì kiểm tra cả ngày đó và ưu tiên order gần giờ hỏi nhất.
+  const dayFrom = new Date(range.target || range.from);
+  dayFrom.setHours(0, 0, 0, 0);
+
+  const dayTo = new Date(dayFrom);
+  dayTo.setDate(dayTo.getDate() + 1);
+  dayTo.setMilliseconds(-1);
+
+  const dayRange = {
+    from: dayFrom,
+    to: dayTo,
+    label: `${String(dayFrom.getDate()).padStart(2, '0')}/${String(dayFrom.getMonth() + 1).padStart(2, '0')}/${dayFrom.getFullYear()}`,
+  };
+
+  const dayRows = (orders || []).filter((o) => sameCustomer(o) && inRange(o, dayRange));
+
+  if (dayRows.length) {
+    const nearestRows = range.target
+      ? [...dayRows]
+          .sort((a, b) => (minutesFromTarget(a) ?? 999999) - (minutesFromTarget(b) ?? 999999))
+          .slice(0, 5)
+      : dayRows;
+
+    const lines = formatRows(nearestRows, { showDistance: Boolean(range.target) });
+    return [
+      `Chưa thấy ${title} có order trong khoảng ${range.label}.`,
+      `Order gần thời điểm đó trong ngày ${dayRange.label}:`,
+      lines.join('\n'),
+    ].join('\n');
+  }
+
+  return `Chưa thấy ${title} có order trong khoảng ${range.label}.`;
 }
 
 module.exports = {

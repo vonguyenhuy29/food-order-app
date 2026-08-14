@@ -1023,6 +1023,16 @@ const resolveItemName = React.useCallback((item) => {
 }, [nameMap]);
 
 const resolveItemCode = React.useCallback((item) => {
+  if (item?.isOffMenu) {
+    return String(
+      item?.productCode ||
+      item?.code ||
+      item?.sku ||
+      item?.itemCode ||
+      'H100'
+    ).trim();
+  }
+
   const pick = item?.imageName || item?.imageKey ||
                item?.imageUrl || item?.name || '';
   const k = (String(pick).split('/').pop() || '').trim().toLowerCase();
@@ -2976,42 +2986,72 @@ const loadCustomerApiStatus = React.useCallback(async () => {
 
 React.useEffect(() => {
   loadCustomerApiStatus();
-  const t = setInterval(loadCustomerApiStatus, 60 * 1000);
+  const t = setInterval(loadCustomerApiStatus, 15 * 1000);
   return () => clearInterval(t);
 }, [loadCustomerApiStatus]);
 
 async function checkCustomerApiNow() {
-  const id = window.prompt('Nhập mã khách để test API:', '20242');
+  // Nút này chỉ ép đồng bộ Customer API -> Database cho 1 mã.
+  // Sau đó bảng Khách hàng luôn tải lại từ Database.
+  const suggestedId = String(kSearch || rows?.[0]?.code || '').replace(/\s+/g, '').trim() || '20242';
+  const idRaw = window.prompt('Nhập mã khách để đồng bộ API vào Database:', suggestedId);
+  const id = String(idRaw || '').replace(/\s+/g, '').trim();
   if (!id) return;
 
   try {
     const r = await axios.post(apiUrl('/api/customer-api/check'), { id });
-    setCustomerApiStatus(r.data?.apiStatus || null);
+    const data = r.data || {};
+    const apiStatus = data.apiStatus || null;
+    setCustomerApiStatus(apiStatus);
 
-    if (r.data?.ok) {
+    const dbMember = data.member || null;
+    const connectionStatus = apiStatus?.connectionStatus || (apiStatus?.ok ? 'ONLINE' : 'UNKNOWN');
+
+    if (data.apiOk) {
       alert(
-        `API OK\n` +
-        `Mã: ${r.data.member?.code || ''}\n` +
-        `Tên: ${r.data.member?.name || ''}\n` +
-        `Level: ${r.data.member?.level || ''}\n` +
-        `Nguồn: ${r.data.source || ''}`
+        `Đồng bộ Customer API → Database thành công.\n\n` +
+        `Mã: ${dbMember?.code || id}\n` +
+        `Tên: ${dbMember?.name || ''}\n` +
+        `Level: ${dbMember?.level || ''}\n` +
+        `Nguồn app đang dùng: Database\n` +
+        `Trạng thái API: ${connectionStatus}`
       );
-      await loadCustomers({ q: kSearch, page });
+    } else if (data.databaseOk && dbMember) {
+      alert(
+        `Chưa đồng bộ được dữ liệu mới từ Customer API.\n` +
+        `App vẫn sử dụng dữ liệu trong Database.\n\n` +
+        `Mã: ${dbMember?.code || id}\n` +
+        `Tên: ${dbMember?.name || ''}\n` +
+        `Level: ${dbMember?.level || ''}\n` +
+        `Trạng thái API: ${connectionStatus}\n` +
+        `Kết quả sync: ${data.status || apiStatus?.lookupStatus || 'ERROR'}`
+      );
     } else {
-      alert('API không trả được dữ liệu khách này.');
+      alert(
+        `Database chưa có thông tin hợp lệ cho mã ${id}.\n` +
+        `Customer API hiện chưa đồng bộ được.\n` +
+        `Trạng thái API: ${connectionStatus}\n` +
+        `Kết quả: ${data.status || apiStatus?.lookupStatus || 'ERROR'}`
+      );
     }
+
+    await loadCustomers({ q: kSearch || id, page: kSearch ? page : 1 });
   } catch (e) {
-    alert('Check API lỗi: ' + (e.response?.data?.error || e.message));
+    alert('Đồng bộ khách lỗi: ' + (e.response?.data?.error || e.message));
     await loadCustomerApiStatus();
   }
 }
 
-async function syncCustomersFromApiBatch(force = false) {
+async function syncCustomersFromApiBatch(scope = 'recent', force = false) {
   if (syncingApi) return;
 
-  const msg = force
-    ? 'Sync lại khách hàng từ API? Chỉ chạy 20 khách/lần để tránh làm nặng API.'
-    : 'Cập nhật khách cũ từ API? Hệ thống chỉ chạy 20 khách/lần, không chạy ồ ạt.';
+  const isFull = scope === 'all';
+  const batchSize = isFull ? 1000 : 500;
+  const currentCursor = isFull ? syncCursor : 0;
+
+  const msg = isFull
+    ? `Đưa ${batchSize} khách tiếp theo vào hàng đợi Full Sync?\nHệ thống chỉ gọi tối đa 3 request API song song.`
+    : `Đưa tối đa ${batchSize} khách hoạt động gần đây vào hàng đợi đồng bộ?\nKhách vừa search/order vẫn được ưu tiên trước.`;
 
   if (!window.confirm(msg)) return;
 
@@ -3019,28 +3059,33 @@ async function syncCustomersFromApiBatch(force = false) {
     setSyncingApi(true);
 
     const r = await axios.post(apiUrl('/api/customers/sync-from-api'), {
-      cursor: syncCursor,
-      batchSize: 20,
-      delayMs: 250,
+      scope,
+      cursor: currentCursor,
+      batchSize,
       force,
     });
 
     const data = r.data || {};
-    setSyncCursor(data.nextCursor || 0);
+    if (isFull) setSyncCursor(data.nextCursor || 0);
+
     await loadCustomerApiStatus();
-    await loadCustomers({ q: kSearch, page });
 
     alert(
-      `Sync xong batch nhỏ.\n` +
-      `Đã xử lý: ${data.requested || 0}\n` +
-      `Cập nhật OK: ${data.updated || 0}\n` +
-      `Có thay đổi tên/level: ${data.changed || 0}\n` +
-      `Lỗi: ${data.failed || 0}\n` +
-      `Tiến độ: ${data.nextCursor || 0}/${data.total || 0}\n` +
-      `${data.done ? 'Đã hết danh sách.' : 'Bấm Sync tiếp để chạy batch tiếp theo.'}`
+      `Đã đưa yêu cầu vào Priority Queue.\n` +
+      `Phạm vi: ${isFull ? 'Toàn bộ Database' : 'Khách hoạt động gần đây'}\n` +
+      `Đã xét: ${data.requested || 0}\n` +
+      `Đã thêm vào queue: ${data.queued || 0}\n` +
+      `Bỏ qua vì còn mới: ${data.skippedFresh || 0}\n` +
+      `Đã có trong queue/đang xử lý: ${data.skippedScheduled || 0}\n` +
+      `Queue hiện tại: ${data.queueSize || 0}\n` +
+      `Xử lý song song: ${data.concurrency || 3}` +
+      (isFull
+        ? `\nTiến độ Full Sync: ${data.nextCursor || 0}/${data.total || 0}` +
+          (data.done ? '\nĐã đưa hết danh sách vào queue.' : '\nBấm Full Sync tiếp để đưa batch kế tiếp vào queue.')
+        : '')
     );
   } catch (e) {
-    alert('Sync API thất bại: ' + (e.response?.data?.error || e.message));
+    alert('Đưa khách vào hàng đợi thất bại: ' + (e.response?.data?.error || e.message));
   } finally {
     setSyncingApi(false);
   }
@@ -3344,21 +3389,43 @@ function normalizeCustomers(items) {
   border:'1px solid #e5e7eb',
   borderRadius:8,
   padding:'6px 8px',
-  background: customerApiStatus?.ok ? '#ecfdf5' : '#fef2f2',
+  background:
+    (customerApiStatus?.connectionStatus || (customerApiStatus?.ok ? 'ONLINE' : 'UNKNOWN')) === 'ONLINE'
+      ? '#ecfdf5'
+      : ['OFFLINE', 'TIMEOUT'].includes(customerApiStatus?.connectionStatus)
+        ? '#fef2f2'
+        : '#fff7ed',
   fontSize:12
 }}>
   <span style={{
     width:8,
     height:8,
     borderRadius:'50%',
-    background: customerApiStatus?.ok ? '#16a34a' : '#ef4444',
+    background:
+      (customerApiStatus?.connectionStatus || (customerApiStatus?.ok ? 'ONLINE' : 'UNKNOWN')) === 'ONLINE'
+        ? '#16a34a'
+        : ['OFFLINE', 'TIMEOUT'].includes(customerApiStatus?.connectionStatus)
+          ? '#ef4444'
+          : '#f59e0b',
     display:'inline-block'
   }} />
   <b>Customer API:</b>
-  <span>{customerApiStatus?.ok ? 'Online' : 'Offline/Fallback'}</span>
+  <span>
+    {customerApiStatus?.connectionStatus || (customerApiStatus?.ok ? 'ONLINE' : 'UNKNOWN')}
+  </span>
+  <span style={{ color:'#2563eb', fontWeight:700 }}>App dùng Database</span>
+  <span style={{ color:'#374151' }}>
+    Queue: {Number(customerApiStatus?.queued || 0)}
+    {Number(customerApiStatus?.processing || 0) > 0
+      ? ` • Đang xử lý: ${customerApiStatus.processing}`
+      : ''}
+    {customerApiStatus?.syncConcurrency
+      ? ` • ${customerApiStatus.syncConcurrency} song song`
+      : ''}
+  </span>
   {customerApiStatus?.lastOkAt && (
     <span style={{ color:'#6b7280' }}>
-      OK: {new Date(customerApiStatus.lastOkAt).toLocaleTimeString()}
+      API OK gần nhất: {new Date(customerApiStatus.lastOkAt).toLocaleTimeString()}
     </span>
   )}
 </div>
@@ -3368,16 +3435,25 @@ function normalizeCustomers(items) {
   onClick={checkCustomerApiNow}
   style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}
 >
-  Check API
+  Sync 1 khách
 </button>
 
 <button
   type="button"
   disabled={syncingApi}
-  onClick={() => syncCustomersFromApiBatch(false)}
+  onClick={() => syncCustomersFromApiBatch('recent', false)}
   style={{ border:'1px solid #2563eb', borderRadius:6, background:'#eff6ff', color:'#1d4ed8', padding:'8px 12px', fontSize:12 }}
 >
-  {syncingApi ? 'Đang sync…' : 'Sync khách từ API'}
+  {syncingApi ? 'Đang thêm queue…' : 'Queue khách hoạt động'}
+</button>
+
+<button
+  type="button"
+  disabled={syncingApi}
+  onClick={() => syncCustomersFromApiBatch('all', false)}
+  style={{ border:'1px solid #7c3aed', borderRadius:6, background:'#f5f3ff', color:'#6d28d9', padding:'8px 12px', fontSize:12 }}
+>
+  {syncingApi ? 'Đang thêm queue…' : 'Full Sync 1.000 khách'}
 </button>
 
 <button
@@ -3386,7 +3462,7 @@ function normalizeCustomers(items) {
   onClick={() => setSyncCursor(0)}
   style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}
 >
-  Reset Sync
+  Reset Full Sync
 </button>
           <button type="button" onClick={exportCsv} style={{ border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', padding:'8px 12px', fontSize:12 }}>Export CSV</button>
           <input ref={importRef} type="file" accept=".csv" hidden onChange={e=>{ if(e.target.files?.[0]) importCsv(e.target.files[0]); e.target.value=''; }} />

@@ -16,7 +16,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const productsRouter = require('./routes/products');
 const ordersRouter = require('./routes/orders');
-const rateLimit = require('express-rate-limit');
+const sqliteStore = require('./sqliteStore');
+const rateLimitPkg = require('express-rate-limit');
+const rateLimit = rateLimitPkg.rateLimit || rateLimitPkg;
+const { ipKeyGenerator } = rateLimitPkg;
 const {
   answerLocalFoodQuestion,
   trainLocalFoodAI,
@@ -34,11 +37,22 @@ const orderLimiter = rateLimit({
   legacyHeaders: false,
 
   // Gom key theo IP + memberCard (nếu có) để 1 IP có thể tạo đơn cho khách khác nhau mà vẫn an toàn
-  keyGenerator: (req/*, res*/) => {
-    const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
-    const member = (req.body && req.body.memberCard ? String(req.body.memberCard).trim() : '');
-    return member ? `${ip}:${member}` : ip;
-  },
+keyGenerator: (req/*, res*/) => {
+  const forwardedIp = String(req.headers['x-forwarded-for'] || '')
+    .split(',')[0]
+    .trim();
+
+  const rawIp = forwardedIp || req.ip || req.socket?.remoteAddress || '';
+  const safeIp = typeof ipKeyGenerator === 'function'
+    ? ipKeyGenerator(rawIp)
+    : String(rawIp || '');
+
+  const member = req.body?.memberCard
+    ? String(req.body.memberCard).replace(/\s+/g, '').trim()
+    : '';
+
+  return member ? `${safeIp}:${member}` : safeIp;
+},
 
   // Trả JSON 429 thân thiện
   handler: (req, res, _next, options) => {
@@ -87,10 +101,13 @@ if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 function backupMembers() {
   try {
     const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    const src = MEMBERS_JSON;
     const dest = path.join(BACKUP_DIR, `members-${ts}.json`);
-    fs.copyFileSync(src, dest);
-    console.log('Backup members.json to', dest);
+
+    // Backup từ SQLite ra JSON để Admin vẫn dễ kiểm tra/phục hồi
+    const currentMembers = sqliteStore.loadMembers();
+    fs.writeFileSync(dest, JSON.stringify(currentMembers, null, 2), 'utf8');
+
+    console.log('Backup members from SQLite to', dest);
   } catch (e) {
     console.error('Backup members failed:', e.message);
   }
@@ -99,15 +116,25 @@ function backupMembers() {
 
 // products.json để enrich /api/foods với menus/itemGroup...
 const PRODUCTS_JSON = path.join(DATA_DIR, 'products.json');
-
+// Import products.json vào SQLite lần đầu nếu DB đang rỗng.
+// Sau đó SQLite là nơi lưu chính, không ghi lại toàn bộ products.json nữa.
+try {
+  const importResult = sqliteStore.importProductsFromJsonIfEmpty(PRODUCTS_JSON);
+  if (importResult.imported) {
+    console.log(`[SQLite] Imported ${importResult.count} products from products.json`);
+  }
+} catch (e) {
+  console.error('[SQLite] Import products failed:', e.message);
+}
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const IMAGES_DIR = path.join(PUBLIC_DIR, 'images');
+const THUMBS_DIR = path.join(PUBLIC_DIR, 'thumbs');
 // ★ MASTER giữ bản gốc của ảnh
 const MASTER_DIR = path.join(IMAGES_DIR, '__MASTER__');
 
 const MULTER_TMP = path.join(ROOT, 'temp_uploads');
 
-[DATA_DIR, PUBLIC_DIR, IMAGES_DIR, MASTER_DIR, MULTER_TMP].forEach((p) => {
+[DATA_DIR, PUBLIC_DIR, IMAGES_DIR, THUMBS_DIR, MASTER_DIR, MULTER_TMP].forEach((p) => {
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 });
 
@@ -129,7 +156,15 @@ const allowOrigins = (() => {
   return '*';
 })();
 const io = new Server(server, {
-  cors: { origin: allowOrigins, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], credentials: false },
+  cors: {
+    origin: allowOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: false,
+  },
+
+  // Giữ kết nối Socket ổn định hơn khi mạng chập chờn / server bận nhẹ
+  pingInterval: 25000,
+  pingTimeout: 60000,
 });
 app.locals.io = io;
 
@@ -141,7 +176,29 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '4mb' }));
-app.use('/images', express.static(path.join(PUBLIC_DIR, 'images')));
+app.use('/images', express.static(path.join(PUBLIC_DIR, 'images'), {
+  maxAge: '30d',
+  etag: true,
+  lastModified: true,
+  immutable: true,
+  setHeaders(res, filePath) {
+    if (/\.(jpg|jpeg|png|webp|gif)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    }
+  },
+}));
+app.use('/thumbs', express.static(THUMBS_DIR, {
+  maxAge: '30d',
+  etag: true,
+  lastModified: true,
+  immutable: true,
+  setHeaders(res, filePath) {
+    if (/\.(webp|jpg|jpeg|png)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    }
+  },
+}));
+
 app.use('/api/products', productsRouter);
 // KHÔNG mount ordersRouter ở đây, vì sẽ chặn app.post('/api/orders') bên dưới
 // ===================================================================
@@ -293,13 +350,9 @@ function getRefFoodByImageName(imageName) {
 // ====== Products helper ======
 function loadProductsSafe() {
   try {
-    if (!fs.existsSync(PRODUCTS_JSON)) return [];
-    const raw = fs.readFileSync(PRODUCTS_JSON, 'utf-8') || '[]';
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
-    if (parsed && Array.isArray(parsed.rows)) return parsed.rows;
-    return [];
-  } catch {
+    return sqliteStore.loadProducts();
+  } catch (e) {
+    console.error('[SQLite] loadProducts failed:', e.message);
     return [];
   }
 }
@@ -371,44 +424,23 @@ function deleteFromMenu(menu, imgLower) {
   if (p && fs.existsSync(p)) { try { fs.unlinkSync(p); } catch (_) {} }
 }
 
-// ====== products.json read/write (để lưu p.menus) ======
+// ====== Products SQLite helpers ======
 function readProductsDoc() {
   try {
-    if (!fs.existsSync(PRODUCTS_JSON)) return { doc: [], mode: 'array' };
-    const raw = fs.readFileSync(PRODUCTS_JSON, 'utf8') || '[]';
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return { doc: parsed, mode: 'array' };
-    if (parsed && Array.isArray(parsed.rows)) return { doc: parsed, mode: 'rows' };
-    return { doc: [], mode: 'array' };
-  } catch {
+    return { doc: sqliteStore.loadProducts(), mode: 'array' };
+  } catch (e) {
+    console.error('[SQLite] readProductsDoc failed:', e.message);
     return { doc: [], mode: 'array' };
   }
 }
-function writeProductsDoc(doc, mode) {
-  const tmp = PRODUCTS_JSON + '.tmp';
-  const out = (mode === 'rows') ? { ...doc, rows: doc.rows || [] } : doc;
-  fs.writeFileSync(tmp, JSON.stringify(out, null, 2), 'utf8');
-  fs.renameSync(tmp, PRODUCTS_JSON);
-}
-function updateProductMenusByImageName(imageNameLower, updater) {
-  const { doc, mode } = readProductsDoc();
-  const arr = (mode === 'rows') ? (doc.rows = doc.rows || []) : doc;
-  let changed = false;
 
-  for (let i = 0; i < arr.length; i++) {
-    const p = arr[i];
-    const pImg = (p.imageName && String(p.imageName).toLowerCase()) ||
-                 (p.imageUrl && extractImageName(p.imageUrl));
-    if (pImg === imageNameLower) {
-      const cur = Array.isArray(p.menus) ? p.menus.slice() : [];
-      const next = updater(cur);
-      arr[i] = { ...p, menus: next };
-      changed = true;
-      break;
-    }
-  }
-  if (changed) writeProductsDoc(doc, mode);
-  return changed;
+function writeProductsDoc(doc, mode) {
+  const arr = mode === 'rows' ? (doc.rows || []) : doc;
+  sqliteStore.replaceAllProducts(Array.isArray(arr) ? arr : []);
+}
+
+function updateProductMenusByImageName(imageNameLower, updater) {
+  return sqliteStore.updateProductMenusByImageName(imageNameLower, updater);
 }
 
 // ====== Stock helper ======
@@ -458,17 +490,28 @@ function maybeAuth(req, _res, next) {
 }
 
 // ====== Dữ liệu: Foods ======
-let foods = [];
+// Import foods.json vào SQLite lần đầu nếu bảng foods đang rỗng.
+// Sau đó SQLite là nơi lưu chính, không ghi lại toàn bộ foods.json nữa.
 try {
-  if (fs.existsSync(FOODS_JSON)) {
-    foods = JSON.parse(fs.readFileSync(FOODS_JSON, 'utf-8') || '[]');
+  const importResult = sqliteStore.importFoodsFromJsonIfEmpty(FOODS_JSON);
+  if (importResult.imported) {
+    console.log(`[SQLite] Imported ${importResult.count} foods from foods.json`);
   }
 } catch (e) {
-  console.error('❌ Lỗi đọc foods.json:', e.message);
+  console.error('[SQLite] Import foods failed:', e.message);
+}
+
+let foods = [];
+try {
+  foods = sqliteStore.loadFoods();
+} catch (e) {
+  console.error('[SQLite] Load foods failed:', e.message);
   foods = [];
 }
+
 foods.forEach((f, i) => {
   if (typeof f.order !== 'number') f.order = i;
+
   if (typeof f.quantity !== 'number') {
     f.quantity = f.status === 'Sold Out' ? 0 : 1;
   } else {
@@ -478,10 +521,10 @@ foods.forEach((f, i) => {
 });
 
 function saveFoods() {
-  const tmp = FOODS_JSON + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(foods, null, 2), 'utf-8');
-  fs.renameSync(tmp, FOODS_JSON);
+  sqliteStore.replaceAllFoods(foods);
 }
+
+
 function nextNumericId() {
   const maxId = foods.reduce((m, f) => (Number.isFinite(f.id) ? Math.max(m, f.id) : m), 0);
   return maxId + 1;
@@ -520,35 +563,98 @@ function saveMenuLevels() {
 }
 
 // ====== Dữ liệu: Lịch sử đổi trạng thái ======
-let statusHistory = [];
-try { if (fs.existsSync(STATUS_HISTORY_JSON)) statusHistory = JSON.parse(fs.readFileSync(STATUS_HISTORY_JSON, 'utf-8') || '[]'); }
-catch (e) { console.error('❌ Lỗi đọc status-history.json:', e.message); statusHistory = []; }
-function saveStatusHistory() {
-  const tmp = STATUS_HISTORY_JSON + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(statusHistory, null, 2), 'utf-8');
-  fs.renameSync(tmp, STATUS_HISTORY_JSON);
+// Import status-history.json vào SQLite lần đầu nếu DB đang rỗng.
+// Sau đó SQLite là nơi lưu chính, không ghi lại toàn bộ status-history.json nữa.
+try {
+  const importResult = sqliteStore.importStatusHistoryFromJsonIfEmpty(STATUS_HISTORY_JSON);
+  if (importResult.imported) {
+    console.log(`[SQLite] Imported ${importResult.count} status-history rows from status-history.json`);
+  }
+} catch (e) {
+  console.error('[SQLite] Import status-history failed:', e.message);
 }
+
 function addStatusHistory(entry) {
-  statusHistory.push({ id: Date.now() + Math.random(), ...entry });
-  if (statusHistory.length > 5000) statusHistory = statusHistory.slice(-5000);
-  saveStatusHistory();
-  io.emit('statusHistoryAdded', entry);
+  const savedEntry = sqliteStore.insertStatusHistory({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    ...entry,
+  });
+
+  io.emit('statusHistoryAdded', savedEntry);
 }
 
 // ====== Orders ======
+// Import orders.json vào SQLite lần đầu nếu DB đang rỗng.
+// Sau đó SQLite là nơi lưu chính, không ghi lại toàn bộ orders.json nữa.
+try {
+  const importResult = sqliteStore.importOrdersFromJsonIfEmpty(ORDERS_JSON);
+  if (importResult.imported) {
+    console.log(`[SQLite] Imported ${importResult.count} orders from orders.json`);
+  }
+} catch (e) {
+  console.error('[SQLite] Import orders failed:', e.message);
+}
+
 let orders = [];
 try {
-  if (fs.existsSync(ORDERS_JSON)) orders = JSON.parse(fs.readFileSync(ORDERS_JSON, 'utf-8') || '[]');
+  orders = sqliteStore.loadOrders();
 } catch (e) {
-  console.error('❌ Lỗi đọc orders.json:', e.message);
+  console.error('[SQLite] Load orders failed:', e.message);
   orders = [];
 }
-function saveOrders() {
-  const tmp = ORDERS_JSON + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(orders, null, 2), 'utf-8');
-  fs.renameSync(tmp, ORDERS_JSON);
 
-  // Xóa cache search khách vì orders đã thay đổi
+function persistOrder(order) {
+  sqliteStore.upsertOrder(order);
+  clearMemberSearchCache();
+  clearCustomerInsightsCache();
+}
+
+function persistOrders(orderList) {
+  const rows = Array.isArray(orderList) ? orderList : [];
+
+  if (typeof sqliteStore.upsertOrders === 'function') {
+    sqliteStore.upsertOrders(rows);
+  } else {
+    for (const order of rows) {
+      sqliteStore.upsertOrder(order);
+    }
+  }
+
+  clearMemberSearchCache();
+  clearCustomerInsightsCache();
+}
+
+function reloadOrdersSafe(context = 'orders') {
+  try {
+    const fresh = sqliteStore.loadOrders();
+    orders = fresh;
+    return fresh;
+  } catch (error) {
+    console.error(`[SQLite] ${context} loadOrders failed:`, error);
+
+    // Khi SQLite lỗi tạm thời, ưu tiên giữ dữ liệu cache đang có
+    // để Admin/User không bị màn hình trắng.
+    if (Array.isArray(orders) && orders.length > 0) {
+      return orders;
+    }
+
+    throw error;
+  }
+}
+
+// Route phụ trong routes/orders.js sẽ gọi hàm này để đồng bộ lại bộ nhớ của server.js
+// Ví dụ: cập nhật giá OFF MENU từ Admin.
+app.locals.persistOrderFromRouter = (updatedOrder) => {
+  if (!updatedOrder?.id) return false;
+  const idx = orders.findIndex(o => String(o.id) === String(updatedOrder.id));
+  if (idx >= 0) orders[idx] = updatedOrder;
+  else orders.push(updatedOrder);
+  persistOrder(updatedOrder);
+  return true;
+};
+
+// Giữ lại function cũ để tránh vỡ code. Không ghi JSON nữa.
+function saveOrders() {
   clearMemberSearchCache();
 }
 // ====== AUTO DONE theo ngày kinh doanh 06:00 VN ======
@@ -576,76 +682,131 @@ function getBusinessCutoff06VN(nowMs = Date.now()) {
 }
 
 function autoDoneOldOrdersByBusinessDay06() {
+  let freshOrders;
+
+  try {
+    // Luôn đọc bản mới nhất trước khi auto-done.
+    // Nếu SQLite đang lỗi thì bỏ qua lượt này, không xử lý cache cũ.
+    freshOrders = sqliteStore.loadOrders();
+    orders = freshOrders;
+  } catch (error) {
+    console.error('[AUTO DONE] Skip because SQLite cannot be read:', error);
+    return 0;
+  }
+
   const cutoffMs = getBusinessCutoff06VN();
   const nowIso = new Date().toISOString();
 
-  let changed = 0;
+  const changedOrders = [];
 
-  for (const o of orders) {
+  for (const o of freshOrders) {
     const orderMs = Date.parse(o.createdAt);
     if (!Number.isFinite(orderMs)) continue;
 
-const statusText = String(o.status || '').toUpperCase();
+    const statusText = String(o.status || '').toUpperCase();
 
-if (
-  orderMs < cutoffMs &&
-  o.tableClosed === true &&
-  ['PENDING', 'IN_PROGRESS'].includes(statusText)
-) {
-  o.status = 'DONE';
-  o.updatedAt = nowIso;
-  o.autoDoneAt = nowIso;
-  o.autoDoneReason = 'AUTO_DONE_BY_BUSINESS_DAY_06';
+    if (statusText === 'CANCELLED') continue;
+    if (orderMs >= cutoffMs) continue;
 
-  changed++;
+    let touched = false;
 
-  io.emit('orderUpdated', {
-    orderId: o.id,
-    status: o.status,
-    order: o,
-  });
-}
+    if (o.tableClosed !== true) {
+      o.tableClosed = true;
+      o.closedAt = nowIso;
+      o.closedBy = 'system-auto-06';
+      o.tableAutoClosedAt = nowIso;
+      o.tableAutoClosedReason = 'AUTO_TABLE_CLOSED_BY_BUSINESS_DAY_06';
+      touched = true;
+    }
+
+    if (['PENDING', 'IN_PROGRESS'].includes(statusText)) {
+      o.status = 'DONE';
+      o.updatedAt = nowIso;
+      o.autoDoneAt = nowIso;
+      o.autoDoneReason = 'AUTO_DONE_BY_BUSINESS_DAY_06';
+      touched = true;
+    }
+
+    if (touched) changedOrders.push(o);
   }
 
-  if (changed > 0) {
-    saveOrders();
-    console.log(`[AUTO DONE] Updated ${changed} old orders by business day 06:00 VN`);
+  if (changedOrders.length === 0) return 0;
+
+  try {
+    // Ghi trong một transaction để giảm WAL và tránh ghi dở dang.
+    persistOrders(changedOrders);
+  } catch (error) {
+    console.error('[AUTO DONE] Persist failed:', error);
+    return 0;
   }
 
-  return changed;
+  for (const o of changedOrders) {
+    io.emit('orderUpdated', {
+      orderId: o.id,
+      status: o.status,
+      order: o,
+    });
+  }
+
+  console.log(
+    `[AUTO DONE] Auto closed/done ${changedOrders.length} old orders by business day 06:00 VN`
+  );
+
+  return changedOrders.length;
 }
+
+
 function nextOrderId() {
-  const m = orders.reduce((mx, o) => {
-    const n = Number(o?.id);
-    return Number.isFinite(n) ? Math.max(mx, n) : mx;
-  }, 0);
-
-  return String(m + 1);
+  return sqliteStore.getNextOrderId();
 }
 
 // ====== Members map ======
+// Import members.json vào SQLite lần đầu nếu DB đang rỗng.
+// Sau đó SQLite là nơi lưu chính, không ghi lại toàn bộ members.json nữa.
+try {
+  const importResult = sqliteStore.importMembersFromJsonIfEmpty(MEMBERS_JSON);
+  if (importResult.imported) {
+    console.log(`[SQLite] Imported ${importResult.count} members from members.json`);
+  }
+} catch (e) {
+  console.error('[SQLite] Import members failed:', e.message);
+}
+
 let members = {};
 try {
-  if (fs.existsSync(MEMBERS_JSON)) members = JSON.parse(fs.readFileSync(MEMBERS_JSON, 'utf-8') || '{}');
+  members = sqliteStore.loadMembers();
 } catch (e) {
-  console.error('❌ Lỗi đọc members.json:', e.message);
+  console.error('[SQLite] Load members failed:', e.message);
   members = {};
 }
-function saveMembers() {
-  try {
-    const tmp = MEMBERS_JSON + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify(members, null, 2), 'utf8');
-    fs.renameSync(tmp, MEMBERS_JSON);
-    clearMemberSearchCache();
-  } catch (err) {
-    console.error('saveMembers error:', err);
-    try {
-      // fallback: ghi thẳng vào file chính
-      fs.writeFileSync(MEMBERS_JSON, JSON.stringify(members, null, 2), 'utf8');
-    } catch (e2) {
-      console.error('saveMembers fallback write failed:', e2);
-    }
+
+function persistMember(code) {
+  const cleanCode = cleanMemberId(code);
+  if (!cleanCode || !members[cleanCode]) return;
+
+  sqliteStore.upsertMember(cleanCode, members[cleanCode]);
+  clearMemberSearchCache();
+}
+
+function persistMembersByCodes(codes) {
+  const uniqueCodes = Array.from(new Set((codes || []).map(cleanMemberId).filter(Boolean)));
+  for (const code of uniqueCodes) {
+    if (members[code]) sqliteStore.upsertMember(code, members[code]);
   }
+  clearMemberSearchCache();
+}
+
+function deletePersistedMember(code) {
+  const cleanCode = cleanMemberId(code);
+  if (!cleanCode) return;
+
+  sqliteStore.deleteMember(cleanCode);
+  clearMemberSearchCache();
+}
+
+// Giữ lại function cũ để tránh vỡ code. Không ghi JSON nữa.
+function saveMembers() {
+  clearMemberSearchCache();
 }
 
 // ====== External Customer API ======
@@ -653,26 +814,229 @@ const CUSTOMER_API_URL =
   process.env.CUSTOMER_API_URL ||
   'http://192.168.101.58:8090/api/user_number_level_by_id';
 
-// Cache tránh gọi API lặp lại quá nhiều lần cho cùng 1 mã
+// Database-first customer sync:
+// - User/Admin luôn đọc thông tin khách từ SQLite.
+// - Customer API chỉ có nhiệm vụ đồng bộ dữ liệu mới vào SQLite ở nền.
+// - Khi SQLite được cập nhật, backend phát socket để frontend đọc lại Database.
 const CUSTOMER_API_CACHE_MS = Number(process.env.CUSTOMER_API_CACHE_MS || 5 * 60 * 1000); // 5 phút
-const CUSTOMER_MEMBER_TTL_MS = Number(process.env.CUSTOMER_MEMBER_TTL_MS || 6 * 60 * 60 * 1000); // 6 giờ
+const CUSTOMER_MEMBER_TTL_MS = Number(process.env.CUSTOMER_MEMBER_TTL_MS || 30 * 60 * 1000); // 30 phút
+const CUSTOMER_API_TIMEOUT_MS = Number(process.env.CUSTOMER_API_TIMEOUT_MS || 3500);
+const CUSTOMER_LOOKUP_TIMEOUT_MS = Number(process.env.CUSTOMER_LOOKUP_TIMEOUT_MS || 2500);
+const CUSTOMER_API_RETRY_BACKOFF_MS = Number(process.env.CUSTOMER_API_RETRY_BACKOFF_MS || 5 * 60 * 1000); // 5 phút
+
+// Priority sync cho hệ thống có hơn 60.000 khách.
+// User chọn 3 request song song để đủ nhanh nhưng vẫn tránh làm Customer API quá tải.
+const CUSTOMER_SYNC_CONCURRENCY = Math.max(
+  1,
+  Math.min(10, Number(process.env.CUSTOMER_SYNC_CONCURRENCY || 3))
+);
+const CUSTOMER_SYNC_WORKER_DELAY_MS = Math.max(
+  250,
+  Number(process.env.CUSTOMER_SYNC_WORKER_DELAY_MS || 1000)
+);
+const CUSTOMER_SYNC_MAX_PER_RUN = Math.max(
+  1,
+  Math.min(2000, Number(process.env.CUSTOMER_SYNC_MAX_PER_RUN || 300))
+);
+const CUSTOMER_SYNC_QUEUE_MAX = Math.max(
+  100,
+  Math.min(50000, Number(process.env.CUSTOMER_SYNC_QUEUE_MAX || 10000))
+);
+const CUSTOMER_AUTO_SYNC_INTERVAL_MS = Math.max(
+  60 * 1000,
+  Number(process.env.CUSTOMER_AUTO_SYNC_INTERVAL_MS || 5 * 60 * 1000)
+);
+const CUSTOMER_AUTO_SYNC_ENQUEUE_SIZE = Math.max(
+  1,
+  Math.min(5000, Number(process.env.CUSTOMER_AUTO_SYNC_ENQUEUE_SIZE || 500))
+);
+const CUSTOMER_AUTO_SYNC_RECENT_DAYS = Math.max(
+  1,
+  Math.min(365, Number(process.env.CUSTOMER_AUTO_SYNC_RECENT_DAYS || 90))
+);
 // Cache danh sách search khách để không phải quét lại orders + members mỗi lần gõ tên
 const MEMBER_SEARCH_CACHE_MS = Number(process.env.MEMBER_SEARCH_CACHE_MS || 30 * 1000); // 30 giây
 
-const customerApiCache = new Map();     // code -> { at, data }
-const customerApiInflight = new Map();  // code -> Promise
+const customerApiCache = new Map();        // code -> { at, data }
+const customerApiInflight = new Map();     // code -> Promise<detailed result>
+
+// Queue có ưu tiên: search/order/manual đứng trước đồng bộ nền.
+const customerSyncQueue = new Map();       // code -> queue item
+const customerSyncProcessing = new Set();  // code đang xử lý
+const customerSyncScheduled = new Set();   // queued hoặc processing
+let customerSyncWorkerRunning = false;
+let customerSyncWorkerTimer = null;
+let customerSyncLastRunAt = null;
+let customerSyncLastFinishedAt = null;
+let customerSyncLastResult = {
+  processed: 0,
+  updated: 0,
+  changed: 0,
+  failed: 0,
+  stoppedByApi: false,
+};
 
 let customerApiHealth = {
-  ok: false,
+  ok: false, // chỉ phản ánh khả năng kết nối API, không phản ánh riêng 1 mã khách có tồn tại hay không
+  connectionStatus: 'UNKNOWN', // UNKNOWN | ONLINE | OFFLINE | TIMEOUT | HTTP_ERROR
+  lookupStatus: 'IDLE',        // IDLE | FOUND | NOT_FOUND | INVALID_RESPONSE | ERROR
   url: CUSTOMER_API_URL,
   lastCheckedAt: null,
   lastOkAt: null,
+  lastDataAt: null,
   lastErrorAt: null,
   lastError: null,
+  lastCheckedCode: null,
 };
 
 function cleanMemberId(v) {
   return String(v || '').replace(/\s+/g, '').trim();
+}
+function cleanCustomerDisplayName(nameInput, codeInput = '') {
+  const code = cleanMemberId(codeInput);
+  let name = String(nameInput || '').trim();
+
+  if (!name) return '';
+
+  if (code) {
+    name = name
+      .replace(new RegExp(`\\s*-\\s*${code}\\s*$`, 'i'), '')
+      .replace(new RegExp(`^${code}\\s*-\\s*`, 'i'), '')
+      .trim();
+  }
+
+  return name;
+}
+
+function normalizeCustomerIdentityText(v) {
+  return String(v || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isMeaningfulCustomerName(value, codeInput = '') {
+  const code = cleanMemberId(codeInput);
+  const cleaned = cleanCustomerDisplayName(value, code);
+  if (!cleaned) return false;
+
+  const norm = normalizeCustomerIdentityText(cleaned);
+  if (!norm) return false;
+
+  const blocked = [
+    'khong tim thay hoac api cham',
+    'khong tim thay',
+    'api cham',
+    'dang tim khach',
+    'dang kiem tra khach',
+    'chua co thong tin',
+    'chua co ten',
+    'unknown',
+    'not found',
+    'loading',
+    'null',
+    'undefined',
+    'n a',
+    'na',
+  ];
+
+  if (blocked.some((x) => norm === x || norm.startsWith(`${x} `))) return false;
+  if (norm === '---' || norm === '--' || norm === '-') return false;
+  if (code && norm === normalizeCustomerIdentityText(code)) return false;
+  if (code && norm === `khach ${normalizeCustomerIdentityText(code)}`) return false;
+
+  return true;
+}
+
+function isMeaningfulCustomerLevel(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+
+  const norm = normalizeCustomerIdentityText(raw);
+  if (!norm) return false;
+
+  const blocked = new Set([
+    '---', '--', '-',
+    'dang tim',
+    'dang kiem tra',
+    'dang kiem tra level',
+    'chua co thong tin',
+    'unknown',
+    'not found',
+    'loading',
+    'null',
+    'undefined',
+    'n a',
+    'na',
+  ]);
+
+  return !blocked.has(norm);
+}
+
+function meaningfulCustomerName(value, codeInput = '') {
+  return isMeaningfulCustomerName(value, codeInput)
+    ? cleanCustomerDisplayName(value, codeInput)
+    : '';
+}
+
+function meaningfulCustomerLevel(value) {
+  return isMeaningfulCustomerLevel(value) ? String(value || '').trim() : '';
+}
+
+function getBestKnownCustomerIdentity(codeInput) {
+  const code = cleanMemberId(codeInput);
+  if (!code) {
+    return { exists: false, code: '', name: '', level: '', lastSeenAt: null, ordersCount: 0 };
+  }
+
+  const m = members[code] || {};
+  let name = meaningfulCustomerName(m.name || m.customerName || '', code);
+  let level = meaningfulCustomerLevel(m.level || m.memberLevel || m.tier || '');
+  let lastSeenAt = m.lastSeenAt || null;
+  let ordersCount = 0;
+
+  const customerOrders = (orders || [])
+    .filter((o) => cleanMemberId(o?.customer?.code || o?.memberCard || '') === code)
+    .sort((a, b) => new Date(b?.createdAt || b?.updatedAt || 0) - new Date(a?.createdAt || a?.updatedAt || 0));
+
+  ordersCount = customerOrders.length;
+
+  for (const o of customerOrders) {
+    if (!name) {
+      name = meaningfulCustomerName(
+        o?.customer?.name || o?.customerName || '',
+        code
+      );
+    }
+
+    if (!level) {
+      level = meaningfulCustomerLevel(
+        o?.customer?.level || o?.customerLevel || o?.level || ''
+      );
+    }
+
+    const at = o?.createdAt || o?.updatedAt || null;
+    if (at && (!lastSeenAt || new Date(at) > new Date(lastSeenAt))) {
+      lastSeenAt = at;
+    }
+
+    if (name && level && lastSeenAt) break;
+  }
+
+  return {
+    exists: Boolean(members[code]) || customerOrders.length > 0,
+    code,
+    name,
+    level,
+    lastSeenAt,
+    ordersCount: Math.max(Number(m.ordersCount || 0) || 0, ordersCount),
+    apiSyncedAt: m.apiSyncedAt || null,
+  };
 }
 
 function normalizeMemberSearchText(v) {
@@ -716,14 +1080,57 @@ function buildMemberOrderStats() {
       cur.lastOrderAt = orderAt;
     }
 
-    if (!cur.name) cur.name = String(o.customer?.name || o.customerName || '').trim();
-    if (!cur.level) cur.level = String(o.customer?.level || '').trim();
+    if (!cur.name) {
+      cur.name = meaningfulCustomerName(
+        o.customer?.name || o.customerName || '',
+        code
+      );
+    }
+    if (!cur.level) {
+      cur.level = meaningfulCustomerLevel(o.customer?.level || o.customerLevel || '');
+    }
 
     stats.set(code, cur);
   }
 
   return stats;
 }
+
+function buildMemberOrderStatsExact({ includeCancelled = true } = {}) {
+  const stats = new Map();
+
+  for (const o of orders || []) {
+    if (!o) continue;
+
+    const statusText = String(o.status || '').toUpperCase();
+    if (!includeCancelled && statusText === 'CANCELLED') continue;
+
+    const code = cleanMemberId(o.memberCard || o.customer?.code || '');
+    if (!code) continue;
+
+    const cur = stats.get(code) || {
+      orderCount: 0,
+      totalQty: 0,
+      lastOrderAt: null,
+    };
+
+    cur.orderCount += 1;
+    cur.totalQty += (o.items || []).reduce(
+      (sum, it) => sum + Math.max(1, Number(it?.qty || it?.quantity || 1)),
+      0
+    );
+
+    const orderAt = o.createdAt || o.updatedAt || '';
+    if (orderAt && (!cur.lastOrderAt || new Date(orderAt) > new Date(cur.lastOrderAt))) {
+      cur.lastOrderAt = orderAt;
+    }
+
+    stats.set(code, cur);
+  }
+
+  return stats;
+}
+
 let memberSearchCache = {
   at: 0,
   rows: null,
@@ -760,13 +1167,19 @@ function getMemberSearchBaseRows() {
     const st = stats.get(code) || {};
     const m = members[code] || {};
 
-    const name = String(
-      data.name || prev.name || m.name || m.customerName || st.name || ''
-    ).trim();
+    const name =
+      meaningfulCustomerName(data.name, code) ||
+      meaningfulCustomerName(prev.name, code) ||
+      meaningfulCustomerName(m.name || m.customerName, code) ||
+      meaningfulCustomerName(st.name, code) ||
+      '';
 
-    const level = String(
-      data.level || prev.level || m.level || m.memberLevel || m.tier || st.level || ''
-    ).trim();
+    const level =
+      meaningfulCustomerLevel(data.level) ||
+      meaningfulCustomerLevel(prev.level) ||
+      meaningfulCustomerLevel(m.level || m.memberLevel || m.tier) ||
+      meaningfulCustomerLevel(st.level) ||
+      '';
 
     rowsByCode.set(code, {
       id: code,
@@ -809,7 +1222,7 @@ function getMemberSearchBaseRows() {
 
   return rows;
 }
-function postJsonExternal(urlString, payload, timeoutMs = 3500) {
+function postJsonExternal(urlString, payload, timeoutMs = CUSTOMER_API_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     const u = new URL(urlString);
     const body = Buffer.from(JSON.stringify(payload), 'utf8');
@@ -834,123 +1247,330 @@ function postJsonExternal(urlString, payload, timeoutMs = 3500) {
         res.on('data', (chunk) => {
           raw += chunk;
           if (raw.length > 1024 * 1024) {
-            req.destroy(new Error('Customer API response too large'));
+            const err = new Error('Customer API response too large');
+            err.code = 'RESPONSE_TOO_LARGE';
+            req.destroy(err);
           }
         });
 
         res.on('end', () => {
           if (res.statusCode < 200 || res.statusCode >= 300) {
-            return reject(new Error(`Customer API HTTP ${res.statusCode}: ${raw.slice(0, 200)}`));
+            const err = new Error(`Customer API HTTP ${res.statusCode}: ${raw.slice(0, 200)}`);
+            err.code = 'HTTP_ERROR';
+            err.statusCode = res.statusCode;
+            return reject(err);
           }
 
           try {
             resolve(JSON.parse(raw || '{}'));
           } catch (e) {
-            reject(new Error('Customer API invalid JSON'));
+            const err = new Error('Customer API invalid JSON');
+            err.code = 'INVALID_JSON';
+            reject(err);
           }
         });
       }
     );
 
     req.on('error', reject);
-    req.setTimeout(timeoutMs, () => req.destroy(new Error('Customer API timeout')));
+    req.setTimeout(timeoutMs, () => {
+      const err = new Error('Customer API timeout');
+      err.code = 'API_TIMEOUT';
+      req.destroy(err);
+    });
     req.write(body);
     req.end();
   });
 }
 
+function classifyCustomerApiError(error) {
+  const code = String(error?.code || '').toUpperCase();
+  const message = String(error?.message || error || 'Customer API error');
+
+  if (code === 'API_TIMEOUT' || /timeout/i.test(message)) {
+    return { connectionStatus: 'TIMEOUT', lookupStatus: 'ERROR', message };
+  }
+
+  if (code === 'ECONNREFUSED' || code === 'EHOSTUNREACH' || code === 'ENETUNREACH' || code === 'ENOTFOUND') {
+    return { connectionStatus: 'OFFLINE', lookupStatus: 'ERROR', message };
+  }
+
+  if (code === 'HTTP_ERROR' || /^Customer API HTTP/i.test(message)) {
+    return { connectionStatus: 'HTTP_ERROR', lookupStatus: 'ERROR', message };
+  }
+
+  if (code === 'INVALID_JSON') {
+    return { connectionStatus: 'ONLINE', lookupStatus: 'INVALID_RESPONSE', message };
+  }
+
+  return { connectionStatus: 'OFFLINE', lookupStatus: 'ERROR', message };
+}
+
+function externalResponseSucceeded(json) {
+  if (!json || typeof json !== 'object') return false;
+
+  // Một số phiên bản API trả thẳng object khách, không bọc { status, data }.
+  const looksLikeDirectCustomer = Boolean(
+    json.Number ||
+    json.number ||
+    json.UserNumber ||
+    json.MemberNumber ||
+    json.MemberCode ||
+    json.CustomerCode
+  );
+  if (looksLikeDirectCustomer && !json.data && !json.result && !json.customer) {
+    return true;
+  }
+
+  const raw = json.status ?? json.Status ?? json.success ?? json.ok;
+  if (raw === undefined || raw === null || raw === '') {
+    return Boolean(json.data || json.result || json.customer || json.Number || json.number);
+  }
+
+  if (raw === true || raw === 1) return true;
+
+  const text = String(raw).trim().toLowerCase();
+  return ['true', '1', 'ok', 'success', 'successful'].includes(text);
+}
+
+function extractExternalCustomerPayload(json) {
+  if (!json || typeof json !== 'object') return null;
+
+  let payload = json.data ?? json.result ?? json.customer ?? json;
+
+  for (let i = 0; i < 3; i++) {
+    if (Array.isArray(payload)) {
+      payload = payload[0] || null;
+      continue;
+    }
+
+    if (!payload || typeof payload !== 'object') break;
+
+    if (Array.isArray(payload.rows)) {
+      payload = payload.rows[0] || null;
+      continue;
+    }
+
+    if (Array.isArray(payload.items)) {
+      payload = payload.items[0] || null;
+      continue;
+    }
+
+    if (payload.data && typeof payload.data === 'object') {
+      payload = payload.data;
+      continue;
+    }
+
+    break;
+  }
+
+  return payload && typeof payload === 'object' ? payload : null;
+}
+
 function normalizeExternalCustomer(data, fallbackCode = '') {
   if (!data || typeof data !== 'object') return null;
 
-  const code = cleanMemberId(data.Number ?? fallbackCode);
+  const code = cleanMemberId(
+    data.Number ??
+    data.number ??
+    data.UserNumber ??
+    data.MemberNumber ??
+    data.MemberCode ??
+    data.CustomerCode ??
+    data.code ??
+    data.id ??
+    fallbackCode
+  );
   if (!code) return null;
 
-  const fullName =
-    String(data.PreferredName || '').trim() ||
-    [data.Surname, data.Forename, data.MiddleName]
-      .map(x => String(x || '').trim())
-      .filter(Boolean)
-      .join(' ')
-      .trim();
+  const joinedName = [
+    data.Surname ?? data.LastName,
+    data.Forename ?? data.FirstName,
+    data.MiddleName,
+  ]
+    .map((x) => String(x || '').trim())
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
+  const fullName = meaningfulCustomerName(
+    data.PreferredName ||
+    data.FullName ||
+    data.CustomerName ||
+    data.MemberName ||
+    data.Name ||
+    joinedName,
+    code
+  );
+
+  const membershipType = meaningfulCustomerLevel(
+    data.MembershipType ||
+    data.Membership ||
+    data.MembershipLevel ||
+    data.MemberLevel ||
+    data.LevelName ||
+    data.Level ||
+    data.TierName ||
+    data.Tier ||
+    ''
+  ) || null;
+
+  // Chỉ xem là dữ liệu API hợp lệ khi có ít nhất tên hoặc level thật.
+  if (!fullName && !membershipType) return null;
 
   return {
     code,
     name: fullName || null,
-    level: String(data.TierName || '').trim() || null,
-    title: data.Title || null,
-    surname: data.Surname || null,
-    forename: data.Forename || null,
+    level: membershipType,
+    membershipType,
+    title: data.Title || data.title || null,
+    surname: data.Surname || data.LastName || null,
+    forename: data.Forename || data.FirstName || null,
     middleName: data.MiddleName || null,
     raw: data,
   };
 }
 
-async function fetchCustomerFromExternal(code, { force = false } = {}) {
+async function fetchCustomerFromExternalDetailed(
+  code,
+  { force = false, timeoutMs = CUSTOMER_API_TIMEOUT_MS } = {}
+) {
   const cleanCode = cleanMemberId(code);
 
-  // Không gọi API với mã rỗng hoặc mã dạng text như NMB/TV
-  if (!cleanCode || !/^\d+$/.test(cleanCode)) return null;
+  if (!cleanCode || !/^\d+$/.test(cleanCode)) {
+    return {
+      status: 'INVALID_CODE',
+      data: null,
+      connectionStatus: customerApiHealth.connectionStatus,
+      fromCache: false,
+    };
+  }
 
   const now = Date.now();
   const cached = customerApiCache.get(cleanCode);
 
   if (!force && cached && now - cached.at < CUSTOMER_API_CACHE_MS) {
-    return cached.data;
+    return {
+      status: 'FOUND',
+      data: cached.data,
+      connectionStatus: 'ONLINE',
+      fromCache: true,
+    };
   }
 
   if (!force && customerApiInflight.has(cleanCode)) {
     return customerApiInflight.get(cleanCode);
   }
 
-  const p = (async () => {
+  const promise = (async () => {
+    const checkedAt = new Date().toISOString();
+    customerApiHealth.lastCheckedAt = checkedAt;
+    customerApiHealth.lastCheckedCode = cleanCode;
+
     try {
-      customerApiHealth.lastCheckedAt = new Date().toISOString();
+      const json = await postJsonExternal(
+        CUSTOMER_API_URL,
+        { id: cleanCode },
+        timeoutMs
+      );
 
-      const json = await postJsonExternal(CUSTOMER_API_URL, { id: cleanCode });
-      const data = json?.status === true ? normalizeExternalCustomer(json.data, cleanCode) : null;
+      const apiReachableAt = new Date().toISOString();
+      customerApiHealth.ok = true;
+      customerApiHealth.connectionStatus = 'ONLINE';
+      customerApiHealth.lastOkAt = apiReachableAt;
+      customerApiHealth.lastError = null;
 
-      customerApiHealth.ok = !!data;
-      customerApiHealth.lastCheckedAt = new Date().toISOString();
-
-      if (data) {
-        customerApiHealth.lastOkAt = new Date().toISOString();
-        customerApiHealth.lastError = null;
-        customerApiCache.set(cleanCode, { at: Date.now(), data });
-      } else {
-        customerApiHealth.lastErrorAt = new Date().toISOString();
-        customerApiHealth.lastError = 'Customer API returned empty data';
+      if (!externalResponseSucceeded(json)) {
+        customerApiHealth.lookupStatus = 'NOT_FOUND';
+        return {
+          status: 'NOT_FOUND',
+          data: null,
+          connectionStatus: 'ONLINE',
+          fromCache: false,
+          raw: json,
+        };
       }
 
-      return data;
-    } catch (err) {
-      customerApiHealth.ok = false;
-      customerApiHealth.lastCheckedAt = new Date().toISOString();
-      customerApiHealth.lastErrorAt = new Date().toISOString();
-      customerApiHealth.lastError = err?.message || String(err);
+      const payload = extractExternalCustomerPayload(json);
+      const data = payload ? normalizeExternalCustomer(payload, cleanCode) : null;
 
-      // Nếu có cache cũ thì vẫn dùng cache cũ để không làm gián đoạn order
-      return cached?.data || null;
+      if (!data) {
+        customerApiHealth.lookupStatus = payload ? 'INVALID_RESPONSE' : 'NOT_FOUND';
+        customerApiHealth.lastError = payload
+          ? 'Customer API response did not contain a valid customer name/level'
+          : null;
+
+        return {
+          status: payload ? 'INVALID_RESPONSE' : 'NOT_FOUND',
+          data: null,
+          connectionStatus: 'ONLINE',
+          fromCache: false,
+          raw: json,
+        };
+      }
+
+      customerApiHealth.lookupStatus = 'FOUND';
+      customerApiHealth.lastDataAt = new Date().toISOString();
+      customerApiCache.set(cleanCode, { at: Date.now(), data });
+
+      return {
+        status: 'FOUND',
+        data,
+        connectionStatus: 'ONLINE',
+        fromCache: false,
+        raw: json,
+      };
+    } catch (error) {
+      const classified = classifyCustomerApiError(error);
+      customerApiHealth.ok = classified.connectionStatus === 'ONLINE';
+      customerApiHealth.connectionStatus = classified.connectionStatus;
+      customerApiHealth.lookupStatus = classified.lookupStatus;
+      customerApiHealth.lastErrorAt = new Date().toISOString();
+      customerApiHealth.lastError = classified.message;
+
+      return {
+        status: classified.lookupStatus === 'INVALID_RESPONSE'
+          ? 'INVALID_RESPONSE'
+          : classified.connectionStatus,
+        data: null,
+        connectionStatus: classified.connectionStatus,
+        fromCache: false,
+        error: classified.message,
+      };
     } finally {
       customerApiInflight.delete(cleanCode);
     }
   })();
 
-  customerApiInflight.set(cleanCode, p);
-  return p;
+  customerApiInflight.set(cleanCode, promise);
+  return promise;
+}
+
+// Giữ helper cũ cho các phần code chưa chuyển đổi hoàn toàn.
+// Chỉ trả dữ liệu khi API/cache có bản ghi hợp lệ; lỗi API không lấy cache làm kết quả mới.
+async function fetchCustomerFromExternal(code, options = {}) {
+  const result = await fetchCustomerFromExternalDetailed(code, options);
+  return result.status === 'FOUND' ? result.data : null;
 }
 
 function localMemberRow(code) {
-  const cleanCode = cleanMemberId(code);
-  const m = members[cleanCode];
-  if (!m) return null;
+  const identity = getBestKnownCustomerIdentity(code);
+  if (!identity.exists) return null;
+
+  const stored = members[identity.code] || {};
 
   return {
-    code: cleanCode,
-    name: m.name || m.customerName || null,
-    level: m.level || m.memberLevel || null,
-    lastSeenAt: m.lastSeenAt || null,
-    ordersCount: m.ordersCount || 0,
-    apiSyncedAt: m.apiSyncedAt || null,
+    code: identity.code,
+    name: identity.name || null,
+    level: identity.level || null,
+    lastSeenAt: identity.lastSeenAt || null,
+    ordersCount: identity.ordersCount || 0,
+    apiSyncedAt: stored.apiSyncedAt || identity.apiSyncedAt || null,
+    lastApiAttemptAt: stored.lastApiAttemptAt || null,
+    lastApiSuccessAt: stored.lastApiSuccessAt || stored.apiSyncedAt || null,
+    syncStatus: stored.syncStatus || (stored.apiSyncedAt ? 'SUCCESS' : 'LOCAL_ONLY'),
+    syncError: stored.syncError || null,
+    dataSource: stored.dataSource || (stored.apiSyncedAt ? 'CUSTOMER_API' : 'DATABASE'),
   };
 }
 
@@ -969,17 +1589,43 @@ function upsertMemberFromExternal(external, { by = 'customer-api', save = true }
 
   const code = cleanMemberId(external.code);
   const prev = members[code] || {};
+  const prevExists = !!members[code];
   const nowIso = new Date().toISOString();
 
-  const oldName = String(prev.name || prev.customerName || '').trim();
-  const oldLevel = String(prev.level || prev.memberLevel || '').trim();
+  const oldName = meaningfulCustomerName(prev.name || prev.customerName || '', code);
+  const oldLevel = meaningfulCustomerLevel(prev.level || prev.memberLevel || '');
+  const oldMembershipType = String(prev.membershipType || '').trim();
 
-  const nextName = external.name || oldName || null;
-  const nextLevel = external.level || oldLevel || null;
+  const nextName = meaningfulCustomerName(external.name, code) || oldName || null;
+  const nextLevel = meaningfulCustomerLevel(external.level) || oldLevel || null;
+  const nextMembershipType =
+    external.membershipType ||
+    prev.membershipType ||
+    nextLevel ||
+    null;
 
   const changes = {};
-  if (nextName && oldName !== nextName) changes.name = { from: oldName || null, to: nextName };
-  if (nextLevel && oldLevel !== nextLevel) changes.level = { from: oldLevel || null, to: nextLevel };
+
+  if (nextName && oldName !== nextName) {
+    changes.name = { from: oldName || null, to: nextName };
+  }
+
+  if (nextLevel && oldLevel !== nextLevel) {
+    changes.level = { from: oldLevel || null, to: nextLevel };
+  }
+
+  if (
+    nextMembershipType &&
+    oldMembershipType &&
+    oldMembershipType !== nextMembershipType
+  ) {
+    changes.membershipType = {
+      from: oldMembershipType || null,
+      to: nextMembershipType,
+    };
+  }
+
+  const hasChanges = Object.keys(changes).length > 0;
 
   members[code] = {
     ...prev,
@@ -988,17 +1634,23 @@ function upsertMemberFromExternal(external, { by = 'customer-api', save = true }
     customerName: nextName,
     level: nextLevel,
     memberLevel: nextLevel,
+    membershipType: nextMembershipType,
     title: external.title ?? prev.title ?? null,
     surname: external.surname ?? prev.surname ?? null,
     forename: external.forename ?? prev.forename ?? null,
     middleName: external.middleName ?? prev.middleName ?? null,
     apiSource: 'user_number_level_by_id',
     apiSyncedAt: nowIso,
-    updatedAt: nowIso,
+    lastApiAttemptAt: nowIso,
+    lastApiSuccessAt: nowIso,
+    syncStatus: 'SUCCESS',
+    syncError: null,
+    dataSource: 'CUSTOMER_API',
+    updatedAt: hasChanges || !prevExists ? nowIso : prev.updatedAt || nowIso,
     createdAt: prev.createdAt || nowIso,
   };
 
-  if (Object.keys(changes).length > 0) {
+  if (hasChanges) {
     pushMemberHistory(code, {
       type: 'API_SYNC',
       by,
@@ -1009,65 +1661,418 @@ function upsertMemberFromExternal(external, { by = 'customer-api', save = true }
     });
   }
 
-  if (save) saveMembers();
+  // Ghi đúng 1 member vào SQLite sau mỗi lần API trả dữ liệu.
+  // Dù name/level không đổi, apiSyncedAt vẫn cần được cập nhật để tránh gọi API lặp lại liên tục.
+  if (save) {
+    persistMember(code);
+  }
+  clearCustomerInsightsCache();
 
   return {
     ok: true,
-    changed: Object.keys(changes).length > 0,
+    changed: !prevExists || hasChanges,
     member: localMemberRow(code),
   };
+}
+
+function shouldAttemptCustomerApiSync(codeInput, { force = false } = {}) {
+  if (force) return true;
+
+  const code = cleanMemberId(codeInput);
+  const m = members[code] || {};
+  const attemptMs = Date.parse(m.lastApiAttemptAt || '');
+
+  if (Number.isFinite(attemptMs) && Date.now() - attemptMs < CUSTOMER_API_RETRY_BACKOFF_MS) {
+    return false;
+  }
+
+  // Khi API vừa bị xác nhận offline/timeout, tránh để nhiều máy User đồng loạt gọi lại.
+  const globalErrorMs = Date.parse(customerApiHealth.lastErrorAt || '');
+  if (
+    ['OFFLINE', 'TIMEOUT'].includes(customerApiHealth.connectionStatus) &&
+    Number.isFinite(globalErrorMs) &&
+    Date.now() - globalErrorMs < CUSTOMER_API_RETRY_BACKOFF_MS
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function updateMemberSyncMetadata(codeInput, patch = {}) {
+  const code = cleanMemberId(codeInput);
+  if (!code || !members[code]) return null;
+
+  const prev = members[code] || {};
+  const nowIso = new Date().toISOString();
+
+  members[code] = {
+    ...prev,
+    lastApiAttemptAt: patch.lastApiAttemptAt || nowIso,
+    lastApiSuccessAt: patch.lastApiSuccessAt ?? prev.lastApiSuccessAt ?? prev.apiSyncedAt ?? null,
+    syncStatus: patch.syncStatus || prev.syncStatus || 'LOCAL_ONLY',
+    syncError: patch.syncError === undefined ? (prev.syncError || null) : patch.syncError,
+    dataSource: patch.dataSource || prev.dataSource || (prev.apiSyncedAt ? 'CUSTOMER_API' : 'DATABASE'),
+    updatedAt: nowIso,
+  };
+
+  persistMember(code);
+  return localMemberRow(code);
+}
+
+async function syncCustomerDatabaseFromApi(
+  codeInput,
+  {
+    force = false,
+    by = 'customer-db-sync',
+    timeoutMs = CUSTOMER_API_TIMEOUT_MS,
+    emit = true,
+  } = {}
+) {
+  const code = cleanMemberId(codeInput);
+  if (!code || !/^\d+$/.test(code)) {
+    return {
+      ok: false,
+      apiOk: false,
+      status: 'INVALID_CODE',
+      changed: false,
+      member: localMemberRow(code),
+    };
+  }
+
+  const detailed = await fetchCustomerFromExternalDetailed(code, {
+    force,
+    timeoutMs,
+  });
+
+  if (detailed.status === 'FOUND' && detailed.data) {
+    const updated = upsertMemberFromExternal(detailed.data, {
+      by,
+      save: true,
+    });
+    const dbMember = localMemberRow(code);
+
+    if (emit) {
+      io.emit('customersUpdated', {
+        count: 1,
+        code,
+        source: detailed.fromCache ? 'customer-api-cache' : 'customer-api',
+      });
+      io.emit('memberUpdated', {
+        code,
+        member: dbMember,
+        source: 'database-after-api-sync',
+        refreshDone: true,
+        changed: updated.changed,
+      });
+    }
+
+    return {
+      ok: true,
+      apiOk: true,
+      status: detailed.fromCache ? 'CACHE_HIT' : 'SUCCESS',
+      changed: updated.changed,
+      member: dbMember,
+      apiStatus: { ...customerApiHealth },
+    };
+  }
+
+  const status = detailed.status || 'ERROR';
+  const existing = members[code] ? updateMemberSyncMetadata(code, {
+    syncStatus: status,
+    syncError: detailed.error || customerApiHealth.lastError || null,
+    dataSource: members[code]?.dataSource || (members[code]?.apiSyncedAt ? 'CUSTOMER_API' : 'DATABASE'),
+  }) : null;
+
+  if (emit) {
+    io.emit('customerSyncStatus', {
+      code,
+      status,
+      apiStatus: { ...customerApiHealth },
+      member: existing,
+    });
+  }
+
+  return {
+    ok: false,
+    apiOk: false,
+    status,
+    changed: false,
+    member: existing || localMemberRow(code),
+    apiStatus: { ...customerApiHealth },
+  };
+}
+
+function getCustomerSyncPriority(options = {}) {
+  if (Number.isFinite(Number(options.priority))) {
+    return Math.max(0, Math.min(1000, Number(options.priority)));
+  }
+
+  const by = String(options.by || '').toLowerCase();
+  if (options.force || by.includes('admin-check') || by.includes('manual')) return 300;
+  if (by.includes('priority') || by.includes('member-lookup')) return 220;
+  if (by.includes('order')) return 200;
+  if (by.includes('recent') || by.includes('automatic')) return 40;
+  return 100;
+}
+
+function scheduleCustomerSyncWorker(delayMs = 0) {
+  if (customerSyncWorkerTimer || customerSyncWorkerRunning) return;
+
+  customerSyncWorkerTimer = setTimeout(() => {
+    customerSyncWorkerTimer = null;
+    runCustomerSyncWorker().catch((error) => {
+      console.warn('[customer sync worker]', error?.message || String(error));
+    });
+  }, Math.max(0, Number(delayMs || 0)));
+}
+
+function queueCustomerDatabaseSync(codeInput, options = {}) {
+  const code = cleanMemberId(codeInput);
+  if (!code || !/^\d+$/.test(code)) return false;
+  if (customerSyncProcessing.has(code) || customerApiInflight.has(code)) return false;
+  if (!shouldAttemptCustomerApiSync(code, options)) return false;
+
+  const priority = getCustomerSyncPriority(options);
+  const existing = customerSyncQueue.get(code);
+
+  if (existing) {
+    // Nếu cùng mã được search/order lại, nâng priority thay vì thêm bản ghi trùng.
+    customerSyncQueue.set(code, {
+      ...existing,
+      priority: Math.max(existing.priority || 0, priority),
+      force: Boolean(existing.force || options.force),
+      emit: existing.emit !== false || options.emit !== false,
+      by: priority >= (existing.priority || 0)
+        ? (options.by || existing.by)
+        : existing.by,
+      timeoutMs: Math.max(
+        Number(existing.timeoutMs || 0),
+        Number(options.timeoutMs || CUSTOMER_API_TIMEOUT_MS)
+      ),
+      updatedAt: Date.now(),
+    });
+    scheduleCustomerSyncWorker(0);
+    return true;
+  }
+
+  if (customerSyncQueue.size >= CUSTOMER_SYNC_QUEUE_MAX) {
+    // Queue đầy: chỉ cho phép khách ưu tiên cao chen vào bằng cách bỏ 1 item nền thấp nhất.
+    const lowest = Array.from(customerSyncQueue.values())
+      .sort((a, b) => (a.priority - b.priority) || (b.queuedAt - a.queuedAt))[0];
+
+    if (!lowest || lowest.priority >= priority) return false;
+
+    customerSyncQueue.delete(lowest.code);
+    customerSyncScheduled.delete(lowest.code);
+  }
+
+  const now = Date.now();
+  customerSyncQueue.set(code, {
+    code,
+    priority,
+    force: Boolean(options.force),
+    by: options.by || 'customer-db-background-sync',
+    timeoutMs: options.timeoutMs || CUSTOMER_API_TIMEOUT_MS,
+    emit: options.emit !== false,
+    queuedAt: now,
+    updatedAt: now,
+  });
+  customerSyncScheduled.add(code);
+  scheduleCustomerSyncWorker(0);
+  return true;
+}
+
+function takeNextCustomerSyncItems(limit) {
+  return Array.from(customerSyncQueue.values())
+    .sort((a, b) => {
+      if ((b.priority || 0) !== (a.priority || 0)) {
+        return (b.priority || 0) - (a.priority || 0);
+      }
+      return (a.queuedAt || 0) - (b.queuedAt || 0);
+    })
+    .slice(0, Math.max(1, limit));
+}
+
+async function runCustomerSyncWorker() {
+  if (customerSyncWorkerRunning || customerSyncQueue.size === 0) return;
+
+  const globalErrorMs = Date.parse(customerApiHealth.lastErrorAt || '');
+  if (
+    ['OFFLINE', 'TIMEOUT'].includes(customerApiHealth.connectionStatus) &&
+    Number.isFinite(globalErrorMs) &&
+    Date.now() - globalErrorMs < CUSTOMER_API_RETRY_BACKOFF_MS
+  ) {
+    scheduleCustomerSyncWorker(CUSTOMER_API_RETRY_BACKOFF_MS - (Date.now() - globalErrorMs));
+    return;
+  }
+
+  customerSyncWorkerRunning = true;
+  customerSyncLastRunAt = new Date().toISOString();
+
+  const summary = {
+    processed: 0,
+    updated: 0,
+    changed: 0,
+    failed: 0,
+    stoppedByApi: false,
+  };
+
+  try {
+    while (
+      customerSyncQueue.size > 0 &&
+      summary.processed < CUSTOMER_SYNC_MAX_PER_RUN &&
+      !summary.stoppedByApi
+    ) {
+      const capacity = Math.min(
+        CUSTOMER_SYNC_CONCURRENCY,
+        CUSTOMER_SYNC_MAX_PER_RUN - summary.processed
+      );
+      const items = takeNextCustomerSyncItems(capacity);
+      if (items.length === 0) break;
+
+      for (const item of items) {
+        customerSyncQueue.delete(item.code);
+        customerSyncProcessing.add(item.code);
+      }
+
+      const rows = await Promise.all(items.map(async (item) => {
+        try {
+          return await syncCustomerDatabaseFromApi(item.code, {
+            force: item.force,
+            by: item.by,
+            timeoutMs: item.timeoutMs,
+            emit: item.emit,
+          });
+        } catch (error) {
+          return {
+            ok: false,
+            apiOk: false,
+            status: 'ERROR',
+            changed: false,
+            member: localMemberRow(item.code),
+            error: error?.message || String(error),
+          };
+        } finally {
+          customerSyncProcessing.delete(item.code);
+          customerSyncScheduled.delete(item.code);
+        }
+      }));
+
+      summary.processed += rows.length;
+      for (const row of rows) {
+        if (row?.apiOk) {
+          summary.updated += 1;
+          if (row.changed) summary.changed += 1;
+        } else {
+          summary.failed += 1;
+        }
+
+        if (['OFFLINE', 'TIMEOUT'].includes(row?.status)) {
+          summary.stoppedByApi = true;
+        }
+      }
+
+      // Nhường event loop giữa các nhóm request.
+      if (!summary.stoppedByApi && customerSyncQueue.size > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+      }
+    }
+  } finally {
+    customerSyncWorkerRunning = false;
+    customerSyncLastFinishedAt = new Date().toISOString();
+    customerSyncLastResult = summary;
+
+    if (summary.updated > 0) {
+      io.emit('customersUpdated', {
+        count: summary.updated,
+        changed: summary.changed,
+        source: 'priority-customer-sync-worker',
+      });
+    }
+
+    if (customerSyncQueue.size > 0) {
+      scheduleCustomerSyncWorker(
+        summary.stoppedByApi
+          ? CUSTOMER_API_RETRY_BACKOFF_MS
+          : CUSTOMER_SYNC_WORKER_DELAY_MS
+      );
+    }
+  }
 }
 
 async function resolveCustomerByApiOrLocal(code, { force = false, by = 'lookup' } = {}) {
   const cleanCode = cleanMemberId(code);
   if (!cleanCode) return { source: 'empty', member: null, apiUsed: false };
 
-  const local = localMemberRow(cleanCode);
-
-  // Nếu vừa sync gần đây thì dùng local, không gọi API nữa
-  if (!force && local && isMemberApiFresh(cleanCode)) {
-    return { source: 'local-fresh', member: local, apiUsed: false };
+  // Đảm bảo dữ liệu fallback từ order được ghi vào Database trước khi app đọc.
+  const storedBeforeRecovery = members[cleanCode] || null;
+  let local = storedBeforeRecovery ? localMemberRow(cleanCode) : null;
+  if (
+    !storedBeforeRecovery ||
+    (!meaningfulCustomerName(storedBeforeRecovery.name || storedBeforeRecovery.customerName, cleanCode) &&
+      !meaningfulCustomerLevel(storedBeforeRecovery.level || storedBeforeRecovery.memberLevel || storedBeforeRecovery.tier))
+  ) {
+    recoverMemberFromKnownHistory(cleanCode, `${by}-db-recovery`);
+    local = members[cleanCode] ? localMemberRow(cleanCode) : null;
   }
 
-  const external = await fetchCustomerFromExternal(cleanCode, { force });
+  const fresh = Boolean(local && isMemberApiFresh(cleanCode));
+  const queued = (!fresh || force)
+    ? queueCustomerDatabaseSync(cleanCode, {
+        force,
+        by: `${by}-background-api-sync`,
+      })
+    : false;
 
-  if (external) {
-    const updated = upsertMemberFromExternal(external, { by, save: true });
-    io.emit('memberUpdated', { code: cleanCode, member: members[cleanCode] });
-
-    return {
-      source: 'external-api',
-      member: updated.member || localMemberRow(cleanCode),
-      apiUsed: true,
-    };
-  }
-
-  // API lỗi hoặc không có data → fallback local
-  if (local) {
-    return { source: 'local-fallback', member: local, apiUsed: true };
-  }
-
-  return { source: 'not-found', member: null, apiUsed: true };
+  return {
+    source: 'database',
+    member: local,
+    apiUsed: false,
+    backgroundRefreshing: queued || customerSyncScheduled.has(cleanCode) || customerApiInflight.has(cleanCode),
+  };
 }
 
 async function buildCustomerSnapshot(memberCard, customerFromBody = {}, fallbackName = null) {
   const code = cleanMemberId(memberCard);
-  const resolved = await resolveCustomerByApiOrLocal(code, { by: 'order' });
+
+  const bodyName = meaningfulCustomerName(
+    customerFromBody.name ||
+    customerFromBody.customerName ||
+    fallbackName ||
+    '',
+    code
+  );
+
+  const bodyLevel = meaningfulCustomerLevel(
+    customerFromBody.level ||
+    customerFromBody.memberLevel ||
+    customerFromBody.tier ||
+    ''
+  );
+
+  // Chỉ dùng snapshot frontend ngay khi cả tên và level đều là dữ liệu thật.
+  // Các text UI như "Không tìm thấy hoặc API chậm" / "---" không được lưu vào member/order.
+  if (code && bodyName && bodyLevel) {
+    return {
+      code,
+      name: bodyName,
+      level: bodyLevel,
+      source: 'body-snapshot',
+    };
+  }
+
+  const resolved = await resolveCustomerByApiOrLocal(code, {
+    force: false,
+    by: 'order',
+  });
+
   const m = resolved.member || {};
 
   return {
     code: m.code || code || null,
-    name:
-      m.name ||
-      customerFromBody.name ||
-      customerFromBody.customerName ||
-      fallbackName ||
-      null,
-    level:
-      m.level ||
-      customerFromBody.level ||
-      customerFromBody.memberLevel ||
-      null,
+    name: bodyName || meaningfulCustomerName(m.name, code) || null,
+    level: bodyLevel || meaningfulCustomerLevel(m.level) || null,
     source: resolved.source,
   };
 }
@@ -1213,8 +2218,12 @@ app.post('/api/members/restore',
     const src = path.join(BACKUP_DIR, file);
     if (!fs.existsSync(src)) return res.status(404).json({ error: 'Backup not found' });
     fs.copyFileSync(src, MEMBERS_JSON);
-    // Reload vào bộ nhớ
+
+    // Reload vào bộ nhớ + ghi lại vào SQLite
     members = JSON.parse(fs.readFileSync(MEMBERS_JSON, 'utf-8') || '{}');
+    sqliteStore.replaceAllMembers(members);
+    clearMemberSearchCache();
+
     res.json({ ok: true });
   }
 );
@@ -1253,6 +2262,13 @@ app.post('/api/login', (req, res) => {
 // --- Lấy danh sách món (public) ---
 // Enrich từ products.json: thêm menus[], itemGroup, name, productCode, menuType, price
 app.get('/api/foods', (_req, res) => {
+  try {
+    // Luôn reload nhanh từ SQLite để tránh dữ liệu menu bị cũ
+    foods = sqliteStore.loadFoods();
+  } catch (e) {
+    console.error('[GET /api/foods] reload foods failed:', e.message);
+  }
+
   const sorted = [...foods].sort((a, b) => {
     const ao = typeof a.order === 'number' ? a.order : 0;
     const bo = typeof b.order === 'number' ? b.order : 0;
@@ -1366,57 +2382,526 @@ app.get('/api/member-search', (req, res) => {
   }
 });
 
-// Tra cứu khách: ưu tiên API mới, lỗi thì fallback members.json
+// Tra cứu khách: ưu tiên trả local nhanh, sau đó kiểm tra API nền nếu dữ liệu đã cũ
+async function refreshCustomerByApiInBackground(code, { force = false, by = 'member-lookup-background' } = {}) {
+  return queueCustomerDatabaseSync(code, {
+    force,
+    by,
+  });
+}
+
 app.get('/api/member-lookup', async (req, res) => {
   try {
     const card = cleanMemberId(req.query.memberCard || req.query.id || req.query.code);
-    const force = String(req.query.force || '').toLowerCase() === 'true';
+    const requestRefresh = ['true', '1', 'yes'].includes(
+      String(req.query.refresh ?? req.query.force ?? '').toLowerCase()
+    );
 
     if (!card) {
       return res.json({
         ok: false,
         customerName: null,
         level: null,
-        source: 'empty',
+        source: 'database',
+        syncStatus: 'EMPTY',
       });
     }
 
-    const result = await resolveCustomerByApiOrLocal(card, { force, by: 'member-lookup' });
-    const m = result.member;
+    // App chỉ đọc Database. Nếu Database chưa có dữ liệu hợp lệ,
+    // phục hồi từ order history vào Database trước rồi mới trả về.
+    const storedBeforeRecovery = members[card] || null;
+    let local = storedBeforeRecovery ? localMemberRow(card) : null;
+    if (
+      !storedBeforeRecovery ||
+      (!meaningfulCustomerName(storedBeforeRecovery.name || storedBeforeRecovery.customerName, card) &&
+        !meaningfulCustomerLevel(storedBeforeRecovery.level || storedBeforeRecovery.memberLevel || storedBeforeRecovery.tier))
+    ) {
+      recoverMemberFromKnownHistory(card, 'member-lookup-db-recovery');
+      local = members[card] ? localMemberRow(card) : null;
+    }
+
+    const fresh = Boolean(local && isMemberApiFresh(card));
+    const shouldRefresh = requestRefresh || !fresh;
+    const queued = shouldRefresh
+      ? queueCustomerDatabaseSync(card, {
+          force: requestRefresh,
+          by: requestRefresh
+            ? 'member-lookup-priority-sync'
+            : 'member-lookup-background-sync',
+        })
+      : false;
 
     return res.json({
-      ok: !!m,
-      code: m?.code || card,
-      customerCode: m?.code || card,
-      customerName: m?.name || null,
-      name: m?.name || null,
-      level: m?.level || null,
-      tier: m?.level || null,
-      lastSeenAt: m?.lastSeenAt || null,
-      ordersCount: m?.ordersCount || 0,
-      apiUsed: result.apiUsed,
-      source: result.source,
+      ok: Boolean(local),
+      code: local?.code || card,
+      customerCode: local?.code || card,
+      customerName: local?.name || null,
+      name: local?.name || null,
+      level: local?.level || null,
+      tier: local?.level || null,
+      lastSeenAt: local?.lastSeenAt || null,
+      ordersCount: local?.ordersCount || 0,
+      apiSyncedAt: local?.apiSyncedAt || null,
+      lastApiAttemptAt: local?.lastApiAttemptAt || null,
+      lastApiSuccessAt: local?.lastApiSuccessAt || null,
+      syncStatus: local?.syncStatus || (local ? 'LOCAL_ONLY' : 'NOT_IN_DATABASE'),
+      syncError: local?.syncError || null,
+      dataSource: local?.dataSource || 'DATABASE',
+      apiUsed: false,
+      refreshing:
+        queued ||
+        customerSyncScheduled.has(card) ||
+        customerApiInflight.has(card),
+      backgroundRefreshing:
+        queued ||
+        customerSyncScheduled.has(card) ||
+        customerApiInflight.has(card),
+      source: 'database',
       apiStatus: customerApiHealth,
     });
-  } catch (err) {
+  } catch (error) {
     const card = cleanMemberId(req.query.memberCard || req.query.id || req.query.code);
     const local = localMemberRow(card);
 
     return res.json({
-      ok: !!local,
+      ok: Boolean(local),
       code: local?.code || card || null,
       customerCode: local?.code || card || null,
       customerName: local?.name || null,
       name: local?.name || null,
       level: local?.level || null,
       tier: local?.level || null,
-      source: local ? 'local-error-fallback' : 'error',
-      error: err?.message || String(err),
+      source: 'database-error-fallback',
+      syncStatus: local?.syncStatus || 'DATABASE_ERROR',
+      error: error?.message || String(error),
       apiStatus: customerApiHealth,
     });
   }
 });
 
+// ===================================================================
+// ================= CUSTOMER PROFILE + EVENTS ========================
+// ===================================================================
+
+function getShiftInfoForEvent(eventAtInput) {
+  const d = new Date(eventAtInput);
+  if (Number.isNaN(d.getTime())) return null;
+
+  const h = d.getHours();
+  const shiftStart = new Date(d);
+  let shift = 'A';
+
+  if (h >= 6 && h < 14) {
+    shift = 'A';
+    shiftStart.setHours(6, 0, 0, 0);
+  } else if (h >= 14 && h < 22) {
+    shift = 'B';
+    shiftStart.setHours(14, 0, 0, 0);
+  } else {
+    shift = 'C';
+
+    if (h >= 22) {
+      shiftStart.setHours(22, 0, 0, 0);
+    } else {
+      shiftStart.setDate(shiftStart.getDate() - 1);
+      shiftStart.setHours(22, 0, 0, 0);
+    }
+  }
+
+  return {
+    shift,
+    shiftStartAt: shiftStart.toISOString(),
+  };
+}
+
+function eventPublicPayload(ev = {}) {
+  return {
+    ...ev,
+    alarmLabel: ev.alarmType === 'SHIFT_START'
+      ? 'Nhắc đầu ca'
+      : ev.alarmType === 'ONE_HOUR_BEFORE'
+        ? 'Nhắc trước 1 tiếng'
+        : ev.alarmType === 'SNOOZE'
+          ? 'Nhắc lại'
+          : 'Nhắc sự kiện',
+  };
+}
+
+function emitCustomerEventsUpdated(event) {
+  io.emit('customerEventsUpdated', { event });
+}
+app.get('/api/user/customer-profile/search', (req, res) => {
+  try {
+    const q = String(req.query.q || req.query.search || '').trim();
+    const limit = Math.max(1, Math.min(50, Number(req.query.limit || 12)));
+
+    if (!q) return res.json({ items: [], total: 0, q });
+
+    const qCompact = cleanMemberId(q).toLowerCase();
+    const qNorm = normalizeMemberSearchText(q);
+    const qTokens = qNorm.split(' ').filter(Boolean);
+
+    const stats = buildMemberOrderStats();
+const exactStats = buildMemberOrderStatsExact({ includeCancelled: true });
+const allRows = getMemberSearchBaseRows();
+
+    const filtered = allRows.filter((r) => {
+      const code = String(r.code || '').toLowerCase();
+      const nameNorm = normalizeMemberSearchText(r.name || '');
+      const levelNorm = normalizeMemberSearchText(r.level || '');
+
+      const matchCode = qCompact && code.includes(qCompact);
+      const matchName = qTokens.length > 0 && qTokens.every((t) => nameNorm.includes(t));
+      const matchLevel = qTokens.length > 0 && qTokens.every((t) => levelNorm.includes(t));
+
+      return matchCode || matchName || matchLevel;
+    });
+
+    const normalized = filtered.map((r) => {
+      const code = cleanMemberId(r.code || r.id || '');
+      const m = members[code] || {};
+      const st = stats.get(code) || {};
+
+      const name =
+        meaningfulCustomerName(m.name || m.customerName, code) ||
+        meaningfulCustomerName(r.name, code) ||
+        meaningfulCustomerName(st.name, code) ||
+        '';
+
+      const level =
+        meaningfulCustomerLevel(m.level || m.memberLevel || m.tier) ||
+        meaningfulCustomerLevel(r.level) ||
+        meaningfulCustomerLevel(st.level) ||
+        '';
+
+      const exact = exactStats.get(code) || {};
+const ordersCount = Number(exact.orderCount || 0) || 0;
+
+      const totalQty = Math.max(
+        Number(r.totalQty || 0) || 0,
+        Number(st.totalQty || 0) || 0
+      );
+
+const lastOrderAt =
+  exact.lastOrderAt ||
+  st.lastOrderAt ||
+  r.lastOrderAt ||
+  m.lastSeenAt ||
+  null;
+
+      return {
+        ...r,
+        id: code,
+        code,
+        name,
+        level,
+        ordersCount,
+        totalQty,
+        lastOrderAt,
+      };
+    });
+
+    normalized.sort((a, b) => {
+      const exactA = qCompact && String(a.code).toLowerCase() === qCompact ? 1 : 0;
+      const exactB = qCompact && String(b.code).toLowerCase() === qCompact ? 1 : 0;
+      if (exactB !== exactA) return exactB - exactA;
+
+      if (b.ordersCount !== a.ordersCount) return b.ordersCount - a.ordersCount;
+      if (b.totalQty !== a.totalQty) return b.totalQty - a.totalQty;
+
+      return new Date(b.lastOrderAt || 0) - new Date(a.lastOrderAt || 0);
+    });
+
+    res.json({
+      items: normalized.slice(0, limit),
+      total: normalized.length,
+      q,
+    });
+  } catch (e) {
+    console.error('GET /api/user/customer-profile/search error:', e);
+    res.status(500).json({ error: 'Cannot search customer profile' });
+  }
+});
+// Quick spending summary cho Order Form
+app.get('/api/user/customer-spending/:code', (req, res) => {
+  try {
+    orders = reloadOrdersSafe('GET /api/user/customer-spending/:code');
+
+    const code = cleanMemberId(req.params.code || '');
+    if (!code) return res.status(400).json({ error: 'Thiếu mã khách' });
+
+const today = buildCustomerSpending(code, { range: 'today', limit: 5 });
+const thisWeek = buildCustomerSpending(code, { range: 'week', limit: 5 });
+const thisMonth = buildCustomerSpending(code, { range: 'month', limit: 5 });
+
+res.json({
+  code,
+  today: today.summary,
+  thisWeek: thisWeek.summary,
+  thisMonth: thisMonth.summary,
+
+  // Lấy lần order gần nhất trong tháng hiện tại để hiển thị nhanh
+  lastOrderAt: thisMonth.summary.lastOrderAt,
+
+  // Cảnh báo món chưa có giá trong tháng hiện tại
+  pendingPriceItems: thisMonth.summary.pendingPriceItems,
+});
+  } catch (e) {
+    console.error('GET /api/user/customer-spending/:code error:', e);
+    res.status(500).json({ error: 'Cannot build customer spending' });
+  }
+});
+
+// Spending detail cho Insights
+app.get('/api/user/customer-spending/:code/detail', (req, res) => {
+  try {
+    orders = reloadOrdersSafe('GET /api/user/customer-spending/:code/detail');
+
+    const code = cleanMemberId(req.params.code || '');
+    if (!code) return res.status(400).json({ error: 'Thiếu mã khách' });
+
+    const range = String(req.query.range || 'month');
+    const from = req.query.from;
+    const to = req.query.to;
+
+    const data = buildCustomerSpending(code, {
+      range,
+      from,
+      to,
+      limit: 500,
+    });
+
+    res.json(data);
+  } catch (e) {
+    console.error('GET /api/user/customer-spending/:code/detail error:', e);
+    res.status(500).json({ error: 'Cannot build customer spending detail' });
+  }
+});
+app.get('/api/user/customer-profile/:code', (req, res) => {
+  try {
+    const code = cleanMemberId(req.params.code || '');
+    if (!code) return res.status(400).json({ error: 'Thiếu mã khách' });
+
+    const m = members[code] || {};
+    const identity = getBestKnownCustomerIdentity(code);
+    const data = getCustomerInsightsSnapshot({ force: false });
+    const insight = data.customerMap[code] || null;
+
+const allCustomerOrders = getOrdersByCustomerCodeExact(code, { includeCancelled: true })
+  .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+const customerOrders = allCustomerOrders.slice(0, 100);
+const exactOrdersCount = allCustomerOrders.length;
+
+    const events = sqliteStore.listCustomerEvents({
+      memberCode: code,
+      limit: 100,
+    });
+
+    const recommendations = insight
+      ? buildCustomerRecommendations(insight, data.topItems, 12)
+      : data.topItems.slice(0, 12);
+
+    res.json({
+member: {
+  code,
+  name:
+    meaningfulCustomerName(identity.name, code) ||
+    meaningfulCustomerName(insight?.name, code) ||
+    '',
+  level:
+    meaningfulCustomerLevel(identity.level) ||
+    meaningfulCustomerLevel(insight?.level) ||
+    '',
+  lastSeenAt: identity.lastSeenAt || insight?.lastOrderAt || null,
+  ordersCount: exactOrdersCount,
+  apiSyncedAt: m.apiSyncedAt || null,
+  membershipType: m.membershipType || null,
+},
+      history: Array.isArray(m.history)
+        ? m.history.slice().sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0)).slice(0, 80)
+        : [],
+      orders: customerOrders,
+      preferences: insight
+        ? {
+            favoriteItems: insight.favoriteItems || [],
+            notes: insight.notes || [],
+            orderNotes: insight.orderNotes || [],
+            recommendations,
+          }
+        : {
+            favoriteItems: [],
+            notes: [],
+            orderNotes: [],
+            recommendations,
+          },
+      events,
+    });
+  } catch (e) {
+    console.error('GET /api/user/customer-profile/:code error:', e);
+    res.status(500).json({ error: 'Cannot build customer profile' });
+  }
+});
+app.get('/api/customer-events/upcoming', (req, res) => {
+  try {
+    const now = new Date();
+    const to = new Date(now);
+    to.setDate(to.getDate() + Math.max(1, Math.min(30, Number(req.query.days || 7))));
+
+    const events = sqliteStore.listCustomerEvents({
+      from: now.toISOString(),
+      to: to.toISOString(),
+      status: ['PENDING', 'ACKNOWLEDGED', 'SNOOZED'],
+      limit: 500,
+    });
+
+    res.json({ events });
+  } catch (e) {
+    console.error('GET /api/customer-events/upcoming error:', e);
+    res.status(500).json({ error: 'Cannot list upcoming events' });
+  }
+});
+
+app.get('/api/customer-events/member/:code', (req, res) => {
+  try {
+    const code = cleanMemberId(req.params.code || '');
+    const events = sqliteStore.listCustomerEvents({
+      memberCode: code,
+      limit: 200,
+    });
+
+    res.json({ events });
+  } catch (e) {
+    console.error('GET /api/customer-events/member/:code error:', e);
+    res.status(500).json({ error: 'Cannot list member events' });
+  }
+});
+
+app.post('/api/customer-events', (req, res) => {
+  try {
+    const body = req.body || {};
+    const memberCode = cleanMemberId(body.memberCode || body.code || '');
+    const eventAt = body.eventAt;
+
+    if (!memberCode) return res.status(400).json({ error: 'Thiếu mã khách' });
+    if (!eventAt) return res.status(400).json({ error: 'Thiếu thời gian khách vào club' });
+
+    const shiftInfo = getShiftInfoForEvent(eventAt);
+    if (!shiftInfo) return res.status(400).json({ error: 'Thời gian event không hợp lệ' });
+
+    const m = members[memberCode] || {};
+
+    const event = sqliteStore.upsertCustomerEvent({
+      memberCode,
+      customerName: body.customerName || m.name || m.customerName || '',
+      customerLevel: body.customerLevel || m.level || m.memberLevel || '',
+      eventAt,
+      shift: shiftInfo.shift,
+      shiftStartAt: shiftInfo.shiftStartAt,
+      note: body.note || '',
+      status: 'PENDING',
+      createdBy: body.createdBy || body.by || 'user',
+    });
+
+    emitCustomerEventsUpdated(event);
+
+    res.status(201).json({ ok: true, event });
+  } catch (e) {
+    console.error('POST /api/customer-events error:', e);
+    res.status(500).json({ error: 'Cannot create customer event' });
+  }
+});
+
+app.patch('/api/customer-events/:id', (req, res) => {
+  try {
+    const current = sqliteStore.getCustomerEventById(req.params.id);
+    if (!current) return res.status(404).json({ error: 'Event not found' });
+
+    const patch = { ...(req.body || {}) };
+
+    if (patch.eventAt) {
+      const shiftInfo = getShiftInfoForEvent(patch.eventAt);
+      if (!shiftInfo) return res.status(400).json({ error: 'Thời gian event không hợp lệ' });
+      patch.shift = shiftInfo.shift;
+      patch.shiftStartAt = shiftInfo.shiftStartAt;
+    }
+
+    const event = sqliteStore.updateCustomerEvent(req.params.id, patch);
+    emitCustomerEventsUpdated(event);
+
+    res.json({ ok: true, event });
+  } catch (e) {
+    console.error('PATCH /api/customer-events/:id error:', e);
+    res.status(500).json({ error: 'Cannot update customer event' });
+  }
+});
+
+app.post('/api/customer-events/:id/ack', (req, res) => {
+  try {
+    const event = sqliteStore.updateCustomerEvent(req.params.id, {
+      status: 'ACKNOWLEDGED',
+      acknowledgedAt: new Date().toISOString(),
+    });
+
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    emitCustomerEventsUpdated(event);
+    res.json({ ok: true, event });
+  } catch (e) {
+    res.status(500).json({ error: 'Cannot acknowledge event' });
+  }
+});
+
+app.post('/api/customer-events/:id/snooze', (req, res) => {
+  try {
+    const minutes = Math.max(1, Math.min(240, Number(req.body?.minutes || 10)));
+    const snoozeUntil = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+
+    const event = sqliteStore.updateCustomerEvent(req.params.id, {
+      status: 'SNOOZED',
+      snoozedUntil: snoozeUntil,
+    });
+
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    emitCustomerEventsUpdated(event);
+    res.json({ ok: true, event });
+  } catch (e) {
+    res.status(500).json({ error: 'Cannot snooze event' });
+  }
+});
+
+app.post('/api/customer-events/:id/arrived', (req, res) => {
+  try {
+    const event = sqliteStore.updateCustomerEvent(req.params.id, {
+      status: 'ARRIVED',
+      arrivedAt: new Date().toISOString(),
+    });
+
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    emitCustomerEventsUpdated(event);
+    res.json({ ok: true, event });
+  } catch (e) {
+    res.status(500).json({ error: 'Cannot mark arrived' });
+  }
+});
+
+app.post('/api/customer-events/:id/cancel', (req, res) => {
+  try {
+    const event = sqliteStore.updateCustomerEvent(req.params.id, {
+      status: 'CANCELLED',
+      cancelledAt: new Date().toISOString(),
+    });
+
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    emitCustomerEventsUpdated(event);
+    res.json({ ok: true, event });
+  } catch (e) {
+    res.status(500).json({ error: 'Cannot cancel event' });
+  }
+});
 // ===================================================================
 // ================= CUSTOMER INSIGHTS / PREFERENCES =================
 // ===================================================================
@@ -1425,6 +2910,10 @@ let customerInsightsCache = {
   at: 0,
   data: null,
 };
+
+function clearCustomerInsightsCache() {
+  customerInsightsCache = { at: 0, data: null };
+}
 
 const CUSTOMER_INSIGHTS_CACHE_MS = Number(
   process.env.CUSTOMER_INSIGHTS_CACHE_MS || 30 * 1000
@@ -1440,6 +2929,33 @@ function normalizeInsightKey(v) {
     .toLowerCase();
 }
 
+function getOrdersByCustomerCodeExact(codeInput, { includeCancelled = true } = {}) {
+  const code = cleanMemberId(codeInput);
+  if (!code) return [];
+
+  return (orders || []).filter((o) => {
+    const orderCode = cleanMemberId(
+      o.memberCard ||
+      o.customer?.code ||
+      ''
+    );
+
+    if (orderCode !== code) return false;
+
+    if (!includeCancelled && String(o.status || '').toUpperCase() === 'CANCELLED') {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function getCustomerOrderCountExact(codeInput) {
+  // Số lần order trong profile: tính theo lịch sử order thật của khách.
+  // Nếu muốn bỏ CANCELLED thì đổi includeCancelled thành false.
+  return getOrdersByCustomerCodeExact(codeInput, { includeCancelled: true }).length;
+}
+
 function getOrderCustomerInfo(order = {}) {
   const code = cleanMemberId(
     order?.customer?.code ||
@@ -1450,16 +2966,15 @@ function getOrderCustomerInfo(order = {}) {
   const m = code ? (members[code] || {}) : {};
 
   const name =
-    order?.customer?.name ||
-    order?.customerName ||
-    m.name ||
-    m.customerName ||
+    meaningfulCustomerName(order?.customer?.name, code) ||
+    meaningfulCustomerName(order?.customerName, code) ||
+    meaningfulCustomerName(m.name || m.customerName, code) ||
     '';
 
   const level =
-    order?.customer?.level ||
-    m.level ||
-    m.memberLevel ||
+    meaningfulCustomerLevel(order?.customer?.level) ||
+    meaningfulCustomerLevel(order?.customerLevel) ||
+    meaningfulCustomerLevel(m.level || m.memberLevel) ||
     '';
 
   return {
@@ -1469,6 +2984,296 @@ function getOrderCustomerInfo(order = {}) {
   };
 }
 
+// ===================================================================
+// ================= CUSTOMER SPENDING / MONEY ========================
+// ===================================================================
+
+const SPENDING_BUSINESS_HOUR = 6;
+
+function toMoneyNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function getOrderItemSpending(item = {}) {
+  const qty = Math.max(1, Number(item.qty || item.quantity || 1));
+
+  const lineTotal = toMoneyNumber(item.lineTotal);
+  if (lineTotal > 0) {
+    return {
+      total: lineTotal,
+      pendingPriceItems: 0,
+      itemCount: qty,
+    };
+  }
+
+  const price = toMoneyNumber(item.price);
+  const isOffMenu = Boolean(item.isOffMenu);
+
+  if (price > 0) {
+    return {
+      total: price * qty,
+      pendingPriceItems: 0,
+      itemCount: qty,
+    };
+  }
+
+  return {
+    total: 0,
+    pendingPriceItems: isOffMenu ? 1 : 0,
+    itemCount: qty,
+  };
+}
+
+function getOrderSpending(order = {}) {
+  let total = 0;
+  let pendingPriceItems = 0;
+  let itemCount = 0;
+
+  for (const item of order.items || []) {
+    const row = getOrderItemSpending(item);
+    total += row.total;
+    pendingPriceItems += row.pendingPriceItems;
+    itemCount += row.itemCount;
+  }
+
+  return {
+    total,
+    pendingPriceItems,
+    itemCount,
+  };
+}
+
+function getOrderCustomerCode(order = {}) {
+  return cleanMemberId(
+    order.memberCard ||
+    order.customer?.code ||
+    ''
+  );
+}
+
+function isOrderCountedForSpending(order = {}) {
+  const status = String(order.status || '').toUpperCase();
+
+  // Không tính order đã huỷ
+  if (status === 'CANCELLED') return false;
+
+  return true;
+}
+
+function startAtBusinessHour(d) {
+  const x = new Date(d);
+  x.setHours(SPENDING_BUSINESS_HOUR, 0, 0, 0);
+  return x;
+}
+
+function endFromStart(start, days = 1) {
+  const x = new Date(start);
+  x.setDate(x.getDate() + days);
+  x.setMilliseconds(-1);
+  return x;
+}
+
+function shiftedBusinessDate(d = new Date()) {
+  const x = new Date(d);
+  if (x.getHours() < SPENDING_BUSINESS_HOUR) {
+    x.setDate(x.getDate() - 1);
+  }
+  return x;
+}
+
+function localYmd(dInput) {
+  const d = new Date(dInput);
+  if (Number.isNaN(d.getTime())) return '';
+
+  const pad = (n) => String(n).padStart(2, '0');
+
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function parseYmdLocal(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))) return null;
+
+  const [y, m, d] = String(s).split('-').map(Number);
+  if (!y || !m || !d) return null;
+
+  return new Date(y, m - 1, d);
+}
+
+function buildSpendingRange({ range = 'all', from, to } = {}) {
+  const now = new Date();
+  const shiftedNow = shiftedBusinessDate(now);
+
+  let fromDate = null;
+  let toDate = null;
+
+  switch (String(range || 'all')) {
+    case 'today': {
+      fromDate = startAtBusinessHour(shiftedNow);
+      toDate = endFromStart(fromDate, 1);
+      break;
+    }
+
+    case 'week': {
+      const d = new Date(shiftedNow);
+      const day = d.getDay() || 7; // Monday = 1
+      d.setDate(d.getDate() - day + 1);
+      fromDate = startAtBusinessHour(d);
+      toDate = endFromStart(fromDate, 7);
+      break;
+    }
+
+    case 'month': {
+      const d = new Date(shiftedNow.getFullYear(), shiftedNow.getMonth(), 1);
+      fromDate = startAtBusinessHour(d);
+
+      const nextMonth = new Date(
+        shiftedNow.getFullYear(),
+        shiftedNow.getMonth() + 1,
+        1,
+        SPENDING_BUSINESS_HOUR,
+        0,
+        0,
+        0
+      );
+
+      toDate = new Date(nextMonth.getTime() - 1);
+      break;
+    }
+
+    case 'year': {
+      const d = new Date(shiftedNow.getFullYear(), 0, 1);
+      fromDate = startAtBusinessHour(d);
+
+      const nextYear = new Date(
+        shiftedNow.getFullYear() + 1,
+        0,
+        1,
+        SPENDING_BUSINESS_HOUR,
+        0,
+        0,
+        0
+      );
+
+      toDate = new Date(nextYear.getTime() - 1);
+      break;
+    }
+
+    case 'custom': {
+      const f = parseYmdLocal(from);
+      const t = parseYmdLocal(to);
+
+      fromDate = f ? startAtBusinessHour(f) : null;
+      toDate = t ? endFromStart(startAtBusinessHour(t), 1) : null;
+      break;
+    }
+
+    case 'all':
+    default: {
+      fromDate = null;
+      toDate = null;
+      break;
+    }
+  }
+
+  return {
+    fromDate,
+    toDate,
+    from: fromDate ? fromDate.toISOString() : null,
+    to: toDate ? toDate.toISOString() : null,
+  };
+}
+
+function orderInSpendingRange(order, fromDate, toDate) {
+  const t = Date.parse(order.createdAt);
+  if (!Number.isFinite(t)) return false;
+
+  if (fromDate && t < fromDate.getTime()) return false;
+  if (toDate && t > toDate.getTime()) return false;
+
+  return true;
+}
+
+function buildCustomerSpending(codeInput, opts = {}) {
+  const code = cleanMemberId(codeInput);
+  const { range = 'all', from, to, limit = 100 } = opts;
+
+  const { fromDate, toDate, from: fromIso, to: toIso } = buildSpendingRange({
+    range,
+    from,
+    to,
+  });
+
+  const rows = (orders || [])
+    .filter((o) => getOrderCustomerCode(o) === code)
+    .filter(isOrderCountedForSpending)
+    .filter((o) => orderInSpendingRange(o, fromDate, toDate))
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  let total = 0;
+  let itemCount = 0;
+  let pendingPriceItems = 0;
+
+  const byDayMap = new Map();
+
+  const detailOrders = rows.map((o) => {
+    const money = getOrderSpending(o);
+    total += money.total;
+    itemCount += money.itemCount;
+    pendingPriceItems += money.pendingPriceItems;
+
+    const dayKey = localYmd(o.createdAt);
+    const dayRow = byDayMap.get(dayKey) || {
+      date: dayKey,
+      total: 0,
+      orders: 0,
+      items: 0,
+      pendingPriceItems: 0,
+    };
+
+    dayRow.total += money.total;
+    dayRow.orders += 1;
+    dayRow.items += money.itemCount;
+    dayRow.pendingPriceItems += money.pendingPriceItems;
+
+    byDayMap.set(dayKey, dayRow);
+
+    return {
+      id: o.id,
+      createdAt: o.createdAt,
+      area: o.area,
+      tableNo: o.tableNo,
+      staff: o.staff,
+      status: o.status,
+      tableClosed: o.tableClosed,
+      total: money.total,
+      itemCount: money.itemCount,
+      pendingPriceItems: money.pendingPriceItems,
+      items: o.items || [],
+    };
+  });
+
+  const byDay = Array.from(byDayMap.values()).sort((a, b) =>
+    String(b.date).localeCompare(String(a.date))
+  );
+
+  return {
+    code,
+    range,
+    from: fromIso,
+    to: toIso,
+    summary: {
+      total,
+      orders: rows.length,
+      items: itemCount,
+      avgOrder: rows.length ? Math.round(total / rows.length) : 0,
+      pendingPriceItems,
+      lastOrderAt: rows[0]?.createdAt || null,
+    },
+    byDay,
+    orders: detailOrders.slice(0, limit),
+  };
+}
 function buildFoodMetaMap() {
   const meta = new Map();
 
@@ -1575,7 +3380,7 @@ function pushLimited(arr, value, max = 30) {
   if (arr.length > max) arr.splice(0, arr.length - max);
 }
 
-function buildCustomerInsightsSnapshot() {
+function buildCustomerInsightsSnapshot({ from = null, to = null } = {}) {
   const foodMetaMap = buildFoodMetaMap();
 
   const overallItems = new Map();
@@ -1583,10 +3388,22 @@ function buildCustomerInsightsSnapshot() {
 
   let validOrderCount = 0;
   let totalQty = 0;
+  let totalSpend = 0;
+  let pendingPriceItems = 0;
+  const recentNotes = [];
+
+  const fromMs = from ? Date.parse(from) : NaN;
+  const toMs = to ? Date.parse(to) : NaN;
 
   const validOrders = (orders || []).filter((o) => {
     // Không tính order đã huỷ vào sở thích
-    return o && o.status !== 'CANCELLED';
+    if (!o || o.status === 'CANCELLED') return false;
+
+    const orderMs = Date.parse(o.createdAt || o.updatedAt || '');
+    if (Number.isFinite(fromMs) && (!Number.isFinite(orderMs) || orderMs < fromMs)) return false;
+    if (Number.isFinite(toMs) && (!Number.isFinite(orderMs) || orderMs > toMs)) return false;
+
+    return true;
   });
 
   for (const order of validOrders) {
@@ -1597,10 +3414,18 @@ function buildCustomerInsightsSnapshot() {
       const local = customerCode !== 'UNKNOWN' ? (members[customerCode] || {}) : {};
       customers.set(customerCode, {
         code: customerCode,
-        name: customer.name || local.name || local.customerName || '',
-        level: customer.level || local.level || local.memberLevel || '',
+        name:
+          meaningfulCustomerName(customer.name, customerCode) ||
+          meaningfulCustomerName(local.name || local.customerName, customerCode) ||
+          '',
+        level:
+          meaningfulCustomerLevel(customer.level) ||
+          meaningfulCustomerLevel(local.level || local.memberLevel) ||
+          '',
         orderCount: 0,
         totalQty: 0,
+        totalSpend: 0,
+        pendingPriceItems: 0,
         lastOrderAt: null,
         items: new Map(),
         notes: [],
@@ -1609,7 +3434,22 @@ function buildCustomerInsightsSnapshot() {
     }
 
     const c = customers.get(customerCode);
+
+    // Nếu bản ghi đầu tiên chỉ có placeholder nhưng order sau có tên/level thật,
+    // cập nhật lại thay vì giữ placeholder cho toàn bộ Insights.
+    const betterName = meaningfulCustomerName(customer.name, customerCode);
+    const betterLevel = meaningfulCustomerLevel(customer.level);
+    if (!c.name && betterName) c.name = betterName;
+    if (!c.level && betterLevel) c.level = betterLevel;
+
     c.orderCount += 1;
+
+    // Tính tổng giá trị order cho Insights. Order CANCELLED đã bị loại ở validOrders.
+    const spending = getOrderSpending(order);
+    c.totalSpend += Number(spending.total || 0);
+    c.pendingPriceItems += Number(spending.pendingPriceItems || 0);
+    totalSpend += Number(spending.total || 0);
+    pendingPriceItems += Number(spending.pendingPriceItems || 0);
 
     const orderAt = order.createdAt || order.updatedAt || '';
     if (orderAt && (!c.lastOrderAt || new Date(orderAt) > new Date(c.lastOrderAt))) {
@@ -1671,6 +3511,7 @@ function buildCustomerInsightsSnapshot() {
 
         pushLimited(ci.notes, noteRow, 30);
         pushLimited(c.notes, noteRow, 50);
+        recentNotes.push(noteRow);
       }
 
       if (!overallItems.has(key)) {
@@ -1741,6 +3582,8 @@ function buildCustomerInsightsSnapshot() {
         level: c.level,
         orderCount: c.orderCount,
         totalQty: c.totalQty,
+        totalSpend: c.totalSpend,
+        pendingPriceItems: c.pendingPriceItems,
         lastOrderAt: c.lastOrderAt,
         favoriteItems,
         notes: c.notes.slice(-10).reverse(),
@@ -1761,30 +3604,43 @@ function buildCustomerInsightsSnapshot() {
     generatedAt: new Date().toISOString(),
     totalOrders: validOrderCount,
     totalQty,
-    totalCustomers: topCustomers.length,
+    totalSpend,
+    pendingPriceItems,
+    totalCustomers: topCustomers.filter((c) => c.code && c.code !== 'UNKNOWN').length,
     totalItems: topItems.length,
+    recentNotes: recentNotes
+      .slice()
+      .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
+      .slice(0, 30),
     topItems,
     topCustomers,
     customerMap,
   };
 }
 
-function getCustomerInsightsSnapshot({ force = false } = {}) {
+function getCustomerInsightsSnapshot({ force = false, from = null, to = null } = {}) {
   const now = Date.now();
+  const hasRange = Number.isFinite(Date.parse(from || '')) || Number.isFinite(Date.parse(to || ''));
 
+  // Chỉ dùng cache chung cho chế độ toàn thời gian. Các khoảng ngày được tính riêng
+  // để không trả nhầm dữ liệu giữa Today / 7 days / 30 days / This month.
   if (
     !force &&
+    !hasRange &&
     customerInsightsCache.data &&
     now - customerInsightsCache.at < CUSTOMER_INSIGHTS_CACHE_MS
   ) {
     return customerInsightsCache.data;
   }
 
-  const data = buildCustomerInsightsSnapshot();
-  customerInsightsCache = {
-    at: now,
-    data,
-  };
+  const data = buildCustomerInsightsSnapshot({ from, to });
+
+  if (!hasRange) {
+    customerInsightsCache = {
+      at: now,
+      data,
+    };
+  }
 
   return data;
 }
@@ -1855,6 +3711,117 @@ app.get('/api/customer-insights/overview',
   }
 );
 
+function toPublicInsightItem(item = {}) {
+  const safe = { ...(item || {}) };
+  delete safe.price;
+  return safe;
+}
+
+function toPublicInsightCustomer(customer = {}) {
+  return {
+    ...customer,
+    favoriteItems: (customer.favoriteItems || []).map(toPublicInsightItem),
+  };
+}
+
+// User: tổng quan Insights giống Admin nhưng không trả field giá.
+// Hỗ trợ from/to để frontend lọc Today / 7 days / 30 days / This month / All time.
+app.get('/api/user/customer-insights/overview', (req, res) => {
+  try {
+    // Reload nhanh để số liệu luôn khớp với SQLite sau khi vừa tạo/cập nhật order.
+    orders = reloadOrdersSafe('GET /api/user/customer-insights/overview');
+
+    const limit = Math.max(1, Math.min(200, Number(req.query.limit || 100)));
+    const force = String(req.query.force || '').toLowerCase() === 'true';
+    const from = req.query.from || null;
+    const to = req.query.to || null;
+
+    const data = getCustomerInsightsSnapshot({ force, from, to });
+
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      generatedAt: data.generatedAt,
+      from: from || null,
+      to: to || null,
+      totalOrders: data.totalOrders,
+      totalQty: data.totalQty,
+      totalSpend: data.totalSpend,
+      pendingPriceItems: data.pendingPriceItems,
+      totalCustomers: data.totalCustomers,
+      totalItems: data.totalItems,
+      recentNotes: (data.recentNotes || []).slice(0, 20),
+      topItems: data.topItems.slice(0, limit).map(toPublicInsightItem),
+      topCustomers: data.topCustomers.slice(0, limit).map(toPublicInsightCustomer),
+    });
+  } catch (e) {
+    console.error('GET /api/user/customer-insights/overview error:', e);
+    res.status(500).json({ error: 'Cannot build user customer insights' });
+  }
+});
+
+// User: tải danh sách đầy đủ cho modal Insights.
+// Chỉ trả các field cần hiển thị để response gọn, không trả giá từng món.
+app.get('/api/user/customer-insights/list', (req, res) => {
+  try {
+    orders = reloadOrdersSafe('GET /api/user/customer-insights/list');
+
+    const type = String(req.query.type || 'customers').toLowerCase();
+    const from = req.query.from || null;
+    const to = req.query.to || null;
+    const data = getCustomerInsightsSnapshot({ force: false, from, to });
+
+    res.set('Cache-Control', 'no-store');
+
+    if (type === 'items') {
+      const items = (data.topItems || []).map((it) => ({
+        key: it.key,
+        imageName: it.imageName || '',
+        imageUrl: it.imageUrl || '',
+        productCode: it.productCode || '',
+        name: it.name || '',
+        itemGroup: it.itemGroup || '',
+        type: it.type || '',
+        qty: Number(it.qty || 0),
+        orderCount: Number(it.orderCount || 0),
+        customerCount: Number(it.customerCount || 0),
+        lastOrderAt: it.lastOrderAt || null,
+        notes: (it.notes || []).slice(0, 3),
+      }));
+
+      return res.json({
+        type: 'items',
+        generatedAt: data.generatedAt,
+        total: items.length,
+        items,
+      });
+    }
+
+    const customers = (data.topCustomers || [])
+      .filter((c) => c.code && c.code !== 'UNKNOWN')
+      .map((c) => ({
+        code: c.code,
+        name: c.name || '',
+        level: c.level || '',
+        orderCount: Number(c.orderCount || 0),
+        totalQty: Number(c.totalQty || 0),
+        totalSpend: Number(c.totalSpend || 0),
+        pendingPriceItems: Number(c.pendingPriceItems || 0),
+        lastOrderAt: c.lastOrderAt || null,
+        favoriteItems: (c.favoriteItems || []).slice(0, 5).map(toPublicInsightItem),
+      }));
+
+    return res.json({
+      type: 'customers',
+      generatedAt: data.generatedAt,
+      total: customers.length,
+      customers,
+    });
+  } catch (e) {
+    console.error('GET /api/user/customer-insights/list error:', e);
+    res.status(500).json({ error: 'Cannot build customer insights list' });
+  }
+});
+
 // User/Admin: bảng xếp hạng món được order nhiều
 app.get('/api/customer-insights/top-items', (_req, res) => {
   try {
@@ -1883,12 +3850,12 @@ app.get('/api/customer-insights/customer/:code', (req, res) => {
     const customer = data.customerMap[code];
 
     if (!customer) {
-      const m = members[code] || {};
+      const identity = getBestKnownCustomerIdentity(code);
       return res.json({
         found: false,
         code,
-        name: m.name || m.customerName || '',
-        level: m.level || m.memberLevel || '',
+        name: identity.name || '',
+        level: identity.level || '',
         favoriteItems: [],
         notes: [],
         orderNotes: [],
@@ -1920,6 +3887,12 @@ function memberToRow(code, m) {
     ordersCount: m.ordersCount || 0,
     createdAt: m.createdAt || null,
     updatedAt: m.updatedAt || null,
+    apiSyncedAt: m.apiSyncedAt || null,
+    lastApiAttemptAt: m.lastApiAttemptAt || null,
+    lastApiSuccessAt: m.lastApiSuccessAt || m.apiSyncedAt || null,
+    syncStatus: m.syncStatus || (m.apiSyncedAt ? 'SUCCESS' : 'LOCAL_ONLY'),
+    syncError: m.syncError || null,
+    dataSource: m.dataSource || (m.apiSyncedAt ? 'CUSTOMER_API' : 'DATABASE'),
   };
 }
 function pushMemberHistory(code, entry) {
@@ -1986,6 +3959,8 @@ if (members[code]) {
     name,
     customerName: name,
     level,
+    dataSource: 'MANUAL_IMPORT',
+    syncStatus: prev.syncStatus || 'LOCAL_ONLY',
     updatedAt: now,
   };
   // Ghi lịch sử import update
@@ -1995,7 +3970,7 @@ if (members[code]) {
     data: { name, level },
     detail: `Import update: name → '${name}', level → '${level || ''}'`
   });
-  saveMembers();
+  persistMember(code);
   req.app.locals.io.emit('memberUpdated', { code, member: members[code] });
   return res.status(201).json({ ok: true, updated: true, member: memberToRow(code, members[code]) });
 }
@@ -2010,9 +3985,12 @@ members[code] = {
   createdAt: now,
   updatedAt: now,
   lastSeenAt: null,
+  syncStatus: 'LOCAL_ONLY',
+  syncError: null,
+  dataSource: 'MANUAL',
   history: [{ at: now, type: 'CREATE', by: req.user?.sub || 'admin', data: { name, level } }],
 };
-saveMembers();
+persistMember(code);
 req.app.locals.io.emit('memberCreated', { code, member: members[code] });
 return res.status(201).json({ ok: true, member: memberToRow(code, members[code]) });
   },
@@ -2041,19 +4019,19 @@ update(req, res) {
       name,
       customerName: name || cur.customerName || cur.name || null,
       level,
+      dataSource: 'MANUAL',
+      syncStatus: cur.syncStatus || 'LOCAL_ONLY',
       updatedAt: now,
     };
 
     // Nếu thay đổi mã, xoá key cũ và gán vào key mới
     if (newCode !== oldCode) {
       delete members[oldCode];
+      deletePersistedMember(oldCode);
       members[newCode] = updated;
     } else {
       members[oldCode] = updated;
     }
-
-    // Ghi file members.json một lần
-    saveMembers();
 
 // Tạo biến changes để lưu chi tiết các trường thay đổi
 const changes = {};
@@ -2074,6 +4052,9 @@ pushMemberHistory(newCode, {
   detail,
 });
 
+    // Lưu đúng 1 member vào SQLite sau khi history đã được thêm
+    persistMember(newCode);
+
 
     // Phát sự kiện realtime và trả về JSON
     req.app.locals.io.emit('memberUpdated', { code: newCode, member: members[newCode] });
@@ -2090,7 +4071,7 @@ pushMemberHistory(newCode, {
     if (!members[code]) return res.status(404).json({ error: 'Not found' });
     const backup = members[code];
     delete members[code];
-    saveMembers();
+    deletePersistedMember(code);
     req.app.locals.io.emit('memberDeleted', { code });
     res.json({ ok: true, removed: memberToRow(code, backup) });
   },
@@ -2118,16 +4099,130 @@ app.post  ('/api/customers',               authenticateJWT, authorizeRoles('admi
 app.put   ('/api/customers/:code',         authenticateJWT, authorizeRoles('admin'), MemberApi.update);
 app.delete('/api/customers/:code',         authenticateJWT, authorizeRoles('admin'), MemberApi.remove);
 app.get   ('/api/customers/:code/history', authenticateJWT, authorizeRoles('admin'), MemberApi.history);
+// Phục hồi tên/level khách từ dữ liệu app khi Customer API không trả record.
+// Chỉ dùng dữ liệu hợp lệ trong members + lịch sử order; không dùng placeholder UI.
+function recoverMemberFromKnownHistory(codeInput, actor = 'admin-check-fallback') {
+  const code = cleanMemberId(codeInput);
+  if (!code) {
+    return { ok: false, changed: false, source: 'not-found', member: null };
+  }
+
+  const best = getBestKnownCustomerIdentity(code);
+  const bestName = meaningfulCustomerName(best.name, code);
+  const bestLevel = meaningfulCustomerLevel(best.level);
+
+  if (!best.exists || (!bestName && !bestLevel)) {
+    return {
+      ok: false,
+      changed: false,
+      source: 'not-found',
+      member: localMemberRow(code),
+    };
+  }
+
+  const prev = members[code] || {};
+  const prevName = meaningfulCustomerName(prev.name || prev.customerName, code);
+  const prevLevel = meaningfulCustomerLevel(prev.level || prev.memberLevel || prev.tier);
+  const nextName = bestName || prevName || null;
+  const nextLevel = bestLevel || prevLevel || null;
+  const nextLastSeenAt = best.lastSeenAt || prev.lastSeenAt || null;
+  const nextOrdersCount = Math.max(
+    Number(prev.ordersCount || 0) || 0,
+    Number(best.ordersCount || 0) || 0
+  );
+
+  const changed =
+    nextName !== (prevName || null) ||
+    nextLevel !== (prevLevel || null) ||
+    nextLastSeenAt !== (prev.lastSeenAt || null) ||
+    nextOrdersCount !== (Number(prev.ordersCount || 0) || 0);
+
+  const nowIso = new Date().toISOString();
+
+  members[code] = {
+    ...prev,
+    code,
+    name: nextName,
+    customerName: nextName,
+    level: nextLevel,
+    memberLevel: nextLevel,
+    lastSeenAt: nextLastSeenAt,
+    ordersCount: nextOrdersCount,
+    syncStatus: prev.syncStatus || 'LOCAL_ONLY',
+    syncError: prev.syncError || null,
+    dataSource: prev.apiSyncedAt ? (prev.dataSource || 'CUSTOMER_API') : 'ORDER_HISTORY',
+    createdAt: prev.createdAt || nowIso,
+    updatedAt: changed ? nowIso : (prev.updatedAt || nowIso),
+  };
+
+  if (changed) {
+    pushMemberHistory(code, {
+      type: 'ORDER_HISTORY_RECOVERY',
+      by: actor,
+      data: {
+        name: { from: prevName || null, to: nextName },
+        level: { from: prevLevel || null, to: nextLevel },
+      },
+      detail: `Recovered from order history: name='${nextName || ''}', level='${nextLevel || ''}'`,
+    });
+  }
+
+  persistMember(code);
+  clearCustomerInsightsCache();
+
+  const member = {
+    ...localMemberRow(code),
+    ordersCount: nextOrdersCount,
+    lastSeenAt: nextLastSeenAt,
+  };
+
+  if (changed) {
+    io.emit('customersUpdated', { count: 1, code, source: 'order-history-fallback' });
+    io.emit('memberUpdated', {
+      code,
+      member: members[code],
+      source: 'order-history-fallback',
+      changed: true,
+    });
+  }
+
+  return {
+    ok: Boolean(nextName || nextLevel),
+    changed,
+    source: 'order-history-fallback',
+    member,
+  };
+}
+
 // Xem trạng thái API khách hàng — dùng để hiển thị trong Admin
 app.get('/api/customer-api/status', (_req, res) => {
   res.json({
     ...customerApiHealth,
+    architecture: 'DATABASE_FIRST_PRIORITY_QUEUE',
+    appReadsFrom: 'SQLITE',
+    apiWritesTo: 'SQLITE',
+    memberTtlMs: CUSTOMER_MEMBER_TTL_MS,
+    retryBackoffMs: CUSTOMER_API_RETRY_BACKOFF_MS,
+    autoSyncIntervalMs: CUSTOMER_AUTO_SYNC_INTERVAL_MS,
+    autoSyncEnqueueSize: CUSTOMER_AUTO_SYNC_ENQUEUE_SIZE,
+    autoSyncRecentDays: CUSTOMER_AUTO_SYNC_RECENT_DAYS,
+    syncConcurrency: CUSTOMER_SYNC_CONCURRENCY,
+    syncMaxPerRun: CUSTOMER_SYNC_MAX_PER_RUN,
+    syncQueueMax: CUSTOMER_SYNC_QUEUE_MAX,
     cacheSize: customerApiCache.size,
     inflight: customerApiInflight.size,
+    queued: customerSyncQueue.size,
+    processing: customerSyncProcessing.size,
+    scheduled: customerSyncScheduled.size,
+    workerRunning: customerSyncWorkerRunning,
+    workerLastRunAt: customerSyncLastRunAt,
+    workerLastFinishedAt: customerSyncLastFinishedAt,
+    workerLastResult: customerSyncLastResult,
   });
 });
 
-// Check thủ công API bằng 1 mã khách
+// Check thủ công: đồng bộ Customer API -> Database cho đúng 1 mã khách.
+// Frontend sau đó đọc lại dữ liệu từ Database, không dùng trực tiếp response API làm nguồn hiển thị.
 app.post('/api/customer-api/check',
   authenticateJWT,
   authorizeRoles('admin'),
@@ -2136,116 +4231,121 @@ app.post('/api/customer-api/check',
       const id = cleanMemberId(req.body?.id || req.body?.code || req.query?.id || '');
       if (!id) return res.status(400).json({ error: 'Thiếu id khách hàng' });
 
-      const result = await resolveCustomerByApiOrLocal(id, {
+      // Đảm bảo Database có fallback hợp lệ trước khi thử API.
+      recoverMemberFromKnownHistory(
+        id,
+        req.user?.username || req.user?.sub || 'admin-check-db-recovery'
+      );
+
+      const result = await syncCustomerDatabaseFromApi(id, {
         force: true,
         by: req.user?.username || req.user?.sub || 'admin-check',
+        timeoutMs: CUSTOMER_API_TIMEOUT_MS,
+        emit: true,
       });
 
-      res.json({
-        ok: !!result.member,
-        source: result.source,
-        member: result.member,
+      const dbMember = localMemberRow(id);
+
+      return res.json({
+        ok: result.apiOk,
+        apiOk: result.apiOk,
+        databaseOk: Boolean(dbMember),
+        fallbackOk: Boolean(dbMember),
+        changed: result.changed,
+        status: result.status,
+        source: 'database',
+        member: dbMember,
         apiStatus: customerApiHealth,
       });
-    } catch (e) {
-      res.status(500).json({
-        error: e?.message || String(e),
+    } catch (error) {
+      const id = cleanMemberId(req.body?.id || req.body?.code || req.query?.id || '');
+      return res.status(500).json({
+        error: error?.message || String(error),
+        source: 'database',
+        member: localMemberRow(id),
         apiStatus: customerApiHealth,
       });
     }
   }
 );
 
-// Sync khách cũ theo batch nhỏ, không tự chạy toàn bộ
+// Sync Database từ Customer API theo batch nhỏ, không làm User phải chờ.
 app.post('/api/customers/sync-from-api',
   authenticateJWT,
   authorizeRoles('admin'),
   async (req, res) => {
     try {
       const body = req.body || {};
-
-      const batchSize = Math.max(1, Math.min(50, Number(body.batchSize || 20)));
-      const delayMs = Math.max(0, Math.min(2000, Number(body.delayMs || 250)));
+      const scope = String(body.scope || 'recent').toLowerCase() === 'all' ? 'all' : 'recent';
+      const batchSize = Math.max(1, Math.min(5000, Number(body.batchSize || 500)));
       const force = body.force === true;
       const cursor = Math.max(0, Number(body.cursor || 0));
 
-      const allCodes = Object.keys(members || {})
-        .map(cleanMemberId)
-        .filter(code => code && /^\d+$/.test(code))
-        .sort((a, b) => Number(a) - Number(b));
+      const allCodes = scope === 'all'
+        ? Object.keys(members || {})
+            .map(cleanMemberId)
+            .filter((code) => code && /^\d+$/.test(code))
+            .sort((a, b) => Number(a) - Number(b))
+        : getRecentCustomerCodesForAutoSync();
 
-      const picked = [];
-      let nextCursor = cursor;
+      let nextCursor = Math.min(cursor, allCodes.length);
+      let requested = 0;
+      let queued = 0;
+      let skippedFresh = 0;
+      let skippedScheduled = 0;
 
-      while (nextCursor < allCodes.length && picked.length < batchSize) {
+      while (nextCursor < allCodes.length && requested < batchSize) {
         const code = allCodes[nextCursor];
         nextCursor += 1;
+        requested += 1;
 
-        if (!force && isMemberApiFresh(code)) continue;
+        if (!force && isMemberApiFresh(code)) {
+          skippedFresh += 1;
+          continue;
+        }
 
-        picked.push(code);
+        const alreadyScheduled =
+          customerSyncQueue.has(code) ||
+          customerSyncProcessing.has(code) ||
+          customerApiInflight.has(code);
+
+        const accepted = queueCustomerDatabaseSync(code, {
+          force,
+          priority: scope === 'all' ? 80 : 120,
+          by: scope === 'all'
+            ? 'admin-full-sync-queue'
+            : 'admin-recent-sync-queue',
+          emit: false,
+        });
+
+        if (accepted) queued += 1;
+        else if (alreadyScheduled) skippedScheduled += 1;
       }
 
-      const result = {
+      scheduleCustomerSyncWorker(0);
+
+      res.json({
+        mode: 'PRIORITY_QUEUE',
+        scope,
         total: allCodes.length,
         cursor,
         nextCursor,
         batchSize,
-        requested: picked.length,
-        updated: 0,
-        changed: 0,
-        failed: 0,
-        skippedFresh: 0,
-        rows: [],
+        requested,
+        queued,
+        skippedFresh,
+        skippedScheduled,
+        queueSize: customerSyncQueue.size,
+        processing: customerSyncProcessing.size,
+        concurrency: CUSTOMER_SYNC_CONCURRENCY,
         done: nextCursor >= allCodes.length,
-      };
-
-      for (const code of picked) {
-        try {
-          const external = await fetchCustomerFromExternal(code, { force });
-          if (external) {
-            const r = upsertMemberFromExternal(external, {
-              by: req.user?.username || req.user?.sub || 'admin-sync',
-              save: false,
-            });
-
-            result.updated += 1;
-            if (r.changed) result.changed += 1;
-
-            result.rows.push({
-              code,
-              ok: true,
-              changed: r.changed,
-              name: r.member?.name || '',
-              level: r.member?.level || '',
-            });
-          } else {
-            result.failed += 1;
-            result.rows.push({ code, ok: false, reason: customerApiHealth.lastError || 'No data' });
-          }
-        } catch (e) {
-          result.failed += 1;
-          result.rows.push({ code, ok: false, reason: e?.message || String(e) });
-        }
-
-        if (delayMs > 0) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
-      }
-
-      saveMembers();
-
-      if (result.updated > 0) {
-        io.emit('customersUpdated', { count: result.updated });
-        io.emit('memberUpdated', { count: result.updated });
-      }
-
-      res.json(result);
-    } catch (e) {
-      res.status(500).json({ error: e?.message || String(e) });
+      });
+    } catch (error) {
+      res.status(500).json({ error: error?.message || String(error) });
     }
   }
 );
+
 // --- Upload ảnh (Admin) ---
 app.post('/api/upload', authenticateJWT, authorizeRoles('admin'), multerUpload.single('image'), (req, res) => {
   const tmpPath = req.file?.path;
@@ -2674,17 +4774,19 @@ for (const it of items) {
     const offMenuName = String(it.name || '').trim();
     if (!offMenuName) continue;
 
-    orderItems.push({
-      isOffMenu: true,
-      imageKey: '',
-      imageName: '',
-      name: offMenuName,
-      qty,
-      note: noteItem,
-      productCode: '',
-      group: 'OFF MENU',
-      price: Number(it.price || 0) || 0,
-    });
+orderItems.push({
+  isOffMenu: true,
+  imageKey: '',
+  imageName: '',
+  name: offMenuName,
+  qty,
+  note: noteItem,
+  productCode: 'H100',
+  code: 'H100',
+  group: 'OFF MENU',
+  itemGroup: 'OFF MENU',
+  price: Number(it.price || 0) || 0,
+});
 
     continue;
   }
@@ -2804,7 +4906,7 @@ const order = {
   cancelReason: null,
 };
     orders.push(order);
-    saveOrders();
+    persistOrder(order);
 
 const card = cleanCard;
 if (card) {
@@ -2824,20 +4926,26 @@ if (card) {
   // Chỉ giữ 29 dòng cũ + 1 dòng mới = tối đa 30 history gần nhất
   const prevHistory = Array.isArray(prev.history) ? prev.history.slice(-29) : [];
 
+  const previousIdentity = getBestKnownCustomerIdentity(card);
+  const safeSnapshotName = meaningfulCustomerName(customerSnapshot.name, card);
+  const safeSnapshotLevel = meaningfulCustomerLevel(customerSnapshot.level);
+  const nextMemberName = safeSnapshotName || previousIdentity.name || null;
+  const nextMemberLevel = safeSnapshotLevel || previousIdentity.level || null;
+
   members[card] = {
     ...prev,
     code: prev.code || card,
-    customerName: customerSnapshot.name || prev.customerName || prev.name || null,
-    name: customerSnapshot.name || prev.name || prev.customerName || null,
-    level: customerSnapshot.level || prev.level || prev.memberLevel || null,
-    memberLevel: customerSnapshot.level || prev.memberLevel || prev.level || null,
+    customerName: nextMemberName,
+    name: nextMemberName,
+    level: nextMemberLevel,
+    memberLevel: nextMemberLevel,
     lastSeenAt: now,
     ordersCount: (prev.ordersCount || 0) + 1,
     history: [...prevHistory, orderHistoryItem],
     updatedAt: now,
   };
 
-  saveMembers();
+  persistMember(card);
   io.emit('memberUpdated', { code: card, member: members[card] });
 }
 
@@ -2850,9 +4958,63 @@ if (card) {
     res.status(500).json({ error: 'Tạo order thất bại' });
   }
 });
+// User Orders View - chỉ xem, không cần quyền admin/kitchen
+app.get('/api/user/orders-view', (req, res) => {
+  try {
+    orders = reloadOrdersSafe('GET /api/user/orders-view');
 
+    let list = [...orders];
+    const { status, area, tableNo, from, to } = req.query || {};
+
+    if (area && tableNo) {
+      list = list.filter(
+        (o) =>
+          String(o.area || '') === String(area) &&
+          String(o.tableNo || '') === String(tableNo)
+      );
+    }
+
+    if (status && status !== 'ALL') {
+      if (status === 'OPEN') {
+        list = list.filter((o) =>
+          ['PENDING', 'IN_PROGRESS'].includes(o.status)
+        );
+      } else {
+        list = list.filter((o) => o.status === status);
+      }
+    }
+
+    if (from) {
+      const fromMs = Date.parse(from);
+      if (!Number.isNaN(fromMs)) {
+        list = list.filter((o) => Date.parse(o.createdAt) >= fromMs);
+      }
+    }
+
+    if (to) {
+      const toMs = Date.parse(to);
+      if (!Number.isNaN(toMs)) {
+        list = list.filter((o) => Date.parse(o.createdAt) <= toMs);
+      }
+    }
+
+    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json(
+      list.map((o) => ({
+        ...o,
+        cancelReason: o.cancelReason ?? null,
+      }))
+    );
+  } catch (e) {
+    console.error('GET /api/user/orders-view error:', e);
+    res.status(500).json({ error: 'Cannot get orders view' });
+  }
+});
 app.get('/api/orders', maybeAuth, (req, res) => {
   try {
+    // Reload nhanh từ SQLite để các cập nhật từ route phụ như item-price không bị stale
+    orders = reloadOrdersSafe('GET /api/orders');
     let list = [...orders];
     const { customerId, status, area, tableNo, includeClosed, from, to } = req.query || {};
 // Thêm đoạn sau:
@@ -2896,6 +5058,50 @@ if (customerId) {
   }
 });
 
+const ORDER_PRINT_CLAIM_TTL_MS = Number(process.env.ORDER_PRINT_CLAIM_TTL_MS || 10 * 60 * 1000);
+const orderPrintClaims = new Map();
+
+function cleanupOrderPrintClaims(now = Date.now()) {
+  for (const [orderId, claim] of orderPrintClaims.entries()) {
+    if (!claim?.at || now - claim.at > ORDER_PRINT_CLAIM_TTL_MS) {
+      orderPrintClaims.delete(orderId);
+    }
+  }
+}
+
+app.post('/api/orders/:id/claim-print',
+  authenticateJWT, authorizeRoles('admin', 'kitchen'),
+  (req, res) => {
+    try {
+      const orderId = String(req.params.id || '').trim();
+      if (!orderId) return res.status(400).json({ error: 'Missing order id' });
+
+      const now = Date.now();
+      cleanupOrderPrintClaims(now);
+
+      const clientId = String(req.body?.clientId || req.user?.sub || req.ip || 'unknown').slice(0, 120);
+      const existed = orderPrintClaims.get(orderId);
+
+      if (existed && now - existed.at <= ORDER_PRINT_CLAIM_TTL_MS) {
+        return res.json({
+          ok: true,
+          claimed: false,
+          owner: existed.clientId || null,
+          claimedAt: existed.claimedAt || null,
+        });
+      }
+
+      const claimedAt = new Date().toISOString();
+      orderPrintClaims.set(orderId, { clientId, at: now, claimedAt });
+
+      return res.json({ ok: true, claimed: true, clientId, claimedAt });
+    } catch (e) {
+      console.error('POST /api/orders/:id/claim-print error:', e);
+      res.status(500).json({ error: 'Cannot claim print' });
+    }
+  }
+);
+
 const ORDER_STATUS = {
   PENDING: 'PENDING',
   IN_PROGRESS: 'IN_PROGRESS',
@@ -2913,7 +5119,7 @@ app.post('/api/orders/:id/status',
       const ALLOWED = new Set(Object.values(ORDER_STATUS));
       if (!ALLOWED.has(status)) return res.status(400).json({ error: 'Invalid status' });
 
-      const o = orders.find(x => String(x.id) === orderId);
+      const o = sqliteStore.getOrderById(orderId);
       if (!o) return res.status(404).json({ error: 'Order not found' });
 
       const prevStatus = o.status;
@@ -2936,7 +5142,12 @@ app.post('/api/orders/:id/status',
         restocked = true;
       }
 
-      saveOrders();
+      persistOrder(o);
+
+      const cacheIndex = orders.findIndex(x => String(x.id) === orderId);
+      if (cacheIndex >= 0) orders[cacheIndex] = o;
+      else orders.unshift(o);
+
       io.emit('orderUpdated', {
         orderId,
         status: o.status,
@@ -2956,15 +5167,20 @@ app.post('/api/orders/:id/status',
 // User đóng bàn
 app.post('/api/orders/:id/close', (req, res) => {
   try {
-const orderId = String(req.params.id);
-const o = orders.find(x => String(x.id) === orderId);
+    const orderId = String(req.params.id);
+    const o = sqliteStore.getOrderById(orderId);
     if (!o) return res.status(404).json({ error: 'Order not found' });
 
     if (!o.tableClosed) {
       o.tableClosed = true;
       o.closedAt = new Date().toISOString();
       o.closedBy = req.body?.by || 'user';
-      saveOrders();
+      persistOrder(o);
+
+      const cacheIndex = orders.findIndex(x => String(x.id) === orderId);
+      if (cacheIndex >= 0) orders[cacheIndex] = o;
+      else orders.unshift(o);
+
       io.emit('orderUpdated', { orderId, status: o.status, order: o });
     }
     res.json({ ok: true });
@@ -3258,16 +5474,17 @@ app.get('/api/status-history', authenticateJWT, authorizeRoles('admin', 'kitchen
   try {
     const { limit = 200, from, to, user, type, toStatus, fromStatus } = req.query;
 
-    let list = [...statusHistory];
-    if (from) { const t = new Date(from).getTime() || 0; list = list.filter(x => new Date(x.at).getTime() >= t); }
-    if (to)   { const t = new Date(to).getTime()   || Date.now(); list = list.filter(x => new Date(x.at).getTime() <= t); }
-    if (user) list = list.filter(x => (x.by || '').toLowerCase().includes(String(user).toLowerCase()));
-    if (type) list = list.filter(x => (x.type || '').toLowerCase().includes(String(type).toLowerCase()));
-    if (toStatus) list = list.filter(x => x.to === toStatus);
-    if (fromStatus) list = list.filter(x => x.from === fromStatus);
+    const list = sqliteStore.listStatusHistory({
+      limit,
+      from,
+      to,
+      user,
+      type,
+      toStatus,
+      fromStatus,
+    });
 
-    list.sort((a, b) => new Date(b.at) - new Date(a.at));
-    res.json(list.slice(0, Number(limit) || 200));
+    res.json(list);
   } catch (e) {
     console.error('GET /status-history error:', e);
     res.status(500).json({ error: 'Không lấy được lịch sử' });
@@ -3534,7 +5751,26 @@ for (const p of [LOCAL_AI_TRAINING_JSON, LOCAL_AI_MEMORY_JSON, LOCAL_AI_PENDING_
   }
 }
 
+// Import local AI JSON vào SQLite lần đầu nếu bảng đang rỗng.
+// Sau đó SQLite là nơi lưu chính, JSON chỉ giữ lại để backup/khôi phục nếu cần.
+try {
+  const r1 = sqliteStore.importLocalAiTrainingFromJsonIfEmpty(LOCAL_AI_TRAINING_JSON);
+  if (r1.imported) {
+    console.log(`[SQLite] Imported ${r1.count} local AI training rows from ai-training.json`);
+  }
 
+  const r2 = sqliteStore.importLocalAiMemoryFromJsonIfEmpty(LOCAL_AI_MEMORY_JSON);
+  if (r2.imported) {
+    console.log(`[SQLite] Imported ${r2.count} local AI memory rows from ai-memory.json`);
+  }
+
+  const r3 = sqliteStore.importLocalAiPendingFromJsonIfEmpty(LOCAL_AI_PENDING_JSON);
+  if (r3.imported) {
+    console.log(`[SQLite] Imported ${r3.count} local AI pending rows from ai-pending-learning.json`);
+  }
+} catch (e) {
+  console.error('[SQLite] Import local AI data failed:', e.message);
+}
 
 const localAiLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -4080,7 +6316,7 @@ app.get('/api/local-ai/hybrid-status', maybeAuth, (req, res) => {
 
 // ===================================================================
 // Mount ordersRouter sau các route /api/orders chính trong server.js
-// để /api/orders tạo order dùng được Customer API,
+// để /api/orders tạo order dùng được customer snapshot từ Database,
 // còn các route phụ trong routes/orders.js như item-price vẫn hoạt động.
 app.use('/api/orders', ordersRouter);
 // Chạy 1 lần khi backend khởi động để tự cập nhật đơn cũ
@@ -4088,6 +6324,180 @@ autoDoneOldOrdersByBusinessDay06();
 
 // Kiểm tra định kỳ mỗi 5 phút
 setInterval(autoDoneOldOrdersByBusinessDay06, 5 * 60 * 1000);
+
+// Checkpoint nhẹ mỗi 10 phút để WAL không tăng liên tục.
+// PASSIVE không chặn reader/writer đang hoạt động.
+setInterval(() => {
+  try {
+    sqliteStore.checkpointWal?.('PASSIVE');
+  } catch (error) {
+    console.warn('[SQLite] WAL checkpoint failed:', error?.message || error);
+  }
+}, 10 * 60 * 1000);
+
+// ====== AUTO ENQUEUE CUSTOMER API -> SQLITE ======
+// Không quét tuần tự toàn bộ hơn 60.000 khách.
+// Chỉ đưa khách hoạt động gần đây và dữ liệu đã cũ vào priority queue.
+function getRecentCustomerCodesForAutoSync() {
+  const cutoffMs = Date.now() - CUSTOMER_AUTO_SYNC_RECENT_DAYS * DAY_MS;
+  const activity = new Map();
+
+  for (const [codeRaw, member] of Object.entries(members || {})) {
+    const code = cleanMemberId(codeRaw);
+    if (!/^\d+$/.test(code)) continue;
+
+    const atMs = Date.parse(
+      member?.lastSeenAt || member?.updatedAt || member?.createdAt || ''
+    );
+    if (Number.isFinite(atMs) && atMs >= cutoffMs) {
+      activity.set(code, Math.max(activity.get(code) || 0, atMs));
+    }
+  }
+
+  for (const order of orders || []) {
+    const code = cleanMemberId(order?.customer?.code || order?.memberCard || '');
+    if (!/^\d+$/.test(code)) continue;
+
+    const atMs = Date.parse(order?.createdAt || order?.updatedAt || '');
+    if (!Number.isFinite(atMs) || atMs < cutoffMs) continue;
+    activity.set(code, Math.max(activity.get(code) || 0, atMs));
+  }
+
+  return Array.from(activity.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([code]) => code);
+}
+
+function enqueueAutomaticCustomerDatabaseSync() {
+  const globalErrorMs = Date.parse(customerApiHealth.lastErrorAt || '');
+  if (
+    ['OFFLINE', 'TIMEOUT'].includes(customerApiHealth.connectionStatus) &&
+    Number.isFinite(globalErrorMs) &&
+    Date.now() - globalErrorMs < CUSTOMER_API_RETRY_BACKOFF_MS
+  ) {
+    return {
+      queued: 0,
+      skipped: 0,
+      reason: 'API_BACKOFF',
+    };
+  }
+
+  const candidates = getRecentCustomerCodesForAutoSync();
+  let queued = 0;
+  let skipped = 0;
+
+  for (const code of candidates) {
+    if (queued >= CUSTOMER_AUTO_SYNC_ENQUEUE_SIZE) break;
+
+    if (
+      isMemberApiFresh(code) ||
+      customerSyncQueue.has(code) ||
+      customerSyncProcessing.has(code) ||
+      customerApiInflight.has(code)
+    ) {
+      skipped += 1;
+      continue;
+    }
+
+    const accepted = queueCustomerDatabaseSync(code, {
+      force: false,
+      priority: 30,
+      by: 'automatic-recent-customer-sync',
+      emit: false,
+    });
+
+    if (accepted) queued += 1;
+    else skipped += 1;
+  }
+
+  if (queued > 0) scheduleCustomerSyncWorker(0);
+
+  return {
+    queued,
+    skipped,
+    totalCandidates: candidates.length,
+    queueSize: customerSyncQueue.size,
+  };
+}
+
+if (CUSTOMER_AUTO_SYNC_INTERVAL_MS > 0) {
+  setTimeout(enqueueAutomaticCustomerDatabaseSync, 30 * 1000);
+  setInterval(enqueueAutomaticCustomerDatabaseSync, CUSTOMER_AUTO_SYNC_INTERVAL_MS);
+}
+
+function checkCustomerEventAlarms() {
+  try {
+    const now = new Date();
+    const nowMs = now.getTime();
+    const lookBack = new Date(nowMs - 12 * 60 * 60 * 1000).toISOString();
+    const lookAhead = new Date(nowMs + 48 * 60 * 60 * 1000).toISOString();
+
+    const events = sqliteStore.listCustomerEvents({
+      from: lookBack,
+      to: lookAhead,
+      status: ['PENDING', 'ACKNOWLEDGED', 'SNOOZED'],
+      limit: 1000,
+    });
+
+    for (const ev of events) {
+      const eventMs = Date.parse(ev.eventAt);
+      const shiftMs = Date.parse(ev.shiftStartAt);
+      const oneHourMs = eventMs - 60 * 60 * 1000;
+
+      if (!Number.isFinite(eventMs)) continue;
+
+      // Không nhắc event đã quá 6 tiếng
+      if (nowMs > eventMs + 6 * 60 * 60 * 1000) continue;
+
+      let alarmType = null;
+      const patch = {};
+
+      if (
+        ev.status === 'SNOOZED' &&
+        ev.snoozedUntil &&
+        Date.parse(ev.snoozedUntil) <= nowMs &&
+        !ev.lastSnoozeAlarmAt
+      ) {
+        alarmType = 'SNOOZE';
+        patch.lastSnoozeAlarmAt = now.toISOString();
+        patch.status = 'ACKNOWLEDGED';
+      } else if (
+        Number.isFinite(shiftMs) &&
+        nowMs >= shiftMs &&
+        nowMs < eventMs &&
+        !ev.lastShiftAlarmAt
+      ) {
+        alarmType = 'SHIFT_START';
+        patch.lastShiftAlarmAt = now.toISOString();
+      } else if (
+        nowMs >= oneHourMs &&
+        nowMs < eventMs &&
+        !ev.lastOneHourAlarmAt
+      ) {
+        alarmType = 'ONE_HOUR_BEFORE';
+        patch.lastOneHourAlarmAt = now.toISOString();
+      }
+
+      if (!alarmType) continue;
+
+      const updated = sqliteStore.updateCustomerEvent(ev.id, patch);
+
+      io.emit('customerEventAlarm', eventPublicPayload({
+        ...(updated || ev),
+        alarmType,
+        alarmAt: now.toISOString(),
+      }));
+
+      emitCustomerEventsUpdated(updated || ev);
+    }
+  } catch (e) {
+    console.error('[Customer Event Alarm] error:', e.message);
+  }
+}
+
+checkCustomerEventAlarms();
+setInterval(checkCustomerEventAlarms, 60 * 1000);
+
 // ====== Start ======
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Backend running on http://0.0.0.0:${PORT}`);
