@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 const { parseFromImageFile } = require('../utils/fileParsing');
+const sqliteStore = require('../sqliteStore');
 
 // ----- Auth stub (giữ như cũ — nếu có middleware riêng thì thay vào) -----
 
@@ -67,9 +68,34 @@ function bumpVersion(req) {
 }
 
 function readJson(p, fallback = []) {
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return fallback; }
+  try {
+    if (p === PRODUCTS_FILE) {
+      return sqliteStore.loadProducts();
+    }
+
+    if (p === FOODS_FILE) {
+      return sqliteStore.loadFoods();
+    }
+
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch {
+    return fallback;
+  }
 }
-function writeJson(p, data) { fs.writeFileSync(p, JSON.stringify(data, null, 2)); }
+
+function writeJson(p, data) {
+  if (p === PRODUCTS_FILE) {
+    sqliteStore.replaceAllProducts(Array.isArray(data) ? data : []);
+    return;
+  }
+
+  if (p === FOODS_FILE) {
+    sqliteStore.replaceAllFoods(Array.isArray(data) ? data : []);
+    return;
+  }
+
+  fs.writeFileSync(p, JSON.stringify(data, null, 2));
+}
 
 // (legacy) groups.json — vẫn giữ cho tương thích, nhưng KHÔNG dùng làm Menu nữa
 function readGroups() { try { return JSON.parse(fs.readFileSync(GROUPS_FILE, 'utf8')); } catch { return []; } }
@@ -116,8 +142,12 @@ function readMenuLevels() {
 function readFoods() { return readJson(FOODS_FILE, []); }
 function writeFoods(list) { writeJson(FOODS_FILE, list); }
 function nextFoodId(list) {
-  const max = list.reduce((m, f) => Number.isFinite(f.id) ? Math.max(m, f.id) : m, 0);
-  return max + 1;
+  try {
+    return sqliteStore.getNextFoodId();
+  } catch {
+    const max = list.reduce((m, f) => Number.isFinite(Number(f.id)) ? Math.max(m, Number(f.id)) : m, 0);
+    return max + 1;
+  }
 }
 function sortAndNormalizeOrders(list) {
   list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).forEach((f, i) => f.order = i);

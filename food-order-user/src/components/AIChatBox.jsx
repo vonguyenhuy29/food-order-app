@@ -15,6 +15,8 @@ export default function AIChatBox({ apiUrl, mode = 'user', token = '', userConte
   const [trainingMode, setTrainingMode] = useState(false);
   const [teachTarget, setTeachTarget] = useState(null);
   const [correction, setCorrection] = useState('');
+  const [showQuestionList, setShowQuestionList] = useState(false);
+  const [openQuestionGroup, setOpenQuestionGroup] = useState(null);
   const [messages, setMessages] = useState(() => [
     {
       role: 'assistant',
@@ -134,10 +136,12 @@ const sendCorrection = async () => {
     scrollBottom();
   }
 };
-  const askQuick = (text) => {
-    setInput(text);
-    setOpen(true);
-  };
+const askQuick = (text) => {
+  setInput(text);
+  setOpen(true);
+  setShowQuestionList(false);
+  setOpenQuestionGroup(null);
+};
 
   const bubbleBtnStyle = {
     position: 'fixed',
@@ -156,21 +160,92 @@ const sendCorrection = async () => {
     fontSize: 18
   };
 
-const quickPrompts = isAdminMode
-  ? [
-      'Hôm nay món nào được order nhiều nhất?',
-      'Top khách order nhiều trong 30 ngày qua?',
-      'Món nào đang Sold Out?',
-      'Tóm tắt doanh thu hôm nay',
-      'Hôm nay bàn nào chưa order?'
-    ]
-  : [
-      'Gợi ý món bán chạy hôm nay',
-      'Món nào đang được order nhiều hôm nay?',
-      'Món nào đang Sold Out?',
-      '1 hay ăn gì?',
-      'Gợi ý món cho 1'
-    ];
+const questionGroups = [
+  {
+    title: 'Khách hàng',
+    items: [
+      'Khách hàng - 1 hay ăn gì?',
+      'Khách hàng - 1 hay uống gì?',
+      'Khách hàng - 1 thích ăn gì?',
+      'Khách hàng - 1 thường order món gì?',
+      'Khách hàng - 1 đã order bao nhiêu lần trong 30 ngày qua?',
+      'Khách hàng - 1 lần gần nhất order khi nào?',
+      'Khách hàng - 1 đã order những gì hôm nay?',
+      'Khách hàng - 1 trong 30 ngày qua đã order những gì?',
+      'Khách hàng - 1 từng ăn cơm chiên chưa?',
+      'Khách hàng - 1 có uống avocado smoothie chưa?',
+      'Khách hàng - 1 hay order lúc mấy giờ?',
+      'Khách hàng - 1 hay ghi chú gì?',
+      'Khách hàng - 1 không thích gì?',
+      'Gợi ý món cho khách hàng - 1',
+      'Gợi ý món theo ghi chú khách hàng - 1',
+    ],
+  },
+  {
+    title: 'Order theo ngày/giờ',
+    items: [
+      'Order ngày/giờ - khách hàng - 1 khoảng 12h ngày 12/05/2026 đã order gì?',
+      'Order ngày/giờ - khách hàng - 1 khoảng 3h ngày 13/05/2026 đã order gì?',
+      'Order ngày/giờ - khách hàng - 1 khoảng 12h hôm nay đã order gì?',
+      'Order ngày/giờ - 03/05/2026 15:32 khách hàng - 1 đã order gì?',
+      'Order ngày/giờ - ngày 12/05/2026 khách hàng - 1 đã order gì?',
+      'Order ngày/giờ - khách hàng - 1 hôm nay có order không?',
+      'Order ngày/giờ - khách hàng - 1 hôm qua có order không?',
+      'Order ngày/giờ - khách hàng - 1 trong 7 ngày qua đã order những gì?',
+      'Order ngày/giờ - khách hàng - 1 trong 1 năm qua đã order những gì?',
+    ],
+  },
+  {
+    title: 'Bàn / khu vực',
+    items: [
+      'Bàn/khu vực - bàn 1001 hôm nay có order chưa?',
+      'Bàn/khu vực - bàn 1001 hôm nay gọi món gì?',
+      'Bàn/khu vực - bàn 104 hôm nay có ai order chưa?',
+      'Bàn/khu vực - hôm nay bàn nào chưa order?',
+      'Bàn/khu vực - hôm nay có bao nhiêu bàn đã order?',
+      'Bàn/khu vực - danh sách bàn đã order hôm nay',
+      'Bàn/khu vực - danh sách bàn chưa order hôm nay',
+    ],
+  },
+  {
+    title: 'Món ăn / menu',
+    items: [
+      'Món ăn/menu - Top món hôm nay',
+      'Món ăn/menu - Món nào đang được order nhiều hôm nay?',
+      'Món ăn/menu - Gợi ý món bán chạy hôm nay',
+      'Món ăn/menu - Món nào đang Sold Out?',
+      'Món ăn/menu - Ghi chú hay gặp hôm nay',
+      'Món ăn/menu - Món nào hot trong 7 ngày qua?',
+      'Món ăn/menu - Khách nào order món KIMBAP nhiều nhất?',
+    ],
+  },
+  {
+    title: 'Thông tin app',
+    items: [
+      'Chatbot làm được gì?',
+      'Có thể hỏi gì?',
+      'Cách sử dụng app như nào?',
+      'App này là gì?',
+    ],
+  },
+];
+
+const adminQuestionGroups = [
+  ...questionGroups,
+  {
+    title: 'Admin / báo cáo',
+    items: [
+      'Admin/báo cáo - Top khách order nhiều nhất 7 ngày qua',
+      'Admin/báo cáo - Top khách order nhiều trong 30 ngày qua',
+      'Admin/báo cáo - Danh sách khách đã order hôm nay',
+      'Admin/báo cáo - Tổng số khách đã order hôm nay',
+      'Admin/báo cáo - Tóm tắt doanh thu hôm nay',
+      'Admin/báo cáo - Tóm tắt doanh thu 30 ngày qua',
+    ],
+  },
+];
+
+const visibleQuestionGroups = isAdminMode ? adminQuestionGroups : questionGroups;
 
   return (
     <>
@@ -291,26 +366,118 @@ const quickPrompts = isAdminMode
           </div>
 
           <div style={{ padding: '8px 10px', borderTop: '1px solid #e5e7eb', background: '#fff' }}>
-            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8 }}>
-              {quickPrompts.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => askQuick(q)}
-                  style={{
-                    flex: '0 0 auto',
-                    border: '1px solid #d1d5db',
-                    background: '#fff',
-                    borderRadius: 999,
-                    padding: '5px 8px',
-                    fontSize: 11,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
+<div style={{ paddingBottom: 8 }}>
+<button
+  type="button"
+  onClick={() => {
+    setShowQuestionList((v) => !v);
+    setOpenQuestionGroup(null);
+  }}
+    style={{
+      width: '100%',
+      border: '1px solid #d1d5db',
+      background: showQuestionList ? '#eef2ff' : '#fff',
+      color: '#111827',
+      borderRadius: 10,
+      padding: '8px 10px',
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }}
+  >
+    <span>📋 Xem các câu hỏi Chatbot có thể trả lời</span>
+    <span>{showQuestionList ? '▲' : '▼'}</span>
+  </button>
+
+  {showQuestionList && (
+    <div
+      style={{
+        marginTop: 8,
+        maxHeight: 230,
+        overflowY: 'auto',
+        border: '1px solid #e5e7eb',
+        borderRadius: 12,
+        background: '#f9fafb',
+        padding: 8
+      }}
+    >
+      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8, lineHeight: 1.35 }}>
+        Bấm câu mẫu để đưa vào ô nhập, sau đó chỉ cần đổi số <b>1</b> thành mã khách hoặc đổi số bàn/ngày/giờ rồi bấm Gửi.
+      </div>
+{visibleQuestionGroups.map((group) => {
+  const isGroupOpen = openQuestionGroup === group.title;
+
+  return (
+    <div key={group.title} style={{ marginBottom: 8 }}>
+      <button
+        type="button"
+        onClick={() =>
+          setOpenQuestionGroup((cur) =>
+            cur === group.title ? null : group.title
+          )
+        }
+        style={{
+          width: '100%',
+          border: '1px solid #e5e7eb',
+          background: isGroupOpen ? '#eef2ff' : '#fff',
+          borderRadius: 10,
+          padding: '8px 10px',
+          fontSize: 12,
+          fontWeight: 800,
+          color: '#374151',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          textAlign: 'left'
+        }}
+      >
+        <span>{group.title}</span>
+        <span>{isGroupOpen ? '▲' : '▼'}</span>
+      </button>
+
+      {isGroupOpen && (
+        <div
+          style={{
+            display: 'grid',
+            gap: 6,
+            marginTop: 6,
+            paddingLeft: 6,
+            paddingRight: 2
+          }}
+        >
+          {group.items.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => askQuick(q)}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                border: '1px solid #e5e7eb',
+                background: '#fff',
+                borderRadius: 9,
+                padding: '7px 8px',
+                fontSize: 12,
+                color: '#111827',
+                cursor: 'pointer',
+                lineHeight: 1.35
+              }}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+})}
+    </div>
+  )}
+</div>
 {teachTarget && (
   <div style={{ marginBottom: 8, padding: 8, border: '1px solid #f59e0b', borderRadius: 10, background: '#fffbeb' }}>
     <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 5 }}>
