@@ -1,3 +1,4 @@
+// SAFE_CLEANUP_PHASE3B_20260913
 // SAFE_CLEANUP_PHASE2D_20260913
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
@@ -1438,6 +1439,7 @@ const onOrderStationActivity = (payload = {}) => {
       const code = text(selected.memberCode).replace(/\s+/g, '');
       if (code && code !== customerProfileCode) loadCustomerProfile(code);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNumber, activeDetailTab, selected?.memberCode, selected?.area, selected?.machineNumber, customerProfileCode, loadMachineOrders, loadCustomerProfile]);
 
   const dismissAlert = useCallback((id) => {

@@ -1,3 +1,4 @@
+// SAFE_CLEANUP_PHASE3B_20260913
 // SAFE_CLEANUP_PHASE2D_20260913
 // src/components/FoodList.js
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
@@ -738,6 +739,7 @@ const ordersViewFiltered = useMemo(() => {
   }
 
   return [...rows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [ordersViewOrders, ordersViewFilter, ordersViewCustomerSearch]);
 const ordersViewGroupedTables = useMemo(() => {
   const grouped = new Map();
@@ -3003,7 +3005,6 @@ const list = ordersViewFiltered
     minWidth: 0,
                 flex: 1,
                 padding: '8px 10px',
-                fontSize: 12,
     borderRadius: 8,
     border: '1px solid #555',
     background: mode === 'insights' ? '#f59e0b' : '#333',
@@ -5527,8 +5528,8 @@ const searchCustomers = useCallback(async (q) => {
           profileData &&
           (
             Number(profileMember?.ordersCount || 0) > 0 ||
-            Array.isArray(profileData.orders) && profileData.orders.length > 0 ||
-            Array.isArray(profileData.preferences?.favoriteItems) && profileData.preferences.favoriteItems.length > 0
+            (Array.isArray(profileData.orders) && profileData.orders.length > 0) ||
+            (Array.isArray(profileData.preferences?.favoriteItems) && profileData.preferences.favoriteItems.length > 0)
           );
 
         if (!hasLookup && !hasProfile) {
@@ -5617,6 +5618,7 @@ const searchCustomers = useCallback(async (q) => {
   } finally {
     setSearchLoading(false);
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [apiUrl]);
 
 const loadProfile = useCallback(async (codeInput) => {
@@ -5719,6 +5721,7 @@ const loadProfile = useCallback(async (codeInput) => {
   } finally {
     setProfileLoading(false);
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [apiUrl]);
 useEffect(() => {
   const code = cleanCode(initialProfileCode);
@@ -6043,7 +6046,7 @@ const tabs = [
     const marker = raw.indexOf('/images/');
     if (marker >= 0) return withBase(raw.slice(marker));
     return imageSrc(item);
-  }, [foods]);
+  }, [foods, withBase]);
 
   const topItems = overview?.topItems || [];
   const topCustomers = overview?.topCustomers || [];

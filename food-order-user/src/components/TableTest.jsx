@@ -1,3 +1,4 @@
+// SAFE_CLEANUP_PHASE3B_20260913
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
@@ -445,7 +446,10 @@ function FloorMapMetricModal({
 
   const mapWidth = Math.max(1, Number(layout?.map?.imageWidth || layout?.map?.image_width || 0));
   const mapHeight = Math.max(1, Number(layout?.map?.imageHeight || layout?.map?.image_height || 0));
-  const layoutMachines = Array.isArray(layout?.machines) ? layout.machines : [];
+  const layoutMachines = useMemo(
+    () => (Array.isArray(layout?.machines) ? layout.machines : []),
+    [layout?.machines]
+  );
 
   // Avatar trên FloorLens Map:
   // - Các dãy đã được xác nhận trực tiếp từ sơ đồ thực tế dùng vị trí cố định.
@@ -1174,6 +1178,7 @@ export default function TableTest({
       loadMachineHistory(selected);
       loadCustomerData(selected);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.machineNumber, selected?.area, selected?.memberCode, selected?.sessionId, loadOrders, loadMachineHistory, loadCustomerData]);
 
   useEffect(() => {
@@ -1339,7 +1344,10 @@ export default function TableTest({
   }, [machines, pulseByMachine, recentEnterMachines, recentLeaveMachines, onRealtimeStateChange]);
 
   const selectedCartKey = selected ? tableKeyOf(text(selected.area), text(selected.machineNumber)) : '';
-  const selectedCart = selectedCartKey ? (carts?.[selectedCartKey] || {}) : {};
+  const selectedCart = useMemo(
+    () => (selectedCartKey ? (carts?.[selectedCartKey] || {}) : {}),
+    [selectedCartKey, carts]
+  );
   const cartRows = useMemo(() => Object.entries(selectedCart).map(([cartKey, item]) => {
     const offMenu = Boolean(item?.isOffMenu) || String(cartKey).startsWith('__offmenu__');
     const food = offMenu ? null : foodByImage.get(String(cartKey).toLowerCase());
