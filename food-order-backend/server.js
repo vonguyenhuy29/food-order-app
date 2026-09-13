@@ -18,6 +18,7 @@ const productsRouter = require('./routes/products');
 const ordersRouter = require('./routes/orders');
 const sqliteStore = require('./sqliteStore');
 const { createFloorlensService } = require('./floorlensService');
+const { resolveOrderDelivery } = require('./orderDelivery');
 const rateLimitPkg = require('express-rate-limit');
 const rateLimit = rateLimitPkg.rateLimit || rateLimitPkg;
 const { ipKeyGenerator } = rateLimitPkg;
@@ -5453,6 +5454,17 @@ function normalizeFloorlensOrderStation(value) {
 // not proof of customer identity. Realtime movement must not reject an order
 // or complete another customer's pending food order.
 
+// Best-effort location lookup: no upstream request and no order-blocking errors.
+function currentOrderDelivery(input) {
+  try { return resolveOrderDelivery(floorlensService.getSnapshot(), input); }
+  catch { return resolveOrderDelivery(null, input); }
+}
+
+app.get('/api/order-delivery', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(currentOrderDelivery(req.query || {}));
+});
+
 // --- Tạo order (public) — không quản lý tồn kho món ---
 app.post('/api/orders',orderLimiter, async (req, res) => {
   try {
@@ -5601,13 +5613,17 @@ orderItems.push({
     });
   }
 }
+// Resolve after the asynchronous member lookup, immediately before persistence.
+// On retries the existing saved order above wins, including its original location.
+const delivery = isQuickOrder ? null : currentOrderDelivery({ area, tableNo, memberCard: cleanCard });
 const order = {
   id: nextOrderId(),
   clientRequestId: cleanClientRequestId || null,
   sourceStation: cleanSourceStation || null,
   quickOrder: isQuickOrder,
-  area: isQuickOrder ? null : area,
-  tableNo: isQuickOrder ? null : tableNo,
+  area: isQuickOrder ? null : delivery.area,
+  tableNo: isQuickOrder ? null : delivery.tableNo,
+  deliveryResolution: delivery?.reason || null,
   staff: cleanMemberId(staff),
   memberCard: cleanCard,
   customerName: customerSnapshot.name || null,
@@ -5692,6 +5708,7 @@ if (card) {
       ok: true,
       orderId: order.id,
       autoDonePreviousOrderIds: autoDonePreviousOrders.map((row) => row.id),
+      order,
     });
   } catch (e) {
     console.error('Create order error:', e);

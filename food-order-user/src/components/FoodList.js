@@ -772,6 +772,10 @@ const [floorlensFocusRequestId, setFloorlensFocusRequestId] = useState(0);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const placeOrderLockRef = useRef(false);
   const orderRequestIdRef = useRef(null);
+  const orderRequestFingerprintRef = useRef('');
+  // Delivery is separate from the cart key: never merge/overwrite the target cart.
+  const [orderDelivery, setOrderDelivery] = useState(null);
+  const orderDeliveryRef = useRef(null);
     // === Staff lookup ===
   // Lưu map mã nhân viên -> tên nhân viên (loaded từ API)
   const [staffMap, setStaffMap] = useState({});
@@ -2046,6 +2050,35 @@ useEffect(() => {
   return () => clearTimeout(memberSearchTimerRef.current);
 }, [memberSearchText, orderForm.memberCard]);
 
+  const deliveryForOrder = orderDelivery?.sourceKey === currentTableKey
+    ? orderDelivery : selectedTable;
+
+  useEffect(() => {
+    if (!showOrderForm || !selectedTable) return undefined;
+    const code = String(orderForm.memberCard || '').replace(/\s+/g, '').trim();
+    if (!/^\d+$/.test(code)) return undefined;
+    let cancelled = false;
+    const sourceKey = currentTableKey;
+    // Keep the last displayed location when the new member has no known location.
+    const previous = orderDeliveryRef.current;
+    const fallback = previous?.sourceKey === sourceKey ? previous : selectedTable;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await axios.get(apiUrl('/api/order-delivery'), {
+          params: { memberCard: code, area: fallback.area, tableNo: fallback.tableNo },
+          timeout: 1500,
+        });
+        if (cancelled || placeOrderLockRef.current || !res.data?.area || !res.data?.tableNo) return;
+        const next = { area: res.data.area, tableNo: res.data.tableNo, sourceKey, memberCode: code, reason: res.data.reason };
+        orderDeliveryRef.current = next;
+        setOrderDelivery(next);
+      } catch {
+        // Location assistance must never prevent sending or discard the last location.
+      }
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [showOrderForm, orderForm.memberCard, currentTableKey, selectedTable]);
+
   // Submit order
 const placeOrder = async () => {
   if (placeOrderLockRef.current) {
@@ -2111,16 +2144,11 @@ if (invalidOffMenu) {
 placeOrderLockRef.current = true;
 setIsPlacingOrder(true);
 
-if (!orderRequestIdRef.current) {
-  orderRequestIdRef.current = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
 try {
 const body = {
-  clientRequestId: orderRequestIdRef.current,
   sourceStation: currentFloorlensOrderStation() || null,
-  area: selectedTable.area,
-  tableNo: selectedTable.tableNo,
+  area: deliveryForOrder.area,
+  tableNo: deliveryForOrder.tableNo,
   staff: staffVal,
   memberCard: memberCardVal,
      // Chỉ gửi dữ liệu khách thật; tuyệt đối không lưu text trạng thái UI
@@ -2129,6 +2157,12 @@ const body = {
         note: orderForm.note || '',
         items,
       };
+      const fingerprint = JSON.stringify({ ...body, area: selectedTable.area, tableNo: selectedTable.tableNo });
+      if (!orderRequestIdRef.current || orderRequestFingerprintRef.current !== fingerprint) {
+        orderRequestIdRef.current = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        orderRequestFingerprintRef.current = fingerprint;
+      }
+      body.clientRequestId = orderRequestIdRef.current;
       const res = await axios.post(apiUrl('/api/orders'), body);
 if (res?.data?.ok) {
   const savedStaff = staffVal;
@@ -2160,7 +2194,12 @@ if (res?.data?.ok) {
 
 orderRequestIdRef.current = null;
 setShowOrderForm(false);
-setToast('Đã gửi Order');
+orderDeliveryRef.current = null;
+setOrderDelivery(null);
+const savedLocation = res.data?.order;
+setToast(savedLocation?.tableNo
+  ? `Đã gửi Order • ${savedLocation.area} - ${savedLocation.tableNo}`
+  : 'Đã gửi Order');
 }
     } catch (e) {
       const apiError = e?.response?.data?.error || '';
@@ -4167,6 +4206,14 @@ decoding="async"
       }}
     >
       <h3 style={{ marginTop: 0 }}>Tạo Order</h3>
+      <div style={{ padding: '10px 12px', marginBottom: 12, borderRadius: 8, background: '#eff6ff', color: '#1e40af' }}>
+        Giao tại: <b>{deliveryForOrder?.area} - {deliveryForOrder?.tableNo}</b>
+        <div style={{ marginTop: 4, fontSize: 12 }}>
+          {orderDelivery?.sourceKey === currentTableKey && orderDelivery?.reason === 'FOLLOW_MEMBER'
+            ? 'Đã cập nhật nơi giao theo member.'
+            : 'Tự cập nhật theo member khi xác định được vị trí; không tìm thấy vẫn gửi được.'}
+        </div>
+      </div>
 
       <div style={{ display: 'grid', gap: 10 }}>
         <div>
