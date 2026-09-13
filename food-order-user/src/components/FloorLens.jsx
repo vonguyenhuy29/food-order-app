@@ -1,3 +1,4 @@
+// SAFE_CLEANUP_PHASE2D_20260913
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import './FloorLens.css';
@@ -121,16 +122,6 @@ function layoutTransform(transform = {}) {
   return `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`;
 }
 
-function inverseLayoutTransform(transform = {}) {
-  const rotation = Number(transform.rotation || 0);
-  const scaleX = (Number(transform.scaleX ?? 1) || 1) * (transform.flipX ? -1 : 1);
-  const scaleY = (Number(transform.scaleY ?? 1) || 1) * (transform.flipY ? -1 : 1);
-  if (rotation === 0 && scaleX === 1 && scaleY === 1) return undefined;
-  const sx = Math.abs(scaleX) || 1;
-  const sy = Math.abs(scaleY) || 1;
-  return `scale(${1 / sx}, ${1 / sy}) rotate(${-rotation}deg) scale(${sx}, ${sy})`;
-}
-
 function avatarPositionStyle(position = 'top', offset = 0) {
   const n = Number(offset || 0);
   switch (position) {
@@ -226,14 +217,6 @@ function formatFloorlensShortTime(value) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${pad(parts.hour)}:${pad(parts.minute)}`;
 }
-
-function formatShortTime(value) {
-  if (!value) return '—';
-  const parsed = new Date(value);
-  if (!Number.isFinite(parsed.getTime())) return text(value) || '—';
-  return parsed.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-}
-
 
 function formatMoneyVnd(value) {
   const amount = Number(value || 0);

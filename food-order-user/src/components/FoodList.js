@@ -1,3 +1,4 @@
+// SAFE_CLEANUP_PHASE2D_20260913
 // src/components/FoodList.js
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import AIChatBox from './AIChatBox.jsx';
@@ -2957,9 +2958,9 @@ const list = ordersViewFiltered
               onClick={() => { setMode('tabletest'); setMenuOpen(true); }}
               style={{
                 minWidth: 0,
-fontSize: 12,
-padding: '8px 6px',
-                flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #555',
+                flex: 1,
+                padding: '8px 10px',
+                fontSize: 12, borderRadius: 8, border: '1px solid #555',
                 background: mode === 'tabletest' ? '#f59e0b' : '#333', color: '#fff', cursor: 'pointer'
               }}
             >
@@ -2969,9 +2970,9 @@ padding: '8px 6px',
               onClick={() => setMode('menu')}
               style={{
                 minWidth: 0,
-fontSize: 12,
-padding: '8px 6px',
-                flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #555',
+                flex: 1,
+                padding: '8px 10px',
+                fontSize: 12, borderRadius: 8, border: '1px solid #555',
                 background: mode === 'menu' ? '#f59e0b' : '#333', color: '#fff', cursor: 'pointer'
               }}
             >
@@ -2984,8 +2985,6 @@ padding: '8px 6px',
     }}
     style={{
       minWidth: 0,
-fontSize: 12,
-padding: '8px 6px',
       flex: 1,
       padding: '8px 6px',
       borderRadius: 8,
@@ -3002,10 +3001,9 @@ padding: '8px 6px',
   onClick={() => setMode('insights')}
   style={{
     minWidth: 0,
-fontSize: 12,
-padding: '8px 6px',
-    flex: 1,
-    padding: '8px 10px',
+                flex: 1,
+                padding: '8px 10px',
+                fontSize: 12,
     borderRadius: 8,
     border: '1px solid #555',
     background: mode === 'insights' ? '#f59e0b' : '#333',
@@ -5112,16 +5110,6 @@ function UserCustomerInsightsPanel({
     if (!m) return raw;
     return `${m[4]}:${m[5]}:${m[6] || '00'} • ${m[3]}/${m[2]}/${m[1]}`;
   };
-const normalizeProfileCode = (v) => {
-  const code = cleanCode(v);
-
-  if (/^\d$/.test(code)) {
-    return code.padStart(2, '0');
-  }
-
-  return code;
-};
-
 const getProfileCodeCandidates = (v) => {
   const raw = cleanCode(v);
   if (!raw) return [];
@@ -5264,7 +5252,7 @@ const profileDataScore = (data) => {
   const [searchLoading, setSearchLoading] = useState(false);
 
   const [profile, setProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [, setProfileLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
   const closeProfile = useCallback(() => {

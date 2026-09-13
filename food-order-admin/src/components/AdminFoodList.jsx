@@ -16,7 +16,7 @@ import AIChatBox from './AIChatBox.jsx';
 import io from 'socket.io-client';
 import axios from 'axios';
 
-// ===== Limit concurrent axios requests to avoid net::ERR_INSUFFICIENT_RESOURCES =====
+// SAFE_CLEANUP_PHASE2D_20260913
 // ===== Limit concurrent axios requests to avoid net::ERR_INSUFFICIENT_RESOURCES =====
 const MAX_CONCURRENT = 4;
 let __axios_pending = 0;
@@ -1313,35 +1313,6 @@ const handleToggleStatus = async (id, status) => {
   }
 };
 
-  const handleDeleteFood = async (id) => {
-    if (!isAdmin) return alert('Admin only.');
-    if (!window.confirm('Delete this item?')) return;
-    try {
-      await axios.delete(apiUrl(`/api/foods/${id}`));
-      setApiError(null);
-    } catch (e) {
-      setApiError(e?.message || 'API error');
-    }
-  };
-
-  const handleRenameFood = async (id) => {
-    if (!isAdmin) return alert('Admin only.');
-    const raw = window.prompt('Enter new name for this item (image):');
-    if (raw == null) return;
-    const newType = raw.trim();
-    if (!newType) return alert('Invalid name.');
-    try {
-      await axios.post(apiUrl('/api/rename-food'), { id, newType });
-      await fetchFoods();
-    } catch (err) {
-      if (err?.response?.status === 409) {
-        alert(err?.response?.data?.error || 'Tên ảnh đã tồn tại, hãy chọn tên khác.');
-      } else {
-        alert('Rename failed: ' + (err?.response?.data?.error || err?.message || ''));
-      }
-    }
-  };
-
   // Xóa menu chỉ thực hiện trong Quản lý > Hàng hóa > Menu.
 
 
@@ -1718,7 +1689,6 @@ const renderAdminOrderItems = (order = {}, { allowOffMenuPrice = false } = {}) =
   }
 
   // ===== Main UI =====
-  const currentLevels = levelConfig[selectedType] || [];
   const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, color: '#374151', borderBottom: '1px solid #e5e7eb' };
   const td = { padding: '8px 12px', fontSize: 12, color: '#111' };
 

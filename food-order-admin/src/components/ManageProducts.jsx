@@ -1,3 +1,4 @@
+// SAFE_CLEANUP_PHASE2D_20260913
 // src/components/ManageProducts.jsx
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -20,41 +21,10 @@ export default function ManageProductsModal({
     // Level menu dùng bên User (FoodList)
   const USER_MENU_LEVELS = ['P', 'I-I+', 'V-One'];
 
-// === Staff lookup ===
-const [staffMap, setStaffMap] = React.useState({});
-React.useEffect(() => {
-  let cancelled = false;
-  (async () => {
-    try {
-      const url = apiUrl ? apiUrl('/api/staffs') : '/api/staffs';
-      const res = await axios.get(url, { headers: { 'Cache-Control': 'no-cache' } });
-      const arr = Array.isArray(res.data) ? res.data : [];
-      const map = {};
-      arr.forEach(it => {
-        const id = String(it.id || it.code || '').trim();
-        if (id) map[id] = String(it.name || '');
-      });
-      if (!cancelled) setStaffMap(map);
-    } catch (e) {
-      // nếu lỗi, staffMap sẽ rỗng
-    }
-  })();
-  return () => { cancelled = true; };
-}, [apiUrl]);
-
-
-
-
-
-
-
-
-
-  // ===== Helpers/Constants =====
+// ===== Helpers/Constants =====
   const [activeTab, setActiveTab] = React.useState('products'); // 'products' | 'customers'
   const SOURCE_FOLDER = 'SOURCE'; // thư mục chứa ảnh gốc
-  const custSearchTimer = React.useRef(null);
-  const TYPE_LS_KEY = 'menuTypeOptions';
+const TYPE_LS_KEY = 'menuTypeOptions';
 
 
   // ==== Levels (Khách hàng) — động + lưu localStorage ====
@@ -162,16 +132,7 @@ const fetchMenuLevels = React.useCallback(async () => {
     return String(s || '').trim().toLowerCase();
   }
 
-  async function addMenuType() {
-    const raw = prompt('Tên loại thực đơn mới (ví dụ: combo)');
-    if (!raw) return;
-    const name = normalizeType(raw);
-    if (!name) return alert('Tên không hợp lệ.');
-    if (RESERVED_TYPES.includes(name)) return alert('Loại mặc định đã tồn tại.');
-    setTypeOptions(prev => (prev.includes(name) ? prev : [...prev, name]));
-  }
-
-  async function deleteMenuType(name) {
+    async function deleteMenuType(name) {
     if (RESERVED_TYPES.includes(name)) return alert('Không thể xóa loại mặc định.');
     const usedIds = (rawRows || []).filter(r => normalizeType(r.menuType) === name).map(r => r.id);
     const msg = usedIds.length
