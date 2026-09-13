@@ -1,3 +1,4 @@
+// SAFE_CLEANUP_PHASE3A_20260913
 // SAFE_CLEANUP_PHASE2D_20260913
 // src/components/ManageProducts.jsx
 import React from 'react';
@@ -1586,70 +1587,6 @@ function ReportPanel({ apiUrl }) {
     );
   }
   // =============== Customers (Khách hàng) ===============
-  function AddCustomerModal({ LEVELS = ['P','I','I+','V','One','One+','EC'], onDone, onCancel, apiUrl, existing = [] }) {
-    const [saving, setSaving] = React.useState(false);
-    const [form, setForm] = React.useState({ code: '', name: '', level: LEVELS[0] || 'P' });
-    const codeExists = React.useMemo(() => {
-      const c = (form.code || '').trim().toLowerCase();
-      return !!c && existing.some(x => String(x.code || '').trim().toLowerCase() === c);
-    }, [form.code, existing]);
-
-    async function save(closeAfter = true) {
-      if (!form.name?.trim()) return alert('Tên khách hàng là bắt buộc.');
-      if (!form.code?.trim()) return alert('Mã khách hàng là bắt buộc.');
-      if (codeExists) return alert('Mã khách hàng đã tồn tại.');
-      try {
-        setSaving(true);
-        const payload = { code: form.code.trim(), name: form.name.trim(), level: form.level };
-        try { await axios.post(apiUrl('/api/customers'), payload); }
-        catch { await axios.post(apiUrl('/api/members'), payload); }
-        onDone?.(true);
-        if (!closeAfter) setForm({ code: '', name: '', level: LEVELS[0] || 'P' });
-      } catch (e) {
-        alert('Thêm khách hàng thất bại: ' + (e?.response?.data?.error || e?.message || ''));
-      } finally {
-        setSaving(false);
-      }
-    }
-
-    return ReactDOM.createPortal(
-      <div onClick={onCancel} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', display:'grid', placeItems:'center', zIndex:20000 }}>
-        <div onClick={e=>e.stopPropagation()} style={{ width:560, background:'#fff', borderRadius:10, boxShadow:'0 18px 48px rgba(0,0,0,0.35)', overflow:'hidden' }}>
-          <div style={{ padding:12, borderBottom:'1px solid #e5e7eb', fontWeight:700 }}>Thêm khách hàng</div>
-          <div style={{ padding:12, display:'grid', gap:10 }}>
-            <div>
-              <label style={{ fontSize:12, color:'#6b7280' }}>Mã khách hàng *</label>
-              <input value={form.code} onChange={e=>setForm(f=>({ ...f, code:e.target.value }))}
-                     style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:6, padding:'8px 10px' }} />
-              {codeExists && <div style={{ color:'#ef4444', fontSize:12, marginTop:4 }}>Mã đã tồn tại.</div>}
-            </div>
-            <div>
-              <label style={{ fontSize:12, color:'#6b7280' }}>Tên khách hàng *</label>
-              <input value={form.name} onChange={e=>setForm(f=>({ ...f, name:e.target.value }))}
-                     style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:6, padding:'8px 10px' }} />
-            </div>
-            <div>
-              <label style={{ fontSize:12, color:'#6b7280' }}>Level</label>
-              <select value={form.level} onChange={e=>setForm(f=>({ ...f, level:e.target.value }))}>
-                {/* nếu LEVELS chưa có nhưng form.level có giá trị lạ, vẫn render được */}
-                {!LEVELS.includes(form.level) && form.level ? <option value={form.level}>{form.level}</option> : null}
-                {LEVELS.map(lv=> <option key={lv} value={lv}>{lv}</option>)}
-              </select>
-            </div>
-          </div>
-          <div style={{ padding:12, borderTop:'1px solid #e5e7eb', display:'flex', justifyContent:'flex-end', gap:8 }}>
-            <button onClick={onCancel} disabled={saving} style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'8px 12px', background:'#fff' }}>Bỏ qua</button>
-            <button onClick={()=>save(false)} disabled={saving} style={{ border:'1px solid #e5e7eb', borderRadius:6, padding:'8px 12px', background:'#fff' }}>Lưu & thêm mới</button>
-            <button onClick={()=>save(true)} disabled={saving} style={{ border:'1px solid #111', borderRadius:6, padding:'8px 12px', background:'#111', color:'#fff' }}>
-              {saving ? 'Đang lưu…' : 'Lưu'}
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
-
   function CustomerHistoryModal({ apiUrl, customer, onClose }) {
     const [rows, setRows] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
@@ -1720,7 +1657,7 @@ function ReportPanel({ apiUrl }) {
       try { const r=await axios.get(apiUrl('/api/customer-api/status'), { headers:{'Cache-Control':'no-cache'} }); setApiStatus(r.data||null); } catch {}
     }, [apiUrl]);
 
-    const load = React.useCallback(async (nextPage = page) => {
+    const load = React.useCallback(async (nextPage = 1) => {
       try {
         setLoading(true);
         const r = await axios.get(apiUrl('/api/members'), {
@@ -1736,9 +1673,9 @@ function ReportPanel({ apiUrl }) {
       } catch(e) {
         alert('Không tải được danh sách khách hàng: ' + (e?.response?.data?.error || e.message));
       } finally { setLoading(false); }
-    }, [apiUrl, page, q, level]);
+    }, [apiUrl, q, level]);
 
-    React.useEffect(()=>{ setPage(1); load(1); }, [q, level]);
+    React.useEffect(()=>{ setPage(1); load(1); }, [q, level, load]);
     React.useEffect(()=>{
       loadStatus();
       const timer = window.setInterval(loadStatus, 15000);
