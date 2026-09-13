@@ -225,35 +225,17 @@ const renderOrderIpadLine = (o, style = {}) => {
 const LOCAL_ORDERS_MAX_PER_TABLE = 40;
 const LOCAL_CLOSED_ORDER_KEEP_MS = 2 * 24 * 60 * 60 * 1000;
 
-/* CART_SAFETY_V2_AUTO_GUARDIAN */
-/* CART_GUARDIAN_V21_RACE_FIX */
-const CART_GUARDIAN_MIGRATION_KEY = 'foodCartGuardianV2Migrated';
-
+// Cart ownership is a draft hint only; the form member is authoritative at send.
 const cartOwnerCodeOf = (item = {}) =>
   String(item?.ownerMemberCode || '').replace(/\s+/g, '').trim();
 
-const cartSafetySummary = (cart = {}) => {
-  const rows = Object.values(cart || {}).filter((item) => item && Number(item.qty || 0) > 0);
-  const owners = Array.from(new Set(rows.map(cartOwnerCodeOf).filter(Boolean)));
-  const hasUnowned = rows.some((item) => !cartOwnerCodeOf(item));
-  return {
-    itemRows: rows.length,
-    owners,
-    hasUnowned,
-    hasItems: rows.length > 0,
-  };
-};
-
-const keepOnlyCartOwner = (cart = {}, memberCode = '') => {
-  const wanted = String(memberCode || '').replace(/\s+/g, '').trim();
-  if (!wanted) return {};
-  return Object.fromEntries(
-    Object.entries(cart || {}).filter(([, item]) =>
-      item &&
-      Number(item.qty || 0) > 0 &&
-      cartOwnerCodeOf(item) === wanted
-    )
-  );
+const draftMemberForSelection = (cart, currentCode, sameTable, suggestedCode) => {
+  const rows = Object.values(cart || {}).filter((item) => Number(item?.qty || 0) > 0);
+  if (!rows.length) return String(suggestedCode || '').replace(/\s+/g, '').trim();
+  if (sameTable && currentCode) return String(currentCode).replace(/\s+/g, '').trim();
+  const owners = [...new Set(rows.map(cartOwnerCodeOf).filter(Boolean))];
+  // Never replace an existing draft recipient with the new occupant.
+  return owners.length === 1 ? owners[0] : '';
 };
 
 function compactCarts(input) {
@@ -421,7 +403,6 @@ const UserFoodList = () => {
   const [selectedTable, setSelectedTable] = useState(() => {
     try { return JSON.parse(localStorage.getItem('selectedTable')) || null; } catch { return null; }
   });
-  const [orderPlacementConflict, setOrderPlacementConflict] = useState(null);
 
   // Table Test trên iPad/phone dùng sidebar kiểu push thay vì overlay:
   // mở menu => nội dung co sang phải; đóng menu => nội dung dùng full màn hình.
@@ -438,28 +419,6 @@ const UserFoodList = () => {
 const [carts, setCarts] = useState(() => {
   try { return compactCarts(JSON.parse(localStorage.getItem('tableCarts')) || {}); } catch { return {}; }
 });
-
-// Cart Guardian V2 migration
-useEffect(() => {
-  try {
-    if (localStorage.getItem(CART_GUARDIAN_MIGRATION_KEY) === '1') return;
-
-    setCarts((prev) => {
-      const next = {};
-      for (const [key, cart] of Object.entries(prev || {})) {
-        const safety = cartSafetySummary(cart);
-        if (!safety.hasItems) continue;
-        if (!safety.hasUnowned && safety.owners.length === 1) {
-          next[key] = cart;
-        }
-      }
-      return next;
-    });
-
-    localStorage.setItem(CART_GUARDIAN_MIGRATION_KEY, '1');
-  } catch {}
-}, []);
-
 
   // Orders theo bàn
   const [ordersByTable, setOrdersByTable] = useState(() => {
@@ -813,6 +772,10 @@ const [floorlensFocusRequestId, setFloorlensFocusRequestId] = useState(0);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const placeOrderLockRef = useRef(false);
   const orderRequestIdRef = useRef(null);
+  const orderRequestFingerprintRef = useRef('');
+  // Delivery is separate from the cart key: never merge/overwrite the target cart.
+  const [orderDelivery, setOrderDelivery] = useState(null);
+  const orderDeliveryRef = useRef(null);
     // === Staff lookup ===
   // Lưu map mã nhân viên -> tên nhân viên (loaded từ API)
   const [staffMap, setStaffMap] = useState({});
@@ -1618,64 +1581,6 @@ const addFloorlensOffMenu = ({ area, tableNo, memberCode = '' }) => {
   });
 };
 
-const reconcileCartsWithFloorlens = useCallback((floorlensSnapshot) => {
-  if (!floorlensSnapshot || floorlensSnapshot.stale) return;
-
-  const currentOwnerByKey = new Map();
-
-  for (const machine of Array.isArray(floorlensSnapshot?.machines) ? floorlensSnapshot.machines : []) {
-    const verified =
-      machine?.checkState === 'ok' &&
-      machine?.online !== false &&
-      Boolean(machine?.isPlaying);
-
-    const memberCode = String(machine?.memberCode || '').replace(/\s+/g, '').trim();
-    const area = String(machine?.area || '').trim();
-    const tableNo = machine?.machineNumber;
-
-    if (!verified || !memberCode || !area || tableNo === null || tableNo === undefined || tableNo === '') continue;
-    currentOwnerByKey.set(tableKeyOf(area, tableNo), memberCode);
-  }
-
-  if (!currentOwnerByKey.size) return;
-
-  setCarts((prev) => {
-    let changed = false;
-    const next = { ...prev };
-
-    for (const [key, cart] of Object.entries(prev || {})) {
-      const liveMemberCode = currentOwnerByKey.get(key);
-      if (!liveMemberCode) continue;
-
-      const tableNo = String(key).split('#').pop();
-      if (isDiningTableNo(tableNo)) continue;
-
-      const safety = cartSafetySummary(cart);
-      if (!safety.hasItems) continue;
-
-      const staleForCurrentCustomer =
-        safety.hasUnowned ||
-        safety.owners.some((ownerCode) => ownerCode !== liveMemberCode);
-
-      if (staleForCurrentCustomer) {
-        next[key] = keepOnlyCartOwner(cart, liveMemberCode);
-        changed = true;
-      }
-    }
-
-    return changed ? next : prev;
-  });
-}, []);
-
-useEffect(() => {
-  const onFloorlensUpdatedForCartGuardian = (nextSnapshot) => {
-    reconcileCartsWithFloorlens(nextSnapshot);
-  };
-
-  socket.on('floorlensUpdated', onFloorlensUpdatedForCartGuardian);
-  return () => socket.off('floorlensUpdated', onFloorlensUpdatedForCartGuardian);
-}, [reconcileCartsWithFloorlens]);
-
 const applyFloorlensMachineSelection = ({ area, tableNo, memberCode = '', customerName = '' }, { openMenu = true } = {}) => {
   const normalizedTableNo = Number.isFinite(Number(tableNo)) ? Number(tableNo) : tableNo;
   setSelectedTable({ area, tableNo: normalizedTableNo });
@@ -1687,27 +1592,20 @@ const applyFloorlensMachineSelection = ({ area, tableNo, memberCode = '', custom
     setActiveArea(normalizedArea);
   }
 
-  const code = String(memberCode || '').replace(/\s+/g, '').trim();
-  const realtimeName = String(customerName || '').trim();
+  const draftKey = floorlensCartKey(area, tableNo);
+  const code = draftMemberForSelection(
+    carts[draftKey],
+    orderForm.memberCard || orderForm.customerCode,
+    draftKey === currentTableKey,
+    memberCode
+  );
+  const realtimeCode = String(memberCode || '').replace(/\s+/g, '').trim();
+  const realtimeName = code === realtimeCode ? String(customerName || '').trim() : '';
 
+  // Invalidate old lookups before selecting a draft or accepting a prefill.
+  memberLookupSeqRef.current += 1;
+  setMemberLookupLoading(false);
   currentMemberCardRef.current = code;
-
-  if (code && !isDiningTableNo(tableNo)) {
-    const safetyKey = floorlensCartKey(area, tableNo);
-    const existingCart = (safetyKey && carts?.[safetyKey]) || {};
-    const safety = cartSafetySummary(existingCart);
-    const belongsToAnotherCustomer =
-      safety.hasItems &&
-      (
-        safety.hasUnowned ||
-        safety.owners.some((ownerCode) => ownerCode !== code)
-      );
-
-    if (belongsToAnotherCustomer) {
-      setCarts((prev) => ({ ...prev, [safetyKey]: {} }));
-      setToast('Old cart cleared because the realtime customer changed.');
-    }
-  }
 
   if (code) {
     setOrderForm((prev) => {
@@ -1913,12 +1811,26 @@ useEffect(() => {
   };
 }, []);
 
+const rememberDraftMember = useCallback((memberCode) => {
+  const code = String(memberCode || '').replace(/\s+/g, '').trim();
+  currentMemberCardRef.current = code;
+  setCarts((prev) => {
+    const cart = prev[currentTableKey];
+    if (!cart) return prev;
+    return { ...prev, [currentTableKey]: Object.fromEntries(
+      Object.entries(cart).map(([key, item]) => [key, { ...item, ownerMemberCode: code }])
+    ) };
+  });
+}, [currentTableKey]);
+
 const selectMemberSuggestion = useCallback((member) => {
   const code = String(member?.code || member?.customerCode || '')
     .replace(/\s+/g, '')
     .trim();
 
   if (!code) return;
+  memberLookupSeqRef.current += 1;
+  rememberDraftMember(code);
 
   const name = String(member?.name || member?.customerName || '').trim();
   const lv = String(member?.level || member?.memberLevel || member?.tier || '').trim();
@@ -1941,7 +1853,7 @@ const selectMemberSuggestion = useCallback((member) => {
   setMemberApiRefreshing(false);
   setMemberLookupLoading(false);
   setMemberDropdownOpen(false);
-}, []);
+}, [rememberDraftMember]);
 
 const lookupMember = useCallback(async (memberCard, opts = {}) => {
   const card = String(memberCard || '').replace(/\s+/g, '').trim();
@@ -2138,32 +2050,34 @@ useEffect(() => {
   return () => clearTimeout(memberSearchTimerRef.current);
 }, [memberSearchText, orderForm.memberCard]);
 
-  const switchOrderToFloorlensMachine = useCallback((conflict) => {
-    const suggested = conflict?.suggestedMachine;
-    if (!suggested?.machineNumber || !suggested?.area) return;
+  const deliveryForOrder = orderDelivery?.sourceKey === currentTableKey
+    ? orderDelivery : selectedTable;
 
-    const targetTableNo = Number.isFinite(Number(suggested.machineNumber))
-      ? Number(suggested.machineNumber)
-      : suggested.machineNumber;
-    const target = { area: suggested.area, tableNo: targetTableNo };
+  useEffect(() => {
+    if (!showOrderForm || !selectedTable) return undefined;
+    const code = String(orderForm.memberCard || '').replace(/\s+/g, '').trim();
+    if (!/^\d+$/.test(code)) return undefined;
+    let cancelled = false;
     const sourceKey = currentTableKey;
-    const targetKey = tableKeyOf(target.area, target.tableNo);
-
-    // CART_GUARDIAN_V2: the active source cart replaces any older target cart.
-    // Never merge quantities across machine carts.
-    setCarts((prev) => {
-      const sourceCart = { ...((sourceKey && prev[sourceKey]) || {}) };
-      const next = { ...prev, [targetKey]: sourceCart };
-      if (sourceKey && sourceKey !== targetKey) next[sourceKey] = {};
-      return next;
-    });
-
-    setSelectedTable(target);
-    setActiveArea(target.area);
-    setTableSearch('');
-    setOrderPlacementConflict(null);
-    setToast(`Đã đổi sang máy ${target.tableNo}. Kiểm tra lại rồi bấm Order để gửi Kitchen.`);
-  }, [currentTableKey]);
+    // Keep the last displayed location when the new member has no known location.
+    const previous = orderDeliveryRef.current;
+    const fallback = previous?.sourceKey === sourceKey ? previous : selectedTable;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await axios.get(apiUrl('/api/order-delivery'), {
+          params: { memberCard: code, area: fallback.area, tableNo: fallback.tableNo },
+          timeout: 1500,
+        });
+        if (cancelled || placeOrderLockRef.current || !res.data?.area || !res.data?.tableNo) return;
+        const next = { area: res.data.area, tableNo: res.data.tableNo, sourceKey, memberCode: code, reason: res.data.reason };
+        orderDeliveryRef.current = next;
+        setOrderDelivery(next);
+      } catch {
+        // Location assistance must never prevent sending or discard the last location.
+      }
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [showOrderForm, orderForm.memberCard, currentTableKey, selectedTable]);
 
   // Submit order
 const placeOrder = async () => {
@@ -2188,84 +2102,9 @@ const placeOrder = async () => {
     return;
   }
 
-  if (memberLookupLoading) {
-    setToast('Đang tìm thông tin khách, vui lòng chờ...');
-    return;
-  }
-let cartForOrder = currentCart;
-let autoRemovedCartRows = 0;
-
-if (!isDiningTableNo(selectedTable?.tableNo)) {
-  const cartSafety = cartSafetySummary(currentCart);
-  const activeMemberRef = String(currentMemberCardRef.current || '')
-    .replace(/\s+/g, '')
-    .trim();
-
-  const hasDifferentOwner = cartSafety.owners.some(
-    (ownerCode) => ownerCode !== memberCardVal
-  );
-
-  const canAdoptUnowned =
-    cartSafety.hasItems &&
-    cartSafety.hasUnowned &&
-    !hasDifferentOwner &&
-    activeMemberRef === memberCardVal;
-
-  if (canAdoptUnowned) {
-    const adoptedCart = Object.fromEntries(
-      Object.entries(currentCart || {})
-        .filter(([, item]) => item && Number(item.qty || 0) > 0)
-        .map(([cartKey, item]) => [
-          cartKey,
-          {
-            ...item,
-            ownerMemberCode:
-              cartOwnerCodeOf(item) || memberCardVal,
-          },
-        ])
-    );
-
-    cartForOrder = adoptedCart;
-    setCarts((prev) => ({
-      ...prev,
-      [currentTableKey]: adoptedCart,
-    }));
-  } else {
-    const needsAutoCleanup =
-      cartSafety.hasItems &&
-      (
-        hasDifferentOwner ||
-        cartSafety.owners.length > 1 ||
-        (cartSafety.hasUnowned && activeMemberRef !== memberCardVal)
-      );
-
-    if (needsAutoCleanup) {
-      const cleanedCart = keepOnlyCartOwner(currentCart, memberCardVal);
-      const cleanedSafety = cartSafetySummary(cleanedCart);
-      autoRemovedCartRows = Math.max(
-        0,
-        cartSafety.itemRows - cleanedSafety.itemRows
-      );
-
-      if (!cleanedSafety.hasItems) {
-        setCarts((prev) => ({
-          ...prev,
-          [currentTableKey]: {},
-        }));
-        setShowOrderForm(false);
-        setMode('menu');
-        setToast('Giỏ đã được đồng bộ theo khách hiện tại. Vui lòng chọn món.');
-        return;
-      }
-
-      cartForOrder = cleanedCart;
-      setCarts((prev) => ({
-        ...prev,
-        [currentTableKey]: cleanedCart,
-      }));
-    }
-  }
-}
+// Send exactly the visible cart to the member entered by staff.
+// Lookup and realtime occupancy must not remove items or block submission.
+const cartForOrder = currentCart;
 
 const items = Object.entries(cartForOrder)
   .map(([cartKey, item]) => {
@@ -2305,16 +2144,11 @@ if (invalidOffMenu) {
 placeOrderLockRef.current = true;
 setIsPlacingOrder(true);
 
-if (!orderRequestIdRef.current) {
-  orderRequestIdRef.current = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
 try {
 const body = {
-  clientRequestId: orderRequestIdRef.current,
   sourceStation: currentFloorlensOrderStation() || null,
-  area: selectedTable.area,
-  tableNo: selectedTable.tableNo,
+  area: deliveryForOrder.area,
+  tableNo: deliveryForOrder.tableNo,
   staff: staffVal,
   memberCard: memberCardVal,
      // Chỉ gửi dữ liệu khách thật; tuyệt đối không lưu text trạng thái UI
@@ -2323,9 +2157,18 @@ const body = {
         note: orderForm.note || '',
         items,
       };
+      const fingerprint = JSON.stringify({ ...body, area: selectedTable.area, tableNo: selectedTable.tableNo });
+      if (!orderRequestIdRef.current || orderRequestFingerprintRef.current !== fingerprint) {
+        orderRequestIdRef.current = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        orderRequestFingerprintRef.current = fingerprint;
+      }
+      body.clientRequestId = orderRequestIdRef.current;
       const res = await axios.post(apiUrl('/api/orders'), body);
 if (res?.data?.ok) {
   const savedStaff = staffVal;
+  memberLookupSeqRef.current += 1;
+  currentMemberCardRef.current = '';
+  setMemberLookupLoading(false);
 
   localStorage.setItem('lastOrderInfo', JSON.stringify({ staff: savedStaff }));
   setCarts(prev => ({ ...prev, [currentTableKey]: {} }));
@@ -2351,21 +2194,16 @@ if (res?.data?.ok) {
 
 orderRequestIdRef.current = null;
 setShowOrderForm(false);
-setToast(
-  autoRemovedCartRows > 0
-    ? `\u0110\u00e3 g\u1eedi Order \u2022 t\u1ef1 b\u1ecf ${autoRemovedCartRows} m\u00f3n c\u0169`
-    : '\u0110\u00e3 g\u1eedi Order'
-);
+orderDeliveryRef.current = null;
+setOrderDelivery(null);
+const savedLocation = res.data?.order;
+setToast(savedLocation?.tableNo
+  ? `Đã gửi Order • ${savedLocation.area} - ${savedLocation.tableNo}`
+  : 'Đã gửi Order');
 }
     } catch (e) {
       const apiError = e?.response?.data?.error || '';
-      if (e?.response?.status === 409 && apiError === 'FLOORLENS_ORDER_MACHINE_CONFLICT') {
-        setOrderPlacementConflict({
-          ...(e?.response?.data || {}),
-          requestedCustomerName: String(orderForm.customerName || '').trim() || null,
-          requestedMemberCode: memberCardVal,
-        });
-      } else if (e?.response?.status === 409 && apiError === 'FOOD_SOLD_OUT') {
+      if (e?.response?.status === 409 && apiError === 'FOOD_SOLD_OUT') {
         const soldOut = Array.isArray(e?.response?.data?.soldOut) ? e.response.data.soldOut : [];
         const names = soldOut.map(x => x.name || x.imageName).filter(Boolean).join(', ');
         alert(`Một số món vừa được chuyển sang Sold Out${names ? `: ${names}` : '.'}`);
@@ -4368,6 +4206,14 @@ decoding="async"
       }}
     >
       <h3 style={{ marginTop: 0 }}>Tạo Order</h3>
+      <div style={{ padding: '10px 12px', marginBottom: 12, borderRadius: 8, background: '#eff6ff', color: '#1e40af' }}>
+        Giao tại: <b>{deliveryForOrder?.area} - {deliveryForOrder?.tableNo}</b>
+        <div style={{ marginTop: 4, fontSize: 12 }}>
+          {orderDelivery?.sourceKey === currentTableKey && orderDelivery?.reason === 'FOLLOW_MEMBER'
+            ? 'Đã cập nhật nơi giao theo member.'
+            : 'Tự cập nhật theo member khi xác định được vị trí; không tìm thấy vẫn gửi được.'}
+        </div>
+      </div>
 
       <div style={{ display: 'grid', gap: 10 }}>
         <div>
@@ -4407,6 +4253,7 @@ decoding="async"
               const raw = e.target.value;
               const compact = raw.replace(/\s+/g, '').trim();
 
+              rememberDraftMember(/^\d+$/.test(compact) ? compact : '');
               setMemberSearchText(raw);
               setMemberDropdownOpen(true);
               setMemberLookupLoading(false);
@@ -4703,18 +4550,18 @@ decoding="async"
         </button>
 <button
   onClick={placeOrder}
-  disabled={isPlacingOrder || memberLookupLoading}
+  disabled={isPlacingOrder}
   style={{
     padding: '8px 12px',
     border: 'none',
     borderRadius: 8,
-    background: (isPlacingOrder || memberLookupLoading) ? '#9ca3af' : '#10b981',
+    background: (isPlacingOrder) ? '#9ca3af' : '#10b981',
     color: '#fff',
-    cursor: (isPlacingOrder || memberLookupLoading) ? 'not-allowed' : 'pointer',
-    opacity: (isPlacingOrder || memberLookupLoading) ? 0.8 : 1,
+    cursor: (isPlacingOrder) ? 'not-allowed' : 'pointer',
+    opacity: (isPlacingOrder) ? 0.8 : 1,
   }}
 >
-  {memberLookupLoading ? 'Đang tìm khách...' : isPlacingOrder ? 'Đang gửi...' : 'Gửi Order'}
+  {isPlacingOrder ? 'Đang gửi...' : 'Gửi Order'}
 </button>
       </div>
     </div>
@@ -4876,74 +4723,6 @@ const codes = (quickOrderForm.members || '')
   </div>
 )}
 
-
-{orderPlacementConflict && (
-  <div
-    onClick={() => setOrderPlacementConflict(null)}
-    style={{
-      position: 'fixed', inset: 0, zIndex: 2147483200,
-      background: 'rgba(15,23,42,0.58)', display: 'grid', placeItems: 'center', padding: 16,
-      backdropFilter: 'blur(3px)',
-    }}
-  >
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        width: 'min(620px, calc(100vw - 24px))', background: '#fff', borderRadius: 14,
-        boxShadow: '0 24px 80px rgba(0,0,0,.35)', overflow: 'hidden',
-      }}
-    >
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div>
-          <b style={{ fontSize: 17, color: '#991b1b' }}>⚠ Kiểm tra lại khách và máy</b>
-          <div style={{ marginTop: 3, color: '#64748b', fontSize: 12 }}>FloorLens realtime đang báo thông tin khác với order hiện tại.</div>
-        </div>
-        <button type="button" onClick={() => setOrderPlacementConflict(null)} style={{ marginLeft: 'auto', width: 32, height: 32, border: 0, borderRadius: 8, background: '#f1f5f9', cursor: 'pointer', fontSize: 20 }}>×</button>
-      </div>
-
-      <div style={{ padding: 16, display: 'grid', gap: 10, fontSize: 13 }}>
-        {orderPlacementConflict?.selectedMachine?.memberCode ? (
-          <div style={{ padding: 11, borderRadius: 10, background: '#fee2e2', border: '1px solid #fecaca' }}>
-            Máy <b>{orderPlacementConflict.selectedMachine.machineNumber}</b> hiện đang có
-            {' '}<b>#{orderPlacementConflict.selectedMachine.memberCode}{orderPlacementConflict.selectedMachine.customerName ? ` - ${orderPlacementConflict.selectedMachine.customerName}` : ''}</b>.
-          </div>
-        ) : (
-          <div style={{ padding: 11, borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            Máy <b>{orderPlacementConflict?.selectedMachine?.machineNumber || selectedTable?.tableNo || '—'}</b> không khớp với vị trí realtime của khách đang order.
-          </div>
-        )}
-
-        <div style={{ padding: 11, borderRadius: 10, background: '#eff6ff', border: '1px solid #bfdbfe' }}>
-          Order đang chọn khách <b>#{orderPlacementConflict.requestedMemberCode || orderPlacementConflict?.requestedCustomer?.memberCode || '—'}{orderPlacementConflict.requestedCustomerName ? ` - ${orderPlacementConflict.requestedCustomerName}` : ''}</b>.
-          {orderPlacementConflict?.suggestedMachine?.machineNumber && (
-            <div style={{ marginTop: 5 }}>
-              FloorLens đang thấy khách này ở <b>{orderPlacementConflict.suggestedMachine.area} - máy {orderPlacementConflict.suggestedMachine.machineNumber}</b>.
-            </div>
-          )}
-        </div>
-
-        <div style={{ color: '#475569', lineHeight: 1.5 }}>
-          Order <b>chưa được ghi DB và chưa gửi Kitchen</b>. Hãy đổi sang đúng machine hoặc kiểm tra lại khách trước khi gửi.
-        </div>
-      </div>
-
-      <div style={{ padding: '0 16px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => setOrderPlacementConflict(null)} style={{ padding: '9px 13px', border: '1px solid #cbd5e1', borderRadius: 9, background: '#fff', cursor: 'pointer', fontWeight: 800 }}>
-          Kiểm tra lại
-        </button>
-        {orderPlacementConflict?.suggestedMachine?.machineNumber && (
-          <button
-            type="button"
-            onClick={() => switchOrderToFloorlensMachine(orderPlacementConflict)}
-            style={{ padding: '9px 13px', border: '1px solid #2563eb', borderRadius: 9, background: '#2563eb', color: '#fff', cursor: 'pointer', fontWeight: 900 }}
-          >
-            Đổi sang máy {orderPlacementConflict.suggestedMachine.machineNumber}
-          </button>
-        )}
-      </div>
-    </div>
-  </div>
-)}
 
 {floorlensInsightsCode && (
   <div

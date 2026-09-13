@@ -18,6 +18,7 @@ const productsRouter = require('./routes/products');
 const ordersRouter = require('./routes/orders');
 const sqliteStore = require('./sqliteStore');
 const { createFloorlensService } = require('./floorlensService');
+const { resolveOrderDelivery } = require('./orderDelivery');
 const rateLimitPkg = require('express-rate-limit');
 const rateLimit = rateLimitPkg.rateLimit || rateLimitPkg;
 const { ipKeyGenerator } = rateLimitPkg;
@@ -2659,12 +2660,11 @@ app.get('/api/user/floorlens/customer/:memberCode/machines', (req, res) => {
 });
 
 // Endpoint test cũ đã vô hiệu hoá.
-// Auto-DONE an toàn hiện được kích hoạt ở server khi khách mới THỰC SỰ gửi order
-// và FloorLens đang xác nhận đúng member đó trên cùng machine.
+// Customer movement does not complete food orders.
 app.post('/api/user/table-test/auto-done-on-enter', (_req, res) => {
   res.status(410).json({
     error: 'TABLE_TEST_ENTER_AUTO_DONE_DEPRECATED',
-    message: 'Auto DONE now runs safely when the new customer places an order.',
+    message: 'Customer movement does not complete food orders.',
   });
 });
 
@@ -5450,246 +5450,20 @@ function normalizeFloorlensOrderStation(value) {
   return FLOORLENS_ORDER_STATION_CODES.has(normalized) ? normalized : '';
 }
 
-// Auto-DONE an toàn theo FloorLens:
-// Chỉ chạy KHI KHÁCH MỚI GỬI ORDER, không chạy chỉ vì ENTER/LEAVE.
-// Server tự xác minh FloorLens đang có đúng member mới ở đúng machine, sau đó
-// DONE toàn bộ order PENDING/IN_PROGRESS còn mở của member KHÁC trên machine đó.
-// Auto-DONE 06:00 ở phía trên vẫn giữ nguyên và hoạt động độc lập.
-function autoDonePreviousCustomerOrdersOnNewOrder(newOrder) {
-  try {
-    if (!newOrder || newOrder.quickOrder || !newOrder.area || !newOrder.tableNo) return [];
-    if (isDiningTableOrder(newOrder.area, newOrder.tableNo)) return [];
+// Orders belong to the member entered by staff. Table is a service location,
+// not proof of customer identity. Realtime movement must not reject an order
+// or complete another customer's pending food order.
 
-    const machineNumber = String(newOrder.tableNo || '').trim();
-    const area = String(newOrder.area || '').trim();
-    const newMemberCode = floorlensOrderMemberCode(newOrder);
-    if (!machineNumber || !newMemberCode) return [];
-
-    const liveSnapshot = floorlensService.getSnapshot() || {};
-    const liveMachine = (Array.isArray(liveSnapshot.machines) ? liveSnapshot.machines : [])
-      .find((machine) => String(machine?.machineNumber || '').trim() === machineNumber);
-
-    if (!liveMachine) return [];
-
-    const liveVerified = liveMachine.checkState === 'ok' && liveMachine.online !== false && liveMachine.isPlaying;
-    if (!liveVerified || liveMachine.unknownPlayer) return [];
-
-    const liveMemberCode = String(liveMachine.memberCode || '').replace(/\s+/g, '').trim();
-    if (!liveMemberCode || liveMemberCode !== newMemberCode) return [];
-
-    const liveArea = String(liveMachine.area || '').trim();
-    if (liveArea && area && liveArea !== area) return [];
-
-    const { from, to } = floorlensBusinessWindow();
-    let candidateOrders = [];
-
-    if (typeof sqliteStore.queryOrders === 'function') {
-      candidateOrders = sqliteStore.queryOrders({
-        area: area || undefined,
-        tableNo: machineNumber,
-        from: from.toISOString(),
-        to: to.toISOString(),
-        includeClosed: true,
-      });
-    } else {
-      candidateOrders = reloadOrdersSafe('AUTO DONE new customer order').filter((order) => {
-        const at = Date.parse(order?.createdAt || '');
-        return (
-          Number.isFinite(at) &&
-          at >= from.getTime() &&
-          at <= to.getTime() &&
-          String(order?.tableNo || '') === machineNumber &&
-          (!area || String(order?.area || '') === area)
-        );
-      });
-    }
-
-    const nowIso = new Date().toISOString();
-    const changedOrders = [];
-
-    for (const order of Array.isArray(candidateOrders) ? candidateOrders : []) {
-      if (!order || String(order.id) === String(newOrder.id)) continue;
-
-      const status = String(order.status || '').toUpperCase();
-      if (!['PENDING', 'IN_PROGRESS'].includes(status)) continue;
-      const wasAlreadyClosed = order.tableClosed === true;
-
-      const previousMemberCode = floorlensOrderMemberCode(order);
-      if (!previousMemberCode || previousMemberCode === newMemberCode) continue;
-
-      const oldCreatedMs = Date.parse(order.createdAt || '');
-      const newCreatedMs = Date.parse(newOrder.createdAt || '');
-      if (Number.isFinite(oldCreatedMs) && Number.isFinite(newCreatedMs) && oldCreatedMs > newCreatedMs) continue;
-
-      order.status = 'DONE';
-      order.updatedAt = nowIso;
-      if (!wasAlreadyClosed) {
-        order.tableClosed = true;
-        order.closedAt = nowIso;
-        order.closedBy = 'system-floorlens-new-customer-order';
-      }
-      order.autoDoneAt = nowIso;
-      order.autoDoneReason = 'AUTO_DONE_NEW_CUSTOMER_AFTER_NEW_ORDER';
-      order.autoDonePreviousMemberCode = previousMemberCode;
-      order.autoDoneNewMemberCode = newMemberCode;
-      order.autoDoneMachineNumber = machineNumber;
-      order.autoDoneSessionId = String(liveMachine.sessionId || '').trim() || null;
-      order.autoDoneTriggeredByOrderId = newOrder.id;
-
-      persistOrder(order);
-
-      const cacheIndex = orders.findIndex((row) => String(row?.id) === String(order.id));
-      if (cacheIndex >= 0) orders[cacheIndex] = order;
-      else orders.unshift(order);
-
-      changedOrders.push(order);
-
-      io.emit('orderUpdated', {
-        orderId: order.id,
-        status: order.status,
-        order,
-        reason: order.autoDoneReason,
-      });
-    }
-
-    if (changedOrders.length > 0) {
-      io.emit('floorlensAutoDoneOrders', {
-        machineNumber,
-        area,
-        newMemberCode,
-        newOrderId: newOrder.id,
-        orderIds: changedOrders.map((order) => order.id),
-        at: nowIso,
-      });
-      console.log(`[AUTO DONE FloorLens] machine=${machineNumber} newMember=${newMemberCode} newOrder=#${newOrder.id} done=${changedOrders.map((o) => `#${o.id}`).join(',')}`);
-    }
-
-    return changedOrders;
-  } catch (error) {
-    // Không bao giờ làm hỏng order mới nếu auto-DONE phụ bị lỗi.
-    console.error('[AUTO DONE FloorLens] skipped because of error:', error?.message || error);
-    return [];
-  }
+// Best-effort location lookup: no upstream request and no order-blocking errors.
+function currentOrderDelivery(input) {
+  try { return resolveOrderDelivery(floorlensService.getSnapshot(), input); }
+  catch { return resolveOrderDelivery(null, input); }
 }
 
-
-const DINING_TABLES_BY_AREA = new Map([
-  ['Roulette 1', new Set(['Bàn ăn 1', 'Bàn ăn 2'])],
-  ['Reception 1', new Set(['Bàn ăn 1', 'Bàn ăn 2'])],
-  ['Multi', new Set(['Bàn ăn 1'])],
-  ['2 Floor', new Set(['Bàn ăn 1', 'Bàn ăn 2', 'Bàn ăn 3', 'Bàn ăn 4'])],
-  ['Kitchen', new Set(['Bàn ăn 1', 'Bàn ăn 2', 'Bàn ăn 3'])],
-]);
-
-function isDiningTableOrder(area, tableNo) {
-  const areaName = String(area || '').trim();
-  const tableName = String(tableNo || '').trim();
-  const allowed = DINING_TABLES_BY_AREA.get(areaName);
-  return Boolean(allowed && allowed.has(tableName));
-}
-
-// Preflight FloorLens trước khi ghi order:
-// - Bàn ăn được phép order tự do, không ràng buộc FloorLens machine/customer.
-// - Nếu machine đang có member khác -> trả 409, KHÔNG ghi DB / KHÔNG gửi Kitchen.
-// - Nếu member cần order đang chơi ở machine khác -> trả suggestedMachine để UI đổi bàn.
-// - Không chặn Quick Order (không gắn machine).
-function getFloorlensOrderPlacementConflict({ area, tableNo, memberCard }) {
-  try {
-    if (isDiningTableOrder(area, tableNo)) return null;
-    const machineNumber = String(tableNo == null ? '' : tableNo).trim();
-    const requestedMemberCode = String(memberCard == null ? '' : memberCard).replace(/\s+/g, '').trim();
-    if (!machineNumber || !requestedMemberCode) return null;
-
-    const snapshot = floorlensService.getSnapshot() || {};
-    const liveMachines = Array.isArray(snapshot.machines) ? snapshot.machines : [];
-    const verified = liveMachines.filter((machine) => (
-      machine &&
-      machine.checkState === 'ok' &&
-      machine.online !== false &&
-      machine.isPlaying === true
-    ));
-
-    const selectedMachine = verified.find(
-      (machine) => String(machine?.machineNumber || '').trim() === machineNumber
-    ) || null;
-
-    const requestedCustomerMachines = verified
-      .filter((machine) => !machine?.unknownPlayer)
-      .filter((machine) => String(machine?.memberCode || '').replace(/\s+/g, '').trim() === requestedMemberCode)
-      .map((machine) => ({
-        machineNumber: String(machine?.machineNumber || '').trim(),
-        area: String(machine?.area || '').trim(),
-        memberCode: requestedMemberCode,
-        customerName: String(machine?.customerName || '').trim() || null,
-        sessionId: String(machine?.sessionId || '').trim() || null,
-        startedAt: machine?.startedAt || null,
-      }));
-
-    const occupantCode = selectedMachine && !selectedMachine.unknownPlayer
-      ? String(selectedMachine?.memberCode || '').replace(/\s+/g, '').trim()
-      : '';
-
-    // Đúng member đang ở đúng machine => hợp lệ, kể cả member đó có chơi thêm machine khác.
-    if (selectedMachine && occupantCode && occupantCode === requestedMemberCode) return null;
-
-    const suggestedMachine = requestedCustomerMachines.find(
-      (machine) => machine.machineNumber !== machineNumber
-    ) || null;
-
-    // Machine đang có khách khác đã xác định member.
-    if (selectedMachine && occupantCode && occupantCode !== requestedMemberCode) {
-      return {
-        reason: 'MACHINE_OCCUPIED_BY_OTHER_CUSTOMER',
-        selectedMachine: {
-          machineNumber,
-          area: String(selectedMachine?.area || area || '').trim(),
-          memberCode: occupantCode,
-          customerName: String(selectedMachine?.customerName || '').trim() || null,
-          sessionId: String(selectedMachine?.sessionId || '').trim() || null,
-          startedAt: selectedMachine?.startedAt || null,
-        },
-        requestedCustomer: {
-          memberCode: requestedMemberCode,
-        },
-        customerMachines: requestedCustomerMachines,
-        suggestedMachine,
-      };
-    }
-
-    // Machine đang trống/không xác định nhưng member lại đang chơi rõ ràng ở machine khác.
-    if (suggestedMachine) {
-      return {
-        reason: 'CUSTOMER_PLAYING_ON_OTHER_MACHINE',
-        selectedMachine: selectedMachine ? {
-          machineNumber,
-          area: String(selectedMachine?.area || area || '').trim(),
-          memberCode: occupantCode || null,
-          customerName: String(selectedMachine?.customerName || '').trim() || null,
-          sessionId: String(selectedMachine?.sessionId || '').trim() || null,
-          startedAt: selectedMachine?.startedAt || null,
-        } : {
-          machineNumber,
-          area: String(area || '').trim(),
-          memberCode: null,
-          customerName: null,
-          sessionId: null,
-          startedAt: null,
-        },
-        requestedCustomer: {
-          memberCode: requestedMemberCode,
-        },
-        customerMachines: requestedCustomerMachines,
-        suggestedMachine,
-      };
-    }
-
-    return null;
-  } catch (error) {
-    // Preflight phụ không được làm sập order service nếu FloorLens snapshot có vấn đề.
-    console.error('[FloorLens order preflight] skipped because of error:', error?.message || error);
-    return null;
-  }
-}
+app.get('/api/order-delivery', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(currentOrderDelivery(req.query || {}));
+});
 
 // --- Tạo order (public) — không quản lý tồn kho món ---
 app.post('/api/orders',orderLimiter, async (req, res) => {
@@ -5729,17 +5503,6 @@ if (cleanClientRequestId) {
     });
   }
 }
-
-    if (!isQuickOrder) {
-      const floorlensConflict = getFloorlensOrderPlacementConflict({ area, tableNo, memberCard });
-      if (floorlensConflict) {
-        return res.status(409).json({
-          error: 'FLOORLENS_ORDER_MACHINE_CONFLICT',
-          message: 'Khách/máy đang chọn không khớp dữ liệu FloorLens realtime.',
-          ...floorlensConflict,
-        });
-      }
-    }
 
     const productsForOrder = loadProductsSafe();
     const productByImageName = new Map();
@@ -5850,13 +5613,17 @@ orderItems.push({
     });
   }
 }
+// Resolve after the asynchronous member lookup, immediately before persistence.
+// On retries the existing saved order above wins, including its original location.
+const delivery = isQuickOrder ? null : currentOrderDelivery({ area, tableNo, memberCard: cleanCard });
 const order = {
   id: nextOrderId(),
   clientRequestId: cleanClientRequestId || null,
   sourceStation: cleanSourceStation || null,
   quickOrder: isQuickOrder,
-  area: isQuickOrder ? null : area,
-  tableNo: isQuickOrder ? null : tableNo,
+  area: isQuickOrder ? null : delivery.area,
+  tableNo: isQuickOrder ? null : delivery.tableNo,
+  deliveryResolution: delivery?.reason || null,
   staff: cleanMemberId(staff),
   memberCard: cleanCard,
   customerName: customerSnapshot.name || null,
@@ -5877,9 +5644,9 @@ const order = {
     orders.push(order);
     persistOrder(order);
 
-    // Chỉ sau khi order mới đã được lưu thành công mới xử lý các order cũ.
-    // Điều này là trigger an toàn: ENTER/LEAVE đơn thuần sẽ không DONE gì cả.
-    const autoDonePreviousOrders = autoDonePreviousCustomerOrdersOnNewOrder(order);
+    // Sharing a service location does not complete another customer's food order.
+    // Manual completion and the existing 06:00 business-day rollover remain.
+    const autoDonePreviousOrders = [];
 
 const card = cleanCard;
 if (card) {
@@ -5941,6 +5708,7 @@ if (card) {
       ok: true,
       orderId: order.id,
       autoDonePreviousOrderIds: autoDonePreviousOrders.map((row) => row.id),
+      order,
     });
   } catch (e) {
     console.error('Create order error:', e);
