@@ -43,3 +43,6 @@ food-order-backend/certs/*.key
 /food-order-backend/data/ai-pending-learning.json
 /food-order-backend/data/*.before-sqlite.json
 /food-order-backend/data/*.backup-before-sqlite.json
+/patch-backups/
+/patch-backups-*/
+/food-order-backend/patch-backups/
