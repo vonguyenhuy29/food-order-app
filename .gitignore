@@ -27,3 +27,8 @@ food-order-backend/data/backups/
 food-order-user/patch-backups/
 *.bak
 food-order-backend/certs/*.key
+
+# ===== Local maintenance artifacts =====
+/PATCH_*.ps1
+/patches/
+/*.zip
