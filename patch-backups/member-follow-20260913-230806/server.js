@@ -5588,102 +5588,106 @@ function isDiningTableOrder(area, tableNo) {
   return Boolean(allowed && allowed.has(tableName));
 }
 
-// Resolve delivery machine from the member entered by staff.
-// MEMBER_FOLLOW_V1 rules:
-// - Member/Name entered by staff is the source of truth.
-// - If that member has exactly one verified realtime machine, use it.
-// - If the selected machine is already one of that member's active machines, keep it.
-// - If no location, stale/error data, or multiple ambiguous machines: keep staff selection.
-// - Never reject an order just because another customer is currently on the selected machine.
-// - Dining tables are explicit delivery locations and are never auto-moved to a gaming machine.
-function resolveFloorlensOrderPlacement({ area, tableNo, memberCard }) {
-  const originalArea = String(area || '').trim();
-  const originalTableNo = tableNo;
-  const unchanged = (reason, customerMachines = []) => ({
-    area: originalArea,
-    tableNo: originalTableNo,
-    changed: false,
-    reason,
-    customerMachines,
-  });
-
+// Preflight FloorLens trước khi ghi order:
+// - Bàn ăn được phép order tự do, không ràng buộc FloorLens machine/customer.
+// - Nếu machine đang có member khác -> trả 409, KHÔNG ghi DB / KHÔNG gửi Kitchen.
+// - Nếu member cần order đang chơi ở machine khác -> trả suggestedMachine để UI đổi bàn.
+// - Không chặn Quick Order (không gắn machine).
+function getFloorlensOrderPlacementConflict({ area, tableNo, memberCard }) {
   try {
-    if (isDiningTableOrder(originalArea, originalTableNo)) {
-      return unchanged('DINING_TABLE_EXPLICIT');
-    }
-
-    const selectedMachineNumber = String(originalTableNo == null ? '' : originalTableNo).trim();
-    const requestedMemberCode = String(memberCard == null ? '' : memberCard)
-      .replace(/\s+/g, '')
-      .trim();
-
-    if (!selectedMachineNumber || !requestedMemberCode) {
-      return unchanged('MISSING_MACHINE_OR_MEMBER');
-    }
+    if (isDiningTableOrder(area, tableNo)) return null;
+    const machineNumber = String(tableNo == null ? '' : tableNo).trim();
+    const requestedMemberCode = String(memberCard == null ? '' : memberCard).replace(/\s+/g, '').trim();
+    if (!machineNumber || !requestedMemberCode) return null;
 
     const snapshot = floorlensService.getSnapshot() || {};
-    if (snapshot?.stale === true) return unchanged('FLOORLENS_STALE');
+    const liveMachines = Array.isArray(snapshot.machines) ? snapshot.machines : [];
+    const verified = liveMachines.filter((machine) => (
+      machine &&
+      machine.checkState === 'ok' &&
+      machine.online !== false &&
+      machine.isPlaying === true
+    ));
 
-    const byKey = new Map();
-    for (const machine of Array.isArray(snapshot?.machines) ? snapshot.machines : []) {
-      const verified =
-        machine &&
-        machine.checkState === 'ok' &&
-        machine.online !== false &&
-        machine.isPlaying === true &&
-        !machine.unknownPlayer;
-      if (!verified) continue;
+    const selectedMachine = verified.find(
+      (machine) => String(machine?.machineNumber || '').trim() === machineNumber
+    ) || null;
 
-      const liveMemberCode = String(machine?.memberCode || '').replace(/\s+/g, '').trim();
-      if (!liveMemberCode || liveMemberCode !== requestedMemberCode) continue;
+    const requestedCustomerMachines = verified
+      .filter((machine) => !machine?.unknownPlayer)
+      .filter((machine) => String(machine?.memberCode || '').replace(/\s+/g, '').trim() === requestedMemberCode)
+      .map((machine) => ({
+        machineNumber: String(machine?.machineNumber || '').trim(),
+        area: String(machine?.area || '').trim(),
+        memberCode: requestedMemberCode,
+        customerName: String(machine?.customerName || '').trim() || null,
+        sessionId: String(machine?.sessionId || '').trim() || null,
+        startedAt: machine?.startedAt || null,
+      }));
 
-      const machineNumber = String(machine?.machineNumber || '').trim();
-      const machineArea = String(machine?.area || '').trim();
-      if (!machineNumber) continue;
+    const occupantCode = selectedMachine && !selectedMachine.unknownPlayer
+      ? String(selectedMachine?.memberCode || '').replace(/\s+/g, '').trim()
+      : '';
 
-      const key = `${machineArea}#${machineNumber}`;
-      if (!byKey.has(key)) {
-        byKey.set(key, {
-          machineNumber,
-          area: machineArea || originalArea,
-          memberCode: requestedMemberCode,
-          customerName: String(machine?.customerName || '').trim() || null,
-          sessionId: String(machine?.sessionId || '').trim() || null,
-          startedAt: machine?.startedAt || null,
-        });
-      }
-    }
+    // Đúng member đang ở đúng machine => hợp lệ, kể cả member đó có chơi thêm machine khác.
+    if (selectedMachine && occupantCode && occupantCode === requestedMemberCode) return null;
 
-    const customerMachines = Array.from(byKey.values());
-    const selectedIsCustomerMachine = customerMachines.some(
-      (machine) => String(machine.machineNumber) === selectedMachineNumber
-    );
+    const suggestedMachine = requestedCustomerMachines.find(
+      (machine) => machine.machineNumber !== machineNumber
+    ) || null;
 
-    if (selectedIsCustomerMachine) {
-      return unchanged('MEMBER_ALREADY_ON_SELECTED_MACHINE', customerMachines);
-    }
-
-    if (customerMachines.length === 1) {
-      const target = customerMachines[0];
+    // Machine đang có khách khác đã xác định member.
+    if (selectedMachine && occupantCode && occupantCode !== requestedMemberCode) {
       return {
-        area: target.area || originalArea,
-        tableNo: target.machineNumber,
-        changed:
-          String(target.machineNumber) !== selectedMachineNumber ||
-          String(target.area || originalArea) !== originalArea,
-        reason: 'UNIQUE_MEMBER_MACHINE',
-        customerMachines,
+        reason: 'MACHINE_OCCUPIED_BY_OTHER_CUSTOMER',
+        selectedMachine: {
+          machineNumber,
+          area: String(selectedMachine?.area || area || '').trim(),
+          memberCode: occupantCode,
+          customerName: String(selectedMachine?.customerName || '').trim() || null,
+          sessionId: String(selectedMachine?.sessionId || '').trim() || null,
+          startedAt: selectedMachine?.startedAt || null,
+        },
+        requestedCustomer: {
+          memberCode: requestedMemberCode,
+        },
+        customerMachines: requestedCustomerMachines,
+        suggestedMachine,
       };
     }
 
-    if (customerMachines.length > 1) {
-      return unchanged('AMBIGUOUS_MULTIPLE_MEMBER_MACHINES', customerMachines);
+    // Machine đang trống/không xác định nhưng member lại đang chơi rõ ràng ở machine khác.
+    if (suggestedMachine) {
+      return {
+        reason: 'CUSTOMER_PLAYING_ON_OTHER_MACHINE',
+        selectedMachine: selectedMachine ? {
+          machineNumber,
+          area: String(selectedMachine?.area || area || '').trim(),
+          memberCode: occupantCode || null,
+          customerName: String(selectedMachine?.customerName || '').trim() || null,
+          sessionId: String(selectedMachine?.sessionId || '').trim() || null,
+          startedAt: selectedMachine?.startedAt || null,
+        } : {
+          machineNumber,
+          area: String(area || '').trim(),
+          memberCode: null,
+          customerName: null,
+          sessionId: null,
+          startedAt: null,
+        },
+        requestedCustomer: {
+          memberCode: requestedMemberCode,
+        },
+        customerMachines: requestedCustomerMachines,
+        suggestedMachine,
+      };
     }
 
-    return unchanged('MEMBER_NOT_PLAYING');
+    return null;
   } catch (error) {
-    console.error('[FloorLens member follow] resolver skipped because of error:', error?.message || error);
-    return unchanged('FLOORLENS_ERROR');
+    // Preflight phụ không được làm sập order service nếu FloorLens snapshot có vấn đề.
+    console.error('[FloorLens order preflight] skipped because of error:', error?.message || error);
+    return null;
   }
 }
 
@@ -5726,11 +5730,16 @@ if (cleanClientRequestId) {
   }
 }
 
-    const floorlensPlacement = isQuickOrder
-      ? { area: null, tableNo: null, changed: false, reason: 'QUICK_ORDER', customerMachines: [] }
-      : resolveFloorlensOrderPlacement({ area, tableNo, memberCard });
-    const resolvedArea = isQuickOrder ? null : floorlensPlacement.area;
-    const resolvedTableNo = isQuickOrder ? null : floorlensPlacement.tableNo;
+    if (!isQuickOrder) {
+      const floorlensConflict = getFloorlensOrderPlacementConflict({ area, tableNo, memberCard });
+      if (floorlensConflict) {
+        return res.status(409).json({
+          error: 'FLOORLENS_ORDER_MACHINE_CONFLICT',
+          message: 'Khách/máy đang chọn không khớp dữ liệu FloorLens realtime.',
+          ...floorlensConflict,
+        });
+      }
+    }
 
     const productsForOrder = loadProductsSafe();
     const productByImageName = new Map();
@@ -5846,8 +5855,8 @@ const order = {
   clientRequestId: cleanClientRequestId || null,
   sourceStation: cleanSourceStation || null,
   quickOrder: isQuickOrder,
-  area: resolvedArea,
-  tableNo: resolvedTableNo,
+  area: isQuickOrder ? null : area,
+  tableNo: isQuickOrder ? null : tableNo,
   staff: cleanMemberId(staff),
   memberCard: cleanCard,
   customerName: customerSnapshot.name || null,
@@ -5931,13 +5940,6 @@ if (card) {
     res.json({
       ok: true,
       orderId: order.id,
-      order,
-      deliveryLocation: isQuickOrder ? null : {
-        area: order.area,
-        tableNo: order.tableNo,
-        adjusted: Boolean(floorlensPlacement?.changed),
-        reason: floorlensPlacement?.reason || null,
-      },
       autoDonePreviousOrderIds: autoDonePreviousOrders.map((row) => row.id),
     });
   } catch (e) {

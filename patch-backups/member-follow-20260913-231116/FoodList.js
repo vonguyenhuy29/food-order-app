@@ -1618,11 +1618,53 @@ const addFloorlensOffMenu = ({ area, tableNo, memberCode = '' }) => {
   });
 };
 
-const reconcileCartsWithFloorlens = useCallback((_floorlensSnapshot) => {
-  // MEMBER_FOLLOW_V1:
-  // FloorLens realtime is advisory only. A customer ENTER/LEAVE/change must never
-  // delete or filter a cart that a staff member is already preparing.
-  // The member shown in the order form is the source of truth at submit time.
+const reconcileCartsWithFloorlens = useCallback((floorlensSnapshot) => {
+  if (!floorlensSnapshot || floorlensSnapshot.stale) return;
+
+  const currentOwnerByKey = new Map();
+
+  for (const machine of Array.isArray(floorlensSnapshot?.machines) ? floorlensSnapshot.machines : []) {
+    const verified =
+      machine?.checkState === 'ok' &&
+      machine?.online !== false &&
+      Boolean(machine?.isPlaying);
+
+    const memberCode = String(machine?.memberCode || '').replace(/\s+/g, '').trim();
+    const area = String(machine?.area || '').trim();
+    const tableNo = machine?.machineNumber;
+
+    if (!verified || !memberCode || !area || tableNo === null || tableNo === undefined || tableNo === '') continue;
+    currentOwnerByKey.set(tableKeyOf(area, tableNo), memberCode);
+  }
+
+  if (!currentOwnerByKey.size) return;
+
+  setCarts((prev) => {
+    let changed = false;
+    const next = { ...prev };
+
+    for (const [key, cart] of Object.entries(prev || {})) {
+      const liveMemberCode = currentOwnerByKey.get(key);
+      if (!liveMemberCode) continue;
+
+      const tableNo = String(key).split('#').pop();
+      if (isDiningTableNo(tableNo)) continue;
+
+      const safety = cartSafetySummary(cart);
+      if (!safety.hasItems) continue;
+
+      const staleForCurrentCustomer =
+        safety.hasUnowned ||
+        safety.owners.some((ownerCode) => ownerCode !== liveMemberCode);
+
+      if (staleForCurrentCustomer) {
+        next[key] = keepOnlyCartOwner(cart, liveMemberCode);
+        changed = true;
+      }
+    }
+
+    return changed ? next : prev;
+  });
 }, []);
 
 useEffect(() => {
@@ -1650,9 +1692,23 @@ const applyFloorlensMachineSelection = ({ area, tableNo, memberCode = '', custom
 
   currentMemberCardRef.current = code;
 
-  // MEMBER_FOLLOW_V1: never clear the visible cart because FloorLens says the
-  // machine/customer changed. If staff changes Member/Name, all visible items
-  // are intentionally sent to the member currently entered by staff.
+  if (code && !isDiningTableNo(tableNo)) {
+    const safetyKey = floorlensCartKey(area, tableNo);
+    const existingCart = (safetyKey && carts?.[safetyKey]) || {};
+    const safety = cartSafetySummary(existingCart);
+    const belongsToAnotherCustomer =
+      safety.hasItems &&
+      (
+        safety.hasUnowned ||
+        safety.owners.some((ownerCode) => ownerCode !== code)
+      );
+
+    if (belongsToAnotherCustomer) {
+      setCarts((prev) => ({ ...prev, [safetyKey]: {} }));
+      setToast('Old cart cleared because the realtime customer changed.');
+    }
+  }
+
   if (code) {
     setOrderForm((prev) => {
       const prevCode = String(prev.memberCard || prev.customerCode || '').replace(/\s+/g, '').trim();
@@ -2084,7 +2140,7 @@ useEffect(() => {
 
   const switchOrderToFloorlensMachine = useCallback((conflict) => {
     const suggested = conflict?.suggestedMachine;
-    if (!suggested?.machineNumber || !suggested?.area) return false;
+    if (!suggested?.machineNumber || !suggested?.area) return;
 
     const targetTableNo = Number.isFinite(Number(suggested.machineNumber))
       ? Number(suggested.machineNumber)
@@ -2093,24 +2149,8 @@ useEffect(() => {
     const sourceKey = currentTableKey;
     const targetKey = tableKeyOf(target.area, target.tableNo);
 
-    if (sourceKey === targetKey) {
-      setSelectedTable(target);
-      setActiveArea(target.area);
-      setTableSearch('');
-      setOrderPlacementConflict(null);
-      return true;
-    }
-
-    // Never overwrite a different draft that already exists on the destination machine.
-    // In this edge case the UI stays on the current machine; backend still resolves the
-    // unique realtime member location at submit time, so ordering is not blocked.
-    const targetCart = (targetKey && carts?.[targetKey]) || {};
-    if (cartSafetySummary(targetCart).hasItems) {
-      setOrderPlacementConflict(null);
-      setToast(`Khách đang ở máy ${target.tableNo}. Máy này có giỏ khác nên app giữ giỏ hiện tại; Order vẫn gửi theo vị trí realtime.`);
-      return false;
-    }
-
+    // CART_GUARDIAN_V2: the active source cart replaces any older target cart.
+    // Never merge quantities across machine carts.
     setCarts((prev) => {
       const sourceCart = { ...((sourceKey && prev[sourceKey]) || {}) };
       const next = { ...prev, [targetKey]: sourceCart };
@@ -2122,98 +2162,8 @@ useEffect(() => {
     setActiveArea(target.area);
     setTableSearch('');
     setOrderPlacementConflict(null);
-    setToast(`Đã cập nhật nơi giao: máy ${target.tableNo}.`);
-    return true;
-  }, [currentTableKey, carts]);
-
-  const memberFollowTimerRef = useRef(null);
-  const memberFollowSeqRef = useRef(0);
-
-  const followMemberToFloorlensMachine = useCallback(async (memberCode) => {
-    const code = String(memberCode || '').replace(/\s+/g, '').trim();
-    if (!/^\d+$/.test(code)) return null;
-    if (!selectedTable || isDiningTableNo(selectedTable?.tableNo)) return null;
-
-    const seq = ++memberFollowSeqRef.current;
-
-    try {
-      const response = await axios.get(apiUrl('/api/user/floorlens'), {
-        params: { t: Date.now() },
-        headers: { 'Cache-Control': 'no-cache' },
-        timeout: 2500,
-      });
-
-      if (seq !== memberFollowSeqRef.current) return null;
-      if (currentMemberCardRef.current !== code) return null;
-
-      const snapshot = response?.data || {};
-      if (snapshot?.stale === true) return null;
-
-      const byKey = new Map();
-      for (const machine of Array.isArray(snapshot?.machines) ? snapshot.machines : []) {
-        const verified =
-          machine?.checkState === 'ok' &&
-          machine?.online !== false &&
-          machine?.isPlaying === true &&
-          !machine?.unknownPlayer;
-        if (!verified) continue;
-
-        const liveCode = String(machine?.memberCode || '').replace(/\s+/g, '').trim();
-        if (!liveCode || liveCode !== code) continue;
-
-        const machineNumber = String(machine?.machineNumber || '').trim();
-        const area = String(machine?.area || '').trim();
-        if (!machineNumber || !area) continue;
-
-        byKey.set(`${area}#${machineNumber}`, { machineNumber, area });
-      }
-
-      const matches = Array.from(byKey.values());
-      const selectedMachineNumber = String(selectedTable?.tableNo || '').trim();
-      const selectedIsMatch = matches.some(
-        (machine) => String(machine.machineNumber) === selectedMachineNumber
-      );
-
-      // If the member is already on the selected machine, keep it even if they
-      // also appear on another machine. If location is ambiguous, do not guess.
-      if (selectedIsMatch || matches.length !== 1) return null;
-
-      const target = matches[0];
-      switchOrderToFloorlensMachine({ suggestedMachine: target });
-      return target;
-    } catch (_) {
-      // FloorLens is assistance only. Network/realtime failure must never block Order.
-      return null;
-    }
-  }, [selectedTable, switchOrderToFloorlensMachine]);
-
-  useEffect(() => {
-    const code = String(orderForm.memberCard || orderForm.customerCode || '')
-      .replace(/\s+/g, '')
-      .trim();
-
-    if (memberFollowTimerRef.current) {
-      clearTimeout(memberFollowTimerRef.current);
-      memberFollowTimerRef.current = null;
-    }
-
-    if (!/^\d+$/.test(code) || !selectedTable || isDiningTableNo(selectedTable?.tableNo)) {
-      return undefined;
-    }
-
-    // Do not jump machines while the user is still typing each digit.
-    memberFollowTimerRef.current = setTimeout(() => {
-      followMemberToFloorlensMachine(code);
-      memberFollowTimerRef.current = null;
-    }, 700);
-
-    return () => {
-      if (memberFollowTimerRef.current) {
-        clearTimeout(memberFollowTimerRef.current);
-        memberFollowTimerRef.current = null;
-      }
-    };
-  }, [orderForm.memberCard, orderForm.customerCode, selectedTable, followMemberToFloorlensMachine]);
+    setToast(`Đã đổi sang máy ${target.tableNo}. Kiểm tra lại rồi bấm Order để gửi Kitchen.`);
+  }, [currentTableKey]);
 
   // Submit order
 const placeOrder = async () => {
@@ -2237,8 +2187,85 @@ const placeOrder = async () => {
     setToast('Nhập Member/Name và chọn khách');
     return;
   }
-  // MEMBER_FOLLOW_V1: member code is enough to send. Name/level may finish loading later.
-const cartForOrder = currentCart;
+
+  if (memberLookupLoading) {
+    setToast('Đang tìm thông tin khách, vui lòng chờ...');
+    return;
+  }
+let cartForOrder = currentCart;
+let autoRemovedCartRows = 0;
+
+if (!isDiningTableNo(selectedTable?.tableNo)) {
+  const cartSafety = cartSafetySummary(currentCart);
+  const activeMemberRef = String(currentMemberCardRef.current || '')
+    .replace(/\s+/g, '')
+    .trim();
+
+  const hasDifferentOwner = cartSafety.owners.some(
+    (ownerCode) => ownerCode !== memberCardVal
+  );
+
+  const canAdoptUnowned =
+    cartSafety.hasItems &&
+    cartSafety.hasUnowned &&
+    !hasDifferentOwner &&
+    activeMemberRef === memberCardVal;
+
+  if (canAdoptUnowned) {
+    const adoptedCart = Object.fromEntries(
+      Object.entries(currentCart || {})
+        .filter(([, item]) => item && Number(item.qty || 0) > 0)
+        .map(([cartKey, item]) => [
+          cartKey,
+          {
+            ...item,
+            ownerMemberCode:
+              cartOwnerCodeOf(item) || memberCardVal,
+          },
+        ])
+    );
+
+    cartForOrder = adoptedCart;
+    setCarts((prev) => ({
+      ...prev,
+      [currentTableKey]: adoptedCart,
+    }));
+  } else {
+    const needsAutoCleanup =
+      cartSafety.hasItems &&
+      (
+        hasDifferentOwner ||
+        cartSafety.owners.length > 1 ||
+        (cartSafety.hasUnowned && activeMemberRef !== memberCardVal)
+      );
+
+    if (needsAutoCleanup) {
+      const cleanedCart = keepOnlyCartOwner(currentCart, memberCardVal);
+      const cleanedSafety = cartSafetySummary(cleanedCart);
+      autoRemovedCartRows = Math.max(
+        0,
+        cartSafety.itemRows - cleanedSafety.itemRows
+      );
+
+      if (!cleanedSafety.hasItems) {
+        setCarts((prev) => ({
+          ...prev,
+          [currentTableKey]: {},
+        }));
+        setShowOrderForm(false);
+        setMode('menu');
+        setToast('Giỏ đã được đồng bộ theo khách hiện tại. Vui lòng chọn món.');
+        return;
+      }
+
+      cartForOrder = cleanedCart;
+      setCarts((prev) => ({
+        ...prev,
+        [currentTableKey]: cleanedCart,
+      }));
+    }
+  }
+}
 
 const items = Object.entries(cartForOrder)
   .map(([cartKey, item]) => {
@@ -2324,8 +2351,11 @@ if (res?.data?.ok) {
 
 orderRequestIdRef.current = null;
 setShowOrderForm(false);
-const deliveredTable = res?.data?.deliveryLocation?.tableNo;
-setToast(deliveredTable ? `Đã gửi Order • máy ${deliveredTable}` : 'Đã gửi Order');
+setToast(
+  autoRemovedCartRows > 0
+    ? `\u0110\u00e3 g\u1eedi Order \u2022 t\u1ef1 b\u1ecf ${autoRemovedCartRows} m\u00f3n c\u0169`
+    : '\u0110\u00e3 g\u1eedi Order'
+);
 }
     } catch (e) {
       const apiError = e?.response?.data?.error || '';
