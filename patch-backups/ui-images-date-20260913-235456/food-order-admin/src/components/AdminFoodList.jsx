@@ -2375,7 +2375,7 @@ onDrop={(e) => {
                     {pillStyle.label}
                   </div>
                   <div style={{ fontSize: 11, marginTop: 5, opacity: 0.85 }}>
-                    {o.createdAt ? formatPrintDateTime(o.createdAt) : ''}
+                    {o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}
                   </div>
                 </div>
               </div>
@@ -2483,7 +2483,7 @@ onDrop={(e) => {
                                     Order #{o.id}
                                   </div>
                                   <div style={{ marginTop: 2, fontSize: 13, color: '#6b7280' }}>
-                                    {o.createdAt ? formatPrintDateTime(o.createdAt) : ''}
+                                    {o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}
                                   </div>
                                 </div>
 
@@ -2529,7 +2529,7 @@ onDrop={(e) => {
                                   </b>
                                   {o.tableClosed && o.closedAt ? (
                                     <span style={{ color: '#9ca3af', fontSize: 12 }}>
-                                      {' '}• {formatPrintDateTime(o.closedAt)}
+                                      {' '}• {new Date(o.closedAt).toLocaleString()}
                                     </span>
                                   ) : null}
                                 </div>
@@ -2674,7 +2674,7 @@ onDrop={(e) => {
                     <tr><td colSpan={5} style={{ padding: 12, textAlign: 'center' }}>No history yet</td></tr>
                   ) : historyRows.map((h, idx) => (
                     <tr key={h.id || idx} style={{ borderTop: '1px solid #f1f5f9' }}>
-                      <td style={td}>{formatPrintDateTime(h.at)}</td>
+                      <td style={td}>{new Date(h.at).toLocaleString()}</td>
                       <td style={td}>{h.by}</td>
                       <td style={{ ...td }}>
                         {h.imageUrl

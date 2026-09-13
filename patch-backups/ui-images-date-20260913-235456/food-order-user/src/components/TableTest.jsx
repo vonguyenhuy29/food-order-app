@@ -1350,7 +1350,7 @@ export default function TableTest({
   );
   const cartRows = useMemo(() => Object.entries(selectedCart).map(([cartKey, item]) => {
     const offMenu = Boolean(item?.isOffMenu) || String(cartKey).startsWith('__offmenu__');
-    const food = offMenu ? null : foodByImage.get(imageNameOf(cartKey));
+    const food = offMenu ? null : foodByImage.get(String(cartKey).toLowerCase());
     return {
       cartKey,
       qty: Math.max(0, Number(item?.qty || 0)),
@@ -1359,8 +1359,6 @@ export default function TableTest({
       rawName: offMenu ? text(item?.name) : '',
       name: offMenu ? (text(item?.name) || 'Món ngoài menu') : (food?.productName || food?.name || cartKey),
       code: offMenu ? 'H100' : (food?.productCode || food?.code || ''),
-      /* UI_IMAGES_DATE_V1_TABLE_CART_IMAGE */
-      imageUrl: offMenu ? '' : text(food?.imageUrl || item?.imageUrl),
     };
   }).filter((row) => row.qty > 0), [selectedCart, foodByImage]);
   const cartCount = useMemo(() => cartRows.reduce((sum, row) => sum + row.qty, 0), [cartRows]);
@@ -1574,7 +1572,7 @@ export default function TableTest({
               {cartRows.length === 0 ? <div className="tt-empty-line">Chưa chọn món.</div> : (
                 <div className="tt-cart-list">
                   {cartRows.map((row) => (
-                    <div className={`tt-cart-row ${row.offMenu ? 'is-offmenu' : ''}`} key={row.cartKey}>
+                    <div className="tt-cart-row" key={row.cartKey}>
                       {row.offMenu && typeof onCartUpdateItem === 'function' && (
                         <div
                           style={{
@@ -1614,27 +1612,7 @@ export default function TableTest({
                           />
                         </div>
                       )}
-                      <div className="tt-cart-item-main">
-                        {row.imageUrl ? (
-                          <img
-                            className="tt-cart-image"
-                            src={/^https?:\/\//i.test(row.imageUrl)
-                              ? row.imageUrl
-                              : apiUrl(row.imageUrl.startsWith('/') ? row.imageUrl : `/${row.imageUrl}`)}
-                            alt={row.name || ''}
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        ) : (
-                          <div className={`tt-cart-image-placeholder ${row.offMenu ? 'is-offmenu' : ''}`} aria-hidden="true">
-                            {row.offMenu ? 'H100' : '🍽️'}
-                          </div>
-                        )}
-                        <div className="tt-cart-copy">
-                          <b>{row.code ? `${row.code} - ` : ''}{row.name}</b>
-                          {row.note && <small>📝 {row.note}</small>}
-                        </div>
-                      </div>
+                      <div><b>{row.code ? `${row.code} - ` : ''}{row.name}</b>{row.note && <small>📝 {row.note}</small>}</div>
                       <div className="tt-qty">
                         <button type="button" onClick={() => onCartSetQty?.({ ...selectedPayload, cartKey: row.cartKey, qty: row.qty - 1 })}>−</button>
                         <strong>{row.qty}</strong>
@@ -1662,7 +1640,7 @@ export default function TableTest({
           <section className="tt-floorlens-layout-card">
             <div className="tt-focus-title">
               <div><h3>Thông tin</h3><small>Machine / Customer / Order</small></div>
-              <span>{snapshot?.gamingDate ? `Gaming Date ${formatProfileDate(snapshot.gamingDate)}` : 'Realtime'}</span>
+              <span>{snapshot?.gamingDate ? `Gaming Date ${snapshot.gamingDate}` : 'Realtime'}</span>
             </div>
 
             <div className="tt-focus-panels">

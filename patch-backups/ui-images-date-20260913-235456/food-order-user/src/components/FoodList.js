@@ -337,26 +337,6 @@ const formatMoneyVnd = (v) => {
   if (!Number.isFinite(n) || n <= 0) return '0 VND';
   return `${Math.round(n).toLocaleString('vi-VN')} VND`;
 };
-/* UI_IMAGES_DATE_V1_FORMATTERS */
-const formatUiDateTime = (value) => {
-  if (!value) return '';
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n) => String(n).padStart(2, '0');
-  let hours = d.getHours();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours %= 12;
-  if (hours === 0) hours = 12;
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(hours)}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${ampm}`;
-};
-
-const formatUiDateOnly = (value) => {
-  if (!value) return '';
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-};
 const normalize = (s) => String(s || '')
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .replace(/[_\-./]+/g, ' ')
@@ -1733,8 +1713,6 @@ name: offMenu
   ? (String(item?.name || '').trim() || 'Món ngoài menu')
   : (food?.productName || food?.name || cartKey),
 code: offMenu ? OFF_MENU_CODE : (food?.productCode || food?.code || ''),
-/* UI_IMAGES_DATE_V1_ORDER_DRAFT_IMAGE */
-imageUrl: offMenu ? '' : (food?.imageUrl || ''),
 label: offMenu
   ? `${OFF_MENU_LABEL}${String(item?.name || '').trim() ? ` - ${String(item?.name || '').trim()}` : ''}`
   : `${food?.productCode || food?.code ? `${food?.productCode || food?.code} - ` : ''}${food?.productName || food?.name || cartKey}`,
@@ -2513,7 +2491,7 @@ setToast(deliveredTable ? `Đã gửi Order • máy ${deliveredTable}` : 'Đã 
                 (o) => o.status === ORDER_STATUS.PENDING || o.status === ORDER_STATUS.IN_PROGRESS
               ).length;
 
-              const lastAt = t.latestAt ? formatUiDateTime(t.latestAt) : '';
+              const lastAt = t.latestAt ? t.latestAt.toLocaleString() : '';
 
               return (
                 <div
@@ -2643,7 +2621,7 @@ setToast(deliveredTable ? `Đã gửi Order • máy ${deliveredTable}` : 'Đã 
                     {pill.label}
                   </div>
                   <div style={{ fontSize: 11, marginTop: 5, opacity: 0.85 }}>
-                    {o.createdAt ? formatUiDateTime(o.createdAt) : ''}
+                    {o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}
                   </div>
                 </div>
               </div>
@@ -2783,7 +2761,7 @@ const list = ordersViewFiltered
                                 Order #{o.id}
                               </div>
                               <div style={{ marginTop: 2, fontSize: 13, color: '#6b7280' }}>
-                                {o.createdAt ? formatUiDateTime(o.createdAt) : ''}
+                                {o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}
                               </div>
                             </div>
 
@@ -2829,7 +2807,7 @@ const list = ordersViewFiltered
                               </b>
                               {o.tableClosed && o.closedAt ? (
                                 <span style={{ color: '#9ca3af', fontSize: 12 }}>
-                                  {' '}• {formatUiDateTime(o.closedAt)}
+                                  {' '}• {new Date(o.closedAt).toLocaleString()}
                                 </span>
                               ) : null}
                             </div>
@@ -3962,7 +3940,7 @@ return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ fontWeight: 700 }}>Order #{o.id}</div>
           <div style={{ fontSize: 12, color: '#6b7280' }}>
-            {o.createdAt ? formatUiDateTime(o.createdAt) : ''}
+            {o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}
           </div>
         </div>
 
@@ -4197,7 +4175,7 @@ decoding="async"
           Vào club:{' '}
           <b>
             {globalCustomerEventAlert.eventAt
-              ? formatUiDateTime(globalCustomerEventAlert.eventAt)
+              ? new Date(globalCustomerEventAlert.eventAt).toLocaleString()
               : ''}
           </b>
         </div>
@@ -4482,7 +4460,7 @@ decoding="async"
                   </div>
                   <div style={{ fontSize: 12, color: '#6b7280' }}>
                     Level: {m.level || '---'} • Orders: {m.ordersCount || 0}
-                    {m.lastOrderAt ? ` • Gần nhất: ${formatUiDateOnly(m.lastOrderAt)}` : ''}
+                    {m.lastOrderAt ? ` • Gần nhất: ${new Date(m.lastOrderAt).toLocaleDateString()}` : ''}
                   </div>
                 </div>
               ))}
@@ -4620,52 +4598,14 @@ decoding="async"
               <div key={it.cartKey}>
                 <label
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 9,
+                    display: 'block',
                     marginBottom: 6,
                     fontSize: 12,
                     fontWeight: 600,
                     color: '#111827'
                   }}
                 >
-                  {it.imageUrl ? (
-                    <img
-                      src={imageSrc(it.imageUrl)}
-                      alt={it.name || ''}
-                      loading="lazy"
-                      decoding="async"
-                      style={{
-                        width: 46,
-                        height: 46,
-                        flex: '0 0 46px',
-                        objectFit: 'cover',
-                        borderRadius: 7,
-                        border: '1px solid #e5e7eb',
-                        background: '#f8fafc',
-                      }}
-                    />
-                  ) : (
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        width: 46,
-                        height: 46,
-                        flex: '0 0 46px',
-                        display: 'grid',
-                        placeItems: 'center',
-                        borderRadius: 7,
-                        border: '1px solid #ddd6fe',
-                        background: '#f5f3ff',
-                        color: '#7c3aed',
-                        fontSize: 10,
-                        fontWeight: 900,
-                      }}
-                    >
-                      {it.offMenu ? 'H100' : '🍽️'}
-                    </span>
-                  )}
-                  <span>{it.qty} | {it.offMenu ? it.label : `${it.name} | ${it.code || '---'}`}</span>
+{it.qty} | {it.offMenu ? it.label : `${it.name} | ${it.code || '---'}`}
                 </label>
 
                 {it.offMenu && (
@@ -5350,7 +5290,7 @@ const loadSpendingDetail = useCallback(async (codeInput, rangeInput = spendingRa
     if (!v) return '';
     const d = new Date(v);
     if (Number.isNaN(d.getTime())) return '';
-    return formatUiDateTime(d);
+    return d.toLocaleString();
   };
 
   const toDatetimeLocalValue = (dateInput) => {
