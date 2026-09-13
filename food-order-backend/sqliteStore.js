@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS members (
 CREATE INDEX IF NOT EXISTS idx_members_name ON members(name);
 CREATE INDEX IF NOT EXISTS idx_members_level ON members(level);
 CREATE INDEX IF NOT EXISTS idx_members_updatedAt ON members(updatedAt);
+CREATE INDEX IF NOT EXISTS idx_members_level_code ON members(level, code);
+CREATE INDEX IF NOT EXISTS idx_members_apiSyncedAt ON members(apiSyncedAt);
 
 CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,
@@ -56,6 +58,7 @@ CREATE TABLE IF NOT EXISTS orders (
   status TEXT,
   tableClosed INTEGER DEFAULT 0,
   createdAt TEXT,
+  businessDate TEXT,
   updatedAt TEXT,
   rawJson TEXT NOT NULL
 );
@@ -66,6 +69,43 @@ CREATE INDEX IF NOT EXISTS idx_orders_area_table ON orders(area, tableNo);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_tableClosed ON orders(tableClosed);
 CREATE INDEX IF NOT EXISTS idx_orders_clientRequestId ON orders(clientRequestId);
+CREATE INDEX IF NOT EXISTS idx_orders_status_createdAt ON orders(status, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_area_table_createdAt ON orders(area, tableNo, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_member_date ON orders(memberCard, createdAt DESC);
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  orderId TEXT NOT NULL,
+  itemIndex INTEGER NOT NULL,
+  createdAt TEXT,
+  businessDate TEXT,
+  status TEXT,
+  area TEXT,
+  tableNo TEXT,
+  staff TEXT,
+  memberCard TEXT,
+  customerName TEXT,
+  customerLevel TEXT,
+  productCode TEXT,
+  itemName TEXT,
+  itemGroup TEXT,
+  imageName TEXT,
+  qty REAL DEFAULT 0,
+  unitPrice REAL DEFAULT 0,
+  lineTotal REAL DEFAULT 0,
+  note TEXT,
+  isOffMenu INTEGER DEFAULT 0,
+  UNIQUE(orderId, itemIndex)
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_items_orderId ON order_items(orderId);
+CREATE INDEX IF NOT EXISTS idx_order_items_createdAt ON order_items(createdAt);
+CREATE INDEX IF NOT EXISTS idx_order_items_businessDate ON order_items(businessDate);
+CREATE INDEX IF NOT EXISTS idx_order_items_status_createdAt ON order_items(status, createdAt);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_date ON order_items(productCode, createdAt);
+CREATE INDEX IF NOT EXISTS idx_order_items_group_date ON order_items(itemGroup, createdAt);
+CREATE INDEX IF NOT EXISTS idx_order_items_member_date ON order_items(memberCard, createdAt);
+CREATE INDEX IF NOT EXISTS idx_order_items_table_date ON order_items(area, tableNo, createdAt);
 
 CREATE TABLE IF NOT EXISTS status_history (
   id TEXT PRIMARY KEY,
@@ -211,6 +251,20 @@ CREATE INDEX IF NOT EXISTS idx_customer_events_shiftStartAt ON customer_events(s
 
 `);
 
+// Schema migration an toàn cho DB đã tồn tại trước V8.
+function ensureColumn(tableName, columnName, definition) {
+  const cols = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  if (!cols.some((c) => String(c.name) === columnName)) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
+}
+
+ensureColumn('orders', 'businessDate', 'TEXT');
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_orders_businessDate ON orders(businessDate);
+  CREATE INDEX IF NOT EXISTS idx_orders_member_date ON orders(memberCard, createdAt DESC);
+`);
+
 function safeJsonParse(raw, fallback) {
   try {
     return JSON.parse(raw);
@@ -352,6 +406,13 @@ function deleteMember(codeInput) {
   return true;
 }
 
+function getMemberByCode(codeInput) {
+  const code = cleanCode(codeInput);
+  if (!code) return null;
+  const row = runSqliteReadWithRetry(() => db.prepare(`SELECT * FROM members WHERE code = ? LIMIT 1`).get(code));
+  return memberFromRow(row);
+}
+
 function loadMembers() {
   const rows = db.prepare(`SELECT * FROM members`).all();
   const out = {};
@@ -361,6 +422,148 @@ function loadMembers() {
   }
 
   return out;
+}
+
+// Health nhẹ cho màn Khách hàng: xác nhận SQLite đọc được và lần gần nhất
+// Customer API thực sự được ghi xuống bảng members. Các COUNT chỉ chạy trên
+// index apiSyncedAt nên vẫn nhẹ khi Database tăng lên hàng trăm nghìn / triệu khách.
+function getCustomerSyncHealth() {
+  const startedAt = Date.now();
+  const now = new Date();
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+  return runSqliteReadWithRetry(() => {
+    const ping = db.prepare(`SELECT 1 AS ok`).get();
+    const last = db.prepare(`
+      SELECT apiSyncedAt
+      FROM members INDEXED BY idx_members_apiSyncedAt
+      WHERE apiSyncedAt IS NOT NULL AND apiSyncedAt <> ''
+      ORDER BY apiSyncedAt DESC
+      LIMIT 1
+    `).get();
+
+    const lastHour = db.prepare(`
+      SELECT COUNT(*) AS c
+      FROM members INDEXED BY idx_members_apiSyncedAt
+      WHERE apiSyncedAt >= ?
+    `).get(oneHourAgo);
+
+    const last24h = db.prepare(`
+      SELECT COUNT(*) AS c
+      FROM members INDEXED BY idx_members_apiSyncedAt
+      WHERE apiSyncedAt >= ?
+    `).get(oneDayAgo);
+
+    // Tổng độ phủ API trong SQLite. COUNT(*) trên bảng members và index apiSyncedAt
+    // đủ nhẹ để dùng cho monitor; frontend chủ yếu nhận realtime qua Socket.
+    const totalRow = db.prepare(`SELECT COUNT(*) AS c FROM members`).get();
+    const syncedRow = db.prepare(`
+      SELECT COUNT(*) AS c
+      FROM members INDEXED BY idx_members_apiSyncedAt
+      WHERE apiSyncedAt IS NOT NULL AND apiSyncedAt <> ''
+    `).get();
+    const totalMembers = Number(totalRow?.c || 0) || 0;
+    const apiSyncedMembers = Number(syncedRow?.c || 0) || 0;
+
+    return {
+      ok: Number(ping?.ok || 0) === 1,
+      status: Number(ping?.ok || 0) === 1 ? 'ONLINE' : 'ERROR',
+      lastApiSyncedAt: last?.apiSyncedAt || null,
+      syncedLastHour: Number(lastHour?.c || 0) || 0,
+      syncedLast24h: Number(last24h?.c || 0) || 0,
+      totalMembers,
+      apiSyncedMembers,
+      apiPendingMembers: Math.max(0, totalMembers - apiSyncedMembers),
+      apiCoveragePercent: totalMembers > 0
+        ? Math.round((apiSyncedMembers / totalMembers) * 10000) / 100
+        : 0,
+      checkedAt: now.toISOString(),
+      queryMs: Date.now() - startedAt,
+    };
+  });
+}
+
+
+// Query phân trang trực tiếp trong SQLite cho màn Khách hàng.
+// Tránh tạo/map/sort toàn bộ >60.000 members bằng JavaScript cho mỗi lần search/filter.
+function queryMembersPage({ q = '', levels = [], page = 1, limit = 100 } = {}) {
+  const where = [];
+  const params = {};
+
+  const search = String(q || '').trim().toLowerCase();
+  if (search) {
+    params.q = `%${search}%`;
+    where.push(`(
+      LOWER(code) LIKE @q OR
+      LOWER(COALESCE(name, '')) LIKE @q OR
+      LOWER(COALESCE(customerName, '')) LIKE @q OR
+      LOWER(COALESCE(level, '')) LIKE @q OR
+      LOWER(COALESCE(memberLevel, '')) LIKE @q
+    )`);
+  }
+
+  const levelList = Array.from(new Set(
+    (Array.isArray(levels) ? levels : String(levels || '').split(','))
+      .map((v) => String(v || '').trim().toLowerCase())
+      .filter(Boolean)
+  ));
+
+  if (levelList.length) {
+    const placeholders = [];
+    levelList.forEach((value, index) => {
+      const key = `lv${index}`;
+      params[key] = value;
+      placeholders.push(`@${key}`);
+    });
+    where.push(`LOWER(COALESCE(NULLIF(TRIM(level), ''), NULLIF(TRIM(memberLevel), ''), '')) IN (${placeholders.join(', ')})`);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const total = Number(db.prepare(`SELECT COUNT(*) AS c FROM members ${whereSql}`).get(params)?.c || 0);
+
+  const safeLimit = Math.max(1, Math.min(70000, Number(limit) || 100));
+  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+  const safePage = Math.min(totalPages, Math.max(1, Number(page) || 1));
+  params.limit = safeLimit;
+  params.offset = (safePage - 1) * safeLimit;
+
+  const rows = runSqliteReadWithRetry(() => db.prepare(`
+    SELECT *
+    FROM members
+    ${whereSql}
+    ORDER BY
+      CASE WHEN code GLOB '[0-9]*' THEN 0 ELSE 1 END ASC,
+      CASE WHEN code GLOB '[0-9]*' THEN CAST(code AS INTEGER) END ASC,
+      code COLLATE NOCASE ASC
+    LIMIT @limit OFFSET @offset
+  `).all(params));
+
+  const summaryRows = runSqliteReadWithRetry(() => db.prepare(`
+    SELECT
+      COALESCE(NULLIF(TRIM(level), ''), NULLIF(TRIM(memberLevel), ''), 'Chưa có level') AS levelName,
+      COUNT(*) AS c
+    FROM members
+    GROUP BY COALESCE(NULLIF(TRIM(level), ''), NULLIF(TRIM(memberLevel), ''), 'Chưa có level')
+  `).all());
+
+  const byLevel = {};
+  let summaryTotal = 0;
+  for (const row of summaryRows) {
+    const name = String(row.levelName || 'Chưa có level').trim() || 'Chưa có level';
+    const count = Number(row.c || 0) || 0;
+    byLevel[name] = count;
+    summaryTotal += count;
+  }
+
+  return {
+    total,
+    page: safePage,
+    limit: safeLimit,
+    totalPages,
+    items: rows.map(memberFromRow).filter(Boolean),
+    summary: { total: summaryTotal, byLevel },
+  };
 }
 
 function replaceAllMembers(membersObj = {}) {
@@ -400,6 +603,16 @@ function importMembersFromJsonIfEmpty(jsonPath) {
   return { imported: true, count: Object.keys(parsed).length };
 }
 
+function businessDate06VN(value = new Date()) {
+  const ms = value instanceof Date ? value.getTime() : Date.parse(value);
+  if (!Number.isFinite(ms)) return null;
+
+  // Dịch timestamp sang UTC+7 rồi dùng UTC getters để không phụ thuộc timezone của Windows service.
+  const vn = new Date(ms + 7 * 60 * 60 * 1000);
+  if (vn.getUTCHours() < 6) vn.setUTCDate(vn.getUTCDate() - 1);
+  return `${vn.getUTCFullYear()}-${String(vn.getUTCMonth() + 1).padStart(2, '0')}-${String(vn.getUTCDate()).padStart(2, '0')}`;
+}
+
 function orderFromRow(row) {
   if (!row) return null;
 
@@ -422,6 +635,7 @@ function orderFromRow(row) {
     status: raw.status || row.status || 'PENDING',
     tableClosed: Boolean(raw.tableClosed ?? row.tableClosed),
     createdAt: raw.createdAt || row.createdAt || null,
+    businessDate: raw.businessDate || row.businessDate || businessDate06VN(raw.createdAt || row.createdAt),
     updatedAt: raw.updatedAt || row.updatedAt || null,
     items: Array.isArray(raw.items) ? raw.items : [],
   };
@@ -440,6 +654,7 @@ INSERT INTO orders (
   status,
   tableClosed,
   createdAt,
+  businessDate,
   updatedAt,
   rawJson
 )
@@ -455,6 +670,7 @@ VALUES (
   @status,
   @tableClosed,
   @createdAt,
+  @businessDate,
   @updatedAt,
   @rawJson
 )
@@ -469,26 +685,121 @@ ON CONFLICT(id) DO UPDATE SET
   status = excluded.status,
   tableClosed = excluded.tableClosed,
   createdAt = excluded.createdAt,
+  businessDate = excluded.businessDate,
   updatedAt = excluded.updatedAt,
   rawJson = excluded.rawJson
 `);
 
+const deleteOrderItemsStmt = db.prepare(`DELETE FROM order_items WHERE orderId = ?`);
+const findReportProductByImageStmt = db.prepare(`SELECT * FROM products WHERE LOWER(imageName) = LOWER(?) LIMIT 1`);
+const findReportProductByCodeStmt = db.prepare(`SELECT * FROM products WHERE LOWER(productCode) = LOWER(?) LIMIT 1`);
+
+function reportProductFallbackForItem(item = {}) {
+  const image = String(item.imageName || item.imageKey || '').split('/').pop().trim();
+  const code = String(item.productCode || item.code || '').trim();
+  let row = null;
+  try {
+    if (image) row = findReportProductByImageStmt.get(image) || null;
+    if (!row && code) row = findReportProductByCodeStmt.get(code) || null;
+  } catch (_) {}
+  if (!row) return {};
+  const raw = safeJsonParse(row.rawJson, {}) || {};
+  return {
+    imageName: raw.imageName || row.imageName || '',
+    productCode: raw.productCode || raw.code || row.productCode || '',
+    name: raw.name || raw.productName || row.name || '',
+    itemGroup: raw.itemGroup || row.itemGroup || raw.group || row.groupName || '',
+    price: Number(raw.price ?? row.price ?? 0) || 0,
+  };
+}
+
+const insertOrderItemStmt = db.prepare(`
+INSERT INTO order_items (
+  orderId, itemIndex, createdAt, businessDate, status, area, tableNo, staff,
+  memberCard, customerName, customerLevel, productCode, itemName, itemGroup,
+  imageName, qty, unitPrice, lineTotal, note, isOffMenu
+) VALUES (
+  @orderId, @itemIndex, @createdAt, @businessDate, @status, @area, @tableNo, @staff,
+  @memberCard, @customerName, @customerLevel, @productCode, @itemName, @itemGroup,
+  @imageName, @qty, @unitPrice, @lineTotal, @note, @isOffMenu
+)
+`);
+
+function syncOrderItems(order) {
+  const orderId = String(order?.id || '').trim();
+  if (!orderId) return 0;
+
+  deleteOrderItemsStmt.run(orderId);
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (!items.length) return 0;
+
+  const createdAt = order.createdAt || null;
+  const businessDate = order.businessDate || businessDate06VN(createdAt);
+  const customerName = String(order.customerName || order.customer?.name || '').trim() || null;
+  const customerLevel = String(order.customerLevel || order.customer?.level || '').trim() || null;
+  let inserted = 0;
+
+  items.forEach((item, itemIndex) => {
+    const qty = Number(item?.qty ?? item?.quantity ?? 0) || 0;
+    if (qty <= 0) return;
+
+    const isOffMenu = item?.isOffMenu ? 1 : 0;
+    const productFallback = isOffMenu ? {} : reportProductFallbackForItem(item);
+
+    let unitPrice = Number(item?.price ?? item?.unitPrice ?? item?.unit_price ?? 0) || 0;
+    if (!unitPrice) unitPrice = Number(productFallback.price || 0) || 0;
+    const explicitLine = Number(item?.lineTotal ?? item?.total ?? item?.amount);
+    let lineTotal = Number.isFinite(explicitLine) ? explicitLine : unitPrice * qty;
+    if (!unitPrice && qty > 0 && Number.isFinite(lineTotal) && lineTotal > 0) unitPrice = lineTotal / qty;
+    if (!Number.isFinite(lineTotal)) lineTotal = 0;
+
+    const productCode = String(
+      item?.productCode || item?.code || productFallback.productCode || (isOffMenu ? 'H100' : '')
+    ).trim();
+    const imageName = String(item?.imageName || item?.imageKey || productFallback.imageName || '').split('/').pop().trim();
+    const itemName = String(item?.name || item?.productName || productFallback.name || imageName || (isOffMenu ? 'OFF MENU' : '')).trim();
+    const itemGroup = String(item?.itemGroup || item?.group || productFallback.itemGroup || (isOffMenu ? 'OFF MENU' : '')).trim();
+
+    insertOrderItemStmt.run({
+      orderId,
+      itemIndex,
+      createdAt,
+      businessDate,
+      status: String(order.status || 'PENDING').toUpperCase(),
+      area: order.area == null ? null : String(order.area),
+      tableNo: order.tableNo == null ? null : String(order.tableNo),
+      staff: order.staff == null ? null : String(order.staff),
+      memberCard: order.memberCard == null ? null : String(order.memberCard),
+      customerName,
+      customerLevel,
+      productCode,
+      itemName,
+      itemGroup,
+      imageName,
+      qty,
+      unitPrice,
+      lineTotal,
+      note: String(item?.note || '').trim(),
+      isOffMenu,
+    });
+    inserted += 1;
+  });
+
+  return inserted;
+}
+
 function upsertOrder(orderInput) {
   if (!orderInput?.id) return false;
 
+  const createdAt = orderInput.createdAt || null;
   const order = {
     ...orderInput,
     id: String(orderInput.id),
+    businessDate: orderInput.businessDate || businessDate06VN(createdAt),
   };
 
-  const customerName =
-    order.customerName ||
-    order.customer?.name ||
-    null;
-
-  const customerLevel =
-    order.customer?.level ||
-    null;
+  const customerName = order.customerName || order.customer?.name || null;
+  const customerLevel = order.customerLevel || order.customer?.level || null;
 
   upsertOrderStmt.run({
     id: String(order.id),
@@ -501,11 +812,13 @@ function upsertOrder(orderInput) {
     customerLevel,
     status: order.status || 'PENDING',
     tableClosed: order.tableClosed ? 1 : 0,
-    createdAt: order.createdAt || null,
+    createdAt,
+    businessDate: order.businessDate || null,
     updatedAt: order.updatedAt || null,
     rawJson: JSON.stringify(order),
   });
 
+  syncOrderItems(order);
   return true;
 }
 
@@ -516,22 +829,318 @@ const loadOrdersStmt = db.prepare(`
 `);
 
 function loadOrders() {
-  // createdAt đang lưu ISO-8601 nên sort TEXT cho kết quả đúng.
-  // Không bọc datetime(createdAt), vì cách cũ làm SQLite bỏ index
-  // idx_orders_createdAt và tạo TEMP B-TREE trên disk.
   const rows = runSqliteReadWithRetry(() => loadOrdersStmt.all());
   return rows.map(orderFromRow).filter(Boolean);
 }
 
-const upsertOrdersTx = db.transaction((arr) => {
-  for (const order of arr || []) {
-    upsertOrder(order);
+function queryOrders({
+  customerId = '',
+  status = '',
+  area = '',
+  tableNo = '',
+  includeClosed = true,
+  from = '',
+  to = '',
+  limit = null,
+} = {}) {
+  const where = [];
+  const params = {};
+
+  const customer = String(customerId || '').trim();
+  if (customer) {
+    where.push(`memberCard = @customerId`);
+    params.customerId = customer;
   }
+
+  const areaText = String(area || '').trim();
+  if (areaText) {
+    where.push(`area = @area`);
+    params.area = areaText;
+  }
+
+  const tableText = String(tableNo ?? '').trim();
+  if (tableText) {
+    where.push(`tableNo = @tableNo`);
+    params.tableNo = tableText;
+  }
+
+  if (areaText && tableText && includeClosed === false) where.push(`tableClosed = 0`);
+
+  const statusText = String(status || '').trim().toUpperCase();
+  if (statusText && statusText !== 'ALL') {
+    if (statusText === 'OPEN') where.push(`status IN ('PENDING', 'IN_PROGRESS')`);
+    else {
+      where.push(`status = @status`);
+      params.status = statusText;
+    }
+  }
+
+  const fromText = String(from || '').trim();
+  if (fromText && Number.isFinite(Date.parse(fromText))) {
+    where.push(`createdAt >= @from`);
+    params.from = new Date(fromText).toISOString();
+  }
+
+  const toText = String(to || '').trim();
+  if (toText && Number.isFinite(Date.parse(toText))) {
+    where.push(`createdAt <= @to`);
+    params.to = new Date(toText).toISOString();
+  }
+
+  let limitSql = '';
+  if (limit != null && Number.isFinite(Number(limit))) {
+    params.limit = Math.max(1, Math.min(100000, Number(limit)));
+    limitSql = 'LIMIT @limit';
+  }
+
+  const sql = `
+    SELECT *
+    FROM orders
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    ORDER BY createdAt DESC
+    ${limitSql}
+  `;
+
+  const rows = runSqliteReadWithRetry(() => db.prepare(sql).all(params));
+  return rows.map(orderFromRow).filter(Boolean);
+}
+
+const upsertOrdersTx = db.transaction((arr) => {
+  for (const order of arr || []) upsertOrder(order);
 });
 
 function upsertOrders(orderArr = []) {
   upsertOrdersTx(Array.isArray(orderArr) ? orderArr : []);
   return true;
+}
+
+function reportWhere(from = '', to = '', alias = 'oi') {
+  const where = [`${alias}.status = 'DONE'`];
+  const params = {};
+  if (from && Number.isFinite(Date.parse(from))) {
+    params.from = new Date(from).toISOString();
+    where.push(`${alias}.createdAt >= @from`);
+  }
+  if (to && Number.isFinite(Date.parse(to))) {
+    params.to = new Date(to).toISOString();
+    where.push(`${alias}.createdAt <= @to`);
+  }
+  return { whereSql: `WHERE ${where.join(' AND ')}`, params };
+}
+
+function queryScalableReport({ type = 'orders_detail', from = '', to = '', page = 1, limit = 100, exchangeRate = 27000 } = {}) {
+  const allowed = new Set(['orders_detail', 'hanghoa_mon', 'hanghoa_nhom', 'hanghoa_ban', 'khachhang_tomtat', 'khachhang_chitiet']);
+  if (!allowed.has(type)) throw new Error('INVALID_REPORT_TYPE');
+
+  const safeLimit = Math.max(20, Math.min(500, Number(limit) || 100));
+  const safePage = Math.max(1, Number(page) || 1);
+  const offset = (safePage - 1) * safeLimit;
+  const rate = Math.max(1, Number(exchangeRate) || 27000);
+  const { whereSql, params } = reportWhere(from, to, 'oi');
+
+  const summary = runSqliteReadWithRetry(() => db.prepare(`
+    SELECT COUNT(DISTINCT oi.orderId) AS totalOrders,
+           COALESCE(SUM(oi.lineTotal), 0) AS totalRevenue,
+           COALESCE(SUM(oi.qty), 0) AS totalQty
+    FROM order_items oi
+    ${whereSql}
+  `).get(params)) || {};
+
+  const base = {
+    type,
+    totalOrders: Number(summary.totalOrders || 0),
+    totalRevenue: Number(summary.totalRevenue || 0),
+    totalRevenueUSD: Number(summary.totalRevenue || 0) / rate,
+    totalQty: Number(summary.totalQty || 0),
+  };
+
+  if (type === 'hanghoa_mon') {
+    const rows = runSqliteReadWithRetry(() => db.prepare(`
+      SELECT
+        COALESCE(NULLIF(TRIM(oi.productCode), ''), NULLIF(TRIM(oi.imageName), ''), oi.itemName) AS itemKey,
+        MAX(oi.itemName) AS name,
+        MAX(oi.productCode) AS code,
+        MAX(COALESCE(NULLIF(TRIM(oi.itemGroup), ''), '(Chưa có nhóm)')) AS \"group\",
+        SUM(oi.qty) AS qty,
+        SUM(oi.lineTotal) AS revenue
+      FROM order_items oi
+      ${whereSql}
+      GROUP BY COALESCE(NULLIF(TRIM(oi.productCode), ''), NULLIF(TRIM(oi.imageName), ''), oi.itemName)
+      ORDER BY revenue DESC, name COLLATE NOCASE ASC
+      LIMIT 5000
+    `).all(params));
+    return { ...base, rows };
+  }
+
+  if (type === 'hanghoa_nhom') {
+    const rows = runSqliteReadWithRetry(() => db.prepare(`
+      SELECT COALESCE(NULLIF(TRIM(oi.itemGroup), ''), '(Chưa có nhóm)') AS \"group\",
+             SUM(oi.qty) AS qty,
+             SUM(oi.lineTotal) AS revenue
+      FROM order_items oi
+      ${whereSql}
+      GROUP BY COALESCE(NULLIF(TRIM(oi.itemGroup), ''), '(Chưa có nhóm)')
+      ORDER BY revenue DESC, \"group\" COLLATE NOCASE ASC
+    `).all(params));
+    return { ...base, rows };
+  }
+
+  if (type === 'hanghoa_ban') {
+    const rows = runSqliteReadWithRetry(() => db.prepare(`
+      SELECT CASE
+               WHEN COALESCE(TRIM(oi.area), '') = '' AND COALESCE(TRIM(oi.tableNo), '') = '' THEN '(Không rõ bàn)'
+               WHEN COALESCE(TRIM(oi.area), '') = '' THEN oi.tableNo
+               WHEN COALESCE(TRIM(oi.tableNo), '') = '' THEN oi.area
+               ELSE oi.area || '-' || oi.tableNo
+             END AS tableName,
+             SUM(oi.qty) AS qty,
+             SUM(oi.lineTotal) AS revenue
+      FROM order_items oi
+      ${whereSql}
+      GROUP BY oi.area, oi.tableNo
+      ORDER BY revenue DESC, tableName COLLATE NOCASE ASC
+    `).all(params)).map((r) => ({ table: r.tableName, qty: r.qty, revenue: r.revenue }));
+    return { ...base, rows };
+  }
+
+  if (type === 'orders_detail') {
+    const countRow = runSqliteReadWithRetry(() => db.prepare(`SELECT COUNT(*) AS c FROM order_items oi ${whereSql}`).get(params));
+    const totalRows = Number(countRow?.c || 0);
+    const rows = runSqliteReadWithRetry(() => db.prepare(`
+      SELECT oi.*
+      FROM order_items oi
+      ${whereSql}
+      ORDER BY oi.createdAt DESC, CAST(oi.orderId AS INTEGER) DESC, oi.itemIndex ASC
+      LIMIT @limit OFFSET @offset
+    `).all({ ...params, limit: safeLimit, offset }));
+    return {
+      ...base,
+      rows,
+      pagination: { page: safePage, limit: safeLimit, totalRows, totalPages: Math.max(1, Math.ceil(totalRows / safeLimit)) },
+    };
+  }
+
+  if (type === 'khachhang_tomtat') {
+    const groupSql = `
+      SELECT
+        COALESCE(NULLIF(TRIM(oi.memberCard), ''), 'NO_CODE:' || oi.orderId) AS customerKey,
+        MAX(COALESCE(NULLIF(TRIM(oi.memberCard), ''), '')) AS code,
+        MAX(COALESCE(NULLIF(TRIM(oi.customerName), ''), '')) AS name,
+        MAX(COALESCE(NULLIF(TRIM(oi.customerLevel), ''), '')) AS level,
+        SUM(oi.qty) AS qty,
+        SUM(oi.lineTotal) AS revenue
+      FROM order_items oi
+      ${whereSql}
+      GROUP BY COALESCE(NULLIF(TRIM(oi.memberCard), ''), 'NO_CODE:' || oi.orderId)
+    `;
+    const totalRows = Number(runSqliteReadWithRetry(() => db.prepare(`SELECT COUNT(*) AS c FROM (${groupSql})`).get(params))?.c || 0);
+    const rows = runSqliteReadWithRetry(() => db.prepare(`
+      SELECT * FROM (${groupSql})
+      ORDER BY revenue DESC, code COLLATE NOCASE ASC
+      LIMIT @limit OFFSET @offset
+    `).all({ ...params, limit: safeLimit, offset })).map((r) => ({ id: r.customerKey, ...r }));
+    return { ...base, rows, pagination: { page: safePage, limit: safeLimit, totalRows, totalPages: Math.max(1, Math.ceil(totalRows / safeLimit)) } };
+  }
+
+  // khachhang_chitiet: phân trang theo khách, rồi lấy các món của đúng page đó.
+  const customerGroupSql = `
+    SELECT
+      COALESCE(NULLIF(TRIM(oi.memberCard), ''), 'NO_CODE:' || oi.orderId) AS customerKey,
+      MAX(COALESCE(NULLIF(TRIM(oi.memberCard), ''), '')) AS code,
+      MAX(COALESCE(NULLIF(TRIM(oi.customerName), ''), '')) AS name,
+      MAX(COALESCE(NULLIF(TRIM(oi.customerLevel), ''), '')) AS level,
+      SUM(oi.qty) AS qty,
+      SUM(oi.lineTotal) AS revenue
+    FROM order_items oi
+    ${whereSql}
+    GROUP BY COALESCE(NULLIF(TRIM(oi.memberCard), ''), 'NO_CODE:' || oi.orderId)
+  `;
+  const totalRows = Number(runSqliteReadWithRetry(() => db.prepare(`SELECT COUNT(*) AS c FROM (${customerGroupSql})`).get(params))?.c || 0);
+  const customers = runSqliteReadWithRetry(() => db.prepare(`
+    SELECT * FROM (${customerGroupSql})
+    ORDER BY revenue DESC, code COLLATE NOCASE ASC
+    LIMIT @limit OFFSET @offset
+  `).all({ ...params, limit: safeLimit, offset })).map((r) => ({ id: r.customerKey, ...r, items: [] }));
+
+  if (customers.length) {
+    const keys = customers.map((c) => c.customerKey);
+    const keyParams = { ...params };
+    const placeholders = keys.map((k, i) => { keyParams[`ck${i}`] = k; return `@ck${i}`; }).join(',');
+    const itemRows = runSqliteReadWithRetry(() => db.prepare(`
+      SELECT
+        COALESCE(NULLIF(TRIM(oi.memberCard), ''), 'NO_CODE:' || oi.orderId) AS customerKey,
+        COALESCE(NULLIF(TRIM(oi.itemName), ''), NULLIF(TRIM(oi.productCode), ''), oi.imageName, '(Không rõ món)') AS name,
+        SUM(oi.qty) AS qty,
+        SUM(oi.lineTotal) AS revenue
+      FROM order_items oi
+      ${whereSql}
+        AND COALESCE(NULLIF(TRIM(oi.memberCard), ''), 'NO_CODE:' || oi.orderId) IN (${placeholders})
+      GROUP BY customerKey, COALESCE(NULLIF(TRIM(oi.itemName), ''), NULLIF(TRIM(oi.productCode), ''), oi.imageName, '(Không rõ món)')
+      ORDER BY revenue DESC
+    `).all(keyParams));
+    const byKey = new Map(customers.map((c) => [c.customerKey, c]));
+    itemRows.forEach((r) => byKey.get(r.customerKey)?.items.push({ name: r.name, qty: r.qty, revenue: r.revenue }));
+  }
+
+  return { ...base, customers, pagination: { page: safePage, limit: safeLimit, totalRows, totalPages: Math.max(1, Math.ceil(totalRows / safeLimit)) } };
+}
+
+function iterateScalableReportRows({ type = 'orders_detail', from = '', to = '' } = {}) {
+  const { whereSql, params } = reportWhere(from, to, 'oi');
+
+  if (type === 'orders_detail') {
+    return db.prepare(`SELECT oi.* FROM order_items oi ${whereSql} ORDER BY oi.createdAt DESC, CAST(oi.orderId AS INTEGER) DESC, oi.itemIndex ASC`).iterate(params);
+  }
+  if (type === 'hanghoa_mon') {
+    return db.prepare(`
+      SELECT MAX(oi.itemName) AS name, MAX(oi.productCode) AS code,
+             MAX(COALESCE(NULLIF(TRIM(oi.itemGroup), ''), '(Chưa có nhóm)')) AS \"group\",
+             SUM(oi.qty) AS qty, SUM(oi.lineTotal) AS revenue
+      FROM order_items oi ${whereSql}
+      GROUP BY COALESCE(NULLIF(TRIM(oi.productCode), ''), NULLIF(TRIM(oi.imageName), ''), oi.itemName)
+      ORDER BY revenue DESC
+    `).iterate(params);
+  }
+  if (type === 'hanghoa_nhom') {
+    return db.prepare(`SELECT COALESCE(NULLIF(TRIM(oi.itemGroup), ''), '(Chưa có nhóm)') AS \"group\", SUM(oi.qty) AS qty, SUM(oi.lineTotal) AS revenue FROM order_items oi ${whereSql} GROUP BY COALESCE(NULLIF(TRIM(oi.itemGroup), ''), '(Chưa có nhóm)') ORDER BY revenue DESC`).iterate(params);
+  }
+  if (type === 'hanghoa_ban') {
+    return db.prepare(`SELECT oi.area, oi.tableNo, SUM(oi.qty) AS qty, SUM(oi.lineTotal) AS revenue FROM order_items oi ${whereSql} GROUP BY oi.area, oi.tableNo ORDER BY revenue DESC`).iterate(params);
+  }
+  if (type === 'khachhang_tomtat') {
+    return db.prepare(`SELECT MAX(oi.memberCard) AS code, MAX(oi.customerName) AS name, MAX(oi.customerLevel) AS level, SUM(oi.qty) AS qty, SUM(oi.lineTotal) AS revenue FROM order_items oi ${whereSql} GROUP BY COALESCE(NULLIF(TRIM(oi.memberCard), ''), 'NO_CODE:' || oi.orderId) ORDER BY revenue DESC`).iterate(params);
+  }
+  return db.prepare(`
+    SELECT MAX(oi.memberCard) AS code, MAX(oi.customerName) AS customerName, MAX(oi.customerLevel) AS level,
+           COALESCE(NULLIF(TRIM(oi.itemName), ''), NULLIF(TRIM(oi.productCode), ''), oi.imageName, '(Không rõ món)') AS itemName,
+           SUM(oi.qty) AS qty, SUM(oi.lineTotal) AS revenue
+    FROM order_items oi ${whereSql}
+    GROUP BY COALESCE(NULLIF(TRIM(oi.memberCard), ''), 'NO_CODE:' || oi.orderId), itemName
+    ORDER BY code COLLATE NOCASE ASC, revenue DESC
+  `).iterate(params);
+}
+
+function backfillReportData() {
+  const rows = runSqliteReadWithRetry(() => db.prepare(`
+    SELECT o.*
+    FROM orders o
+    WHERE o.businessDate IS NULL
+       OR NOT EXISTS (SELECT 1 FROM order_items oi WHERE oi.orderId = o.id)
+    ORDER BY o.createdAt ASC
+  `).all());
+
+  if (!rows.length) return { orders: 0, items: 0 };
+  let items = 0;
+  const tx = db.transaction((legacyRows) => {
+    legacyRows.forEach((row) => {
+      const order = orderFromRow(row);
+      if (!order) return;
+      upsertOrder(order);
+      items += Array.isArray(order.items) ? order.items.filter((it) => Number(it?.qty ?? it?.quantity ?? 0) > 0).length : 0;
+    });
+  });
+  tx(rows);
+  return { orders: rows.length, items };
 }
 
 function checkpointWal(mode = 'PASSIVE') {
@@ -573,6 +1182,8 @@ function getNextOrderId() {
 
 function replaceAllOrders(orderArr = []) {
   const tx = db.transaction((arr) => {
+    // order_items là bảng index report dẫn xuất từ orders; phải xóa cùng lúc để không còn orphan.
+    db.prepare(`DELETE FROM order_items`).run();
     db.prepare(`DELETE FROM orders`).run();
 
     for (const order of arr || []) {
@@ -1000,24 +1611,20 @@ function normalizeFoodInput(foodInput = {}) {
 
   f.imageUrl = String(f.imageUrl || '').trim();
   f.type = String(f.type || '').trim();
-  f.status = String(f.status || '').trim() || 'Available';
+
+  // Sold Out / Available là trạng thái thủ công do Admin/Kitchen quản lý.
+  // quantity chỉ còn là field legacy và TUYỆT ĐỐI không được phép đổi status.
+  const requestedStatus = String(f.status || '').trim();
+  f.status = ['Available', 'Sold Out'].includes(requestedStatus)
+    ? requestedStatus
+    : 'Available';
 
   if (!Array.isArray(f.levelAccess)) {
     f.levelAccess = [];
   }
 
   const qtyNum = Number(f.quantity);
-  if (!Number.isFinite(qtyNum)) {
-    f.quantity = f.status === 'Sold Out' ? 0 : 1;
-  } else {
-    f.quantity = Math.max(0, qtyNum);
-  }
-
-  if (f.quantity <= 0) {
-    f.status = 'Sold Out';
-  } else if (!f.status || f.status === 'Sold Out') {
-    f.status = 'Available';
-  }
+  f.quantity = Number.isFinite(qtyNum) ? Math.max(0, qtyNum) : 1;
 
   const orderNum = Number(f.order);
   f.order = Number.isFinite(orderNum) ? orderNum : 0;
@@ -1769,6 +2376,8 @@ function updateCustomerEvent(idInput, patch = {}) {
 function getInfo() {
   const membersCount = db.prepare(`SELECT COUNT(*) AS c FROM members`).get().c;
   const ordersCount = db.prepare(`SELECT COUNT(*) AS c FROM orders`).get().c;
+  let orderItemsCount = 0;
+  try { orderItemsCount = db.prepare(`SELECT COUNT(*) AS c FROM order_items`).get().c; } catch {}
   const statusHistoryCount = db.prepare(`SELECT COUNT(*) AS c FROM status_history`).get().c;
   const productsCount = db.prepare(`SELECT COUNT(*) AS c FROM products`).get().c;
 
@@ -1788,6 +2397,7 @@ try {
     dbPath: DB_PATH,
     membersCount,
     ordersCount,
+    orderItemsCount,
     statusHistoryCount,
     productsCount,
     foodsCount,
@@ -1806,11 +2416,19 @@ module.exports = {
   importOrdersFromJsonIfEmpty,
 
   loadMembers,
+  getCustomerSyncHealth,
+  queryMembersPage,
   replaceAllMembers,
   upsertMember,
   deleteMember,
+  getMemberByCode,
 
   loadOrders,
+  queryOrders,
+  queryScalableReport,
+  iterateScalableReportRows,
+  backfillReportData,
+  businessDate06VN,
   getOrderById,
   replaceAllOrders,
   upsertOrder,

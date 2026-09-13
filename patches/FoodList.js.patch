@@ -1,0 +1,221 @@
+--- /mnt/data/floorlens-ux-update-20260827/user/src/components/FoodList.js	2026-08-27 11:33:35.204663888 +0000
++++ /mnt/data/floorlens-ux-fix-20260827-v2/user/src/components/FoodList.js	2026-08-27 11:35:28.485571956 +0000
+@@ -666,6 +666,8 @@
+   const [globalCustomerEventAlert, setGlobalCustomerEventAlert] = useState(null);
+ const [insightsOpenCode, setInsightsOpenCode] = useState('');
+ const [floorlensInsightsCode, setFloorlensInsightsCode] = useState('');
++const [floorlensReturnTarget, setFloorlensReturnTarget] = useState(null);
++const [floorlensFocusRequestId, setFloorlensFocusRequestId] = useState(0);
+   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+   const placeOrderLockRef = useRef(false);
+   const orderRequestIdRef = useRef(null);
+@@ -1404,6 +1406,106 @@
+   });
+ };
+ 
++const floorlensCartKey = (area, tableNo) => tableKeyOf(String(area || ''), String(tableNo || ''));
++
++const setFloorlensCartQty = ({ area, tableNo, cartKey, qty }) => {
++  const key = floorlensCartKey(area, tableNo);
++  if (!key || !cartKey) return;
++
++  setCarts((prev) => {
++    const cart = { ...(prev[key] || {}) };
++    const nextQty = Math.max(0, Number(qty || 0));
++    if (nextQty <= 0) {
++      delete cart[cartKey];
++    } else {
++      const current = cart[cartKey] || {
++        qty: 0,
++        note: '',
++        name: '',
++        isOffMenu: isOffMenuKey(cartKey),
++      };
++      cart[cartKey] = { ...current, qty: nextQty };
++    }
++    return { ...prev, [key]: cart };
++  });
++};
++
++const updateFloorlensCartItem = ({ area, tableNo, cartKey, patch }) => {
++  const key = floorlensCartKey(area, tableNo);
++  if (!key || !cartKey) return;
++  setCarts((prev) => {
++    const cart = { ...(prev[key] || {}) };
++    if (!cart[cartKey]) return prev;
++    cart[cartKey] = { ...cart[cartKey], ...(patch || {}) };
++    return { ...prev, [key]: cart };
++  });
++};
++
++const clearFloorlensCart = ({ area, tableNo }) => {
++  const key = floorlensCartKey(area, tableNo);
++  if (!key) return;
++  setCarts((prev) => ({ ...prev, [key]: {} }));
++};
++
++const addFloorlensOffMenu = ({ area, tableNo }) => {
++  const key = floorlensCartKey(area, tableNo);
++  if (!key) return;
++  const cartKey = makeOffMenuKey();
++  setCarts((prev) => {
++    const cart = { ...(prev[key] || {}) };
++    cart[cartKey] = { qty: 1, note: '', name: '', isOffMenu: true };
++    return { ...prev, [key]: cart };
++  });
++};
++
++const applyFloorlensMachineSelection = ({ area, tableNo, memberCode = '', customerName = '' }, { openMenu = true } = {}) => {
++  const normalizedTableNo = Number.isFinite(Number(tableNo)) ? Number(tableNo) : tableNo;
++  setSelectedTable({ area, tableNo: normalizedTableNo });
++
++  const code = String(memberCode || '').replace(/\s+/g, '').trim();
++  const realtimeName = String(customerName || '').trim();
++  if (code) {
++    setOrderForm((prev) => {
++      const prevCode = String(prev.memberCard || prev.customerCode || '').replace(/\s+/g, '').trim();
++      const sameCustomer = prevCode === code;
++      return {
++        ...prev,
++        memberCard: code,
++        customerCode: code,
++        customerName: realtimeName || (sameCustomer ? prev.customerName : '') || 'Đang tìm khách...',
++        level: sameCustomer ? prev.level : 'Đang tìm...',
++      };
++    });
++    setMemberSearchText(realtimeName ? `${code} - ${realtimeName}` : code);
++  } else {
++    setOrderForm((prev) => ({
++      ...prev,
++      memberCard: '',
++      customerCode: '',
++      customerName: '',
++      level: '',
++    }));
++    setMemberSearchText('');
++  }
++
++  setFloorlensReturnTarget({
++    machineNumber: String(tableNo || ''),
++    area: String(area || ''),
++    tab: 'cart',
++  });
++
++  if (openMenu) {
++    setMode('menu');
++    if (compactShell) setMenuOpen(false);
++    setToast(`Đã chọn máy ${tableNo}`);
++  }
++};
++
++const checkoutFloorlensCart = (payload) => {
++  applyFloorlensMachineSelection(payload, { openMenu: false });
++  setShowOrderForm(true);
++};
++
+ const orderDraftItems = useMemo(() => {
+   return Object.entries(currentCart)
+     .map(([cartKey, item]) => {
+@@ -2553,7 +2655,7 @@
+   Insights
+ </button>
+             <button
+-              onClick={() => { setMode('floorlens'); if (compactShell) setMenuOpen(false); }}
++              onClick={() => { setFloorlensReturnTarget(null); setMode('floorlens'); if (compactShell) setMenuOpen(false); }}
+               style={{
+                 minWidth: 0,
+                 gridColumn: '1 / -1',
+@@ -2908,6 +3010,32 @@
+             zIndex: 1900,
+           }}
+         >
++          {mode === 'menu' && floorlensReturnTarget && selectedTable &&
++            String(selectedTable.tableNo) === String(floorlensReturnTarget.machineNumber) && (
++            <button
++              type="button"
++              onClick={() => {
++                setFloorlensFocusRequestId((value) => value + 1);
++                setMode('floorlens');
++                if (compactShell) setMenuOpen(false);
++              }}
++              style={{
++                padding: '6px 10px',
++                borderRadius: 8,
++                border: '1px solid #0f766e',
++                background: '#ecfdf5',
++                color: '#0f766e',
++                cursor: 'pointer',
++                fontSize: 13,
++                fontWeight: 800,
++                whiteSpace: 'nowrap',
++              }}
++              title="Quay lại giỏ hàng của máy trên FloorLens"
++            >
++              ← Giỏ máy {floorlensReturnTarget.machineNumber}
++            </button>
++          )}
++
+           <button
+             onClick={() => setMode(mode === 'tables' ? 'menu' : 'tables')}
+             style={{
+@@ -2966,7 +3094,8 @@
+             left: menuOpen && !compactShell ? `${MENU_WIDTH}px` : 0,
+             right: 0,
+             bottom: selectedTable && !['orders', 'insights', 'floorlens'].includes(mode) ? BOTTOM_BAR_H : 0,
+-            overflowY: 'auto',
++            overflowY: mode === 'floorlens' ? 'hidden' : 'auto',
++            overflowX: 'hidden',
+             padding: compactShell ? '8px' : '12px 16px',
+             background: '#fff8dc',
+             zIndex: 100,
+@@ -2992,41 +3121,15 @@
+     selectedTable={selectedTable}
+     carts={carts}
+     foods={foods}
+-    onSelectTable={({ area, tableNo, memberCode = '', customerName = '' }) => {
+-      setSelectedTable({ area, tableNo });
+-
+-      const code = String(memberCode || '').replace(/\s+/g, '').trim();
+-      const realtimeName = String(customerName || '').trim();
+-      if (code) {
+-        setOrderForm((prev) => {
+-          const prevCode = String(prev.memberCard || prev.customerCode || '').replace(/\s+/g, '').trim();
+-          const sameCustomer = prevCode === code;
+-          return {
+-            ...prev,
+-            memberCard: code,
+-            customerCode: code,
+-            customerName: realtimeName || (sameCustomer ? prev.customerName : '') || 'Đang tìm khách...',
+-            level: sameCustomer ? prev.level : 'Đang tìm...',
+-          };
+-        });
+-        setMemberSearchText(realtimeName ? `${code} - ${realtimeName}` : code);
+-      } else {
+-        // Máy trống / Unknown Player không được giữ member của máy trước.
+-        // Nếu không clear ở đây user có thể vô tình gửi order cho sai khách.
+-        setOrderForm((prev) => ({
+-          ...prev,
+-          memberCard: '',
+-          customerCode: '',
+-          customerName: '',
+-          level: '',
+-        }));
+-        setMemberSearchText('');
+-      }
+-
+-      setMode('menu');
+-      if (compactShell) setMenuOpen(false);
+-      setToast(`Đã chọn máy ${tableNo}`);
+-    }}
++    initialMachineNumber={floorlensReturnTarget?.machineNumber || ''}
++    initialDetailTab={floorlensReturnTarget?.tab || 'machine'}
++    focusRequestId={floorlensFocusRequestId}
++    onSelectTable={(payload) => applyFloorlensMachineSelection(payload, { openMenu: true })}
++    onCartSetQty={setFloorlensCartQty}
++    onCartUpdateItem={updateFloorlensCartItem}
++    onCartClear={clearFloorlensCart}
++    onAddOffMenu={addFloorlensOffMenu}
++    onCheckout={checkoutFloorlensCart}
+     onOpenCustomer={(memberCode) => {
+       setFloorlensInsightsCode(String(memberCode || '').replace(/\s+/g, '').trim());
+     }}

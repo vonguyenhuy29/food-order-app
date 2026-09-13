@@ -1,0 +1,831 @@
+--- /mnt/data/floorlens-ux-update-20260827/user/src/components/FloorLens.jsx	2026-08-27 11:33:35.804680448 +0000
++++ /mnt/data/floorlens-ux-fix-20260827-v2/user/src/components/FloorLens.jsx	2026-08-27 11:39:47.174678469 +0000
+@@ -94,6 +94,28 @@
+   }
+ }
+ 
++function avatarScreenPosition(position = 'top', transform = {}) {
++  const vectors = {
++    top: [0, -1],
++    right: [1, 0],
++    bottom: [0, 1],
++    left: [-1, 0],
++  };
++
++  let [x, y] = vectors[position] || vectors.top;
++  const sourceScaleX = Number(transform.scaleX ?? 1) || 1;
++  const sourceScaleY = Number(transform.scaleY ?? 1) || 1;
++  if (transform.flipX || sourceScaleX < 0) x *= -1;
++  if (transform.flipY || sourceScaleY < 0) y *= -1;
++
++  const radians = (Number(transform.rotation || 0) * Math.PI) / 180;
++  const rotatedX = x * Math.cos(radians) - y * Math.sin(radians);
++  const rotatedY = x * Math.sin(radians) + y * Math.cos(radians);
++
++  if (Math.abs(rotatedX) > Math.abs(rotatedY)) return rotatedX >= 0 ? 'right' : 'left';
++  return rotatedY >= 0 ? 'bottom' : 'top';
++}
++
+ function formatDateTime(value) {
+   if (!value) return '—';
+   const parsed = new Date(value);
+@@ -108,6 +130,51 @@
+   });
+ }
+ 
++function floorlensWallClockParts(value) {
++  const raw = text(value);
++  if (!raw) return null;
++
++  // FloorLens upstream đang gửi giờ local casino nhưng có hậu tố Z.
++  // Không dùng new Date() cho session time vì browser sẽ cộng thêm timezone (+7 ở VN).
++  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/);
++  if (!match) return null;
++  return {
++    year: Number(match[1]),
++    month: Number(match[2]),
++    day: Number(match[3]),
++    hour: Number(match[4]),
++    minute: Number(match[5]),
++    second: Number(match[6] || 0),
++  };
++}
++
++function floorlensWallClockSortValue(value) {
++  const parts = floorlensWallClockParts(value);
++  if (!parts) return 0;
++  return Date.UTC(
++    parts.year,
++    Math.max(0, parts.month - 1),
++    parts.day,
++    parts.hour,
++    parts.minute,
++    parts.second
++  );
++}
++
++function formatFloorlensDateTime(value) {
++  const parts = floorlensWallClockParts(value);
++  if (!parts) return text(value) || '—';
++  const pad = (n) => String(n).padStart(2, '0');
++  return `${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)} ${pad(parts.day)}/${pad(parts.month)}/${parts.year}`;
++}
++
++function formatFloorlensShortTime(value) {
++  const parts = floorlensWallClockParts(value);
++  if (!parts) return text(value) || '—';
++  const pad = (n) => String(n).padStart(2, '0');
++  return `${pad(parts.hour)}:${pad(parts.minute)}`;
++}
++
+ function formatShortTime(value) {
+   if (!value) return '—';
+   const parsed = new Date(value);
+@@ -161,9 +228,11 @@
+         note: text(item?.note),
+         offMenu,
+         name,
++        rawName: text(item?.name),
+         code,
+         price,
+         lineTotal: price * qty,
++        imageUrl: food?.imageUrl || '',
+       };
+     })
+     .filter(Boolean);
+@@ -242,6 +311,58 @@
+   );
+ }
+ 
++
++function HeaderActivityCard({ kind, alert, apiUrl, onOpen, onDismiss }) {
++  const entering = kind === 'ENTER';
++  const unknown = alert?.unknownPlayer || !text(alert?.memberCode);
++
++  return (
++    <div className={`fl-header-activity-card ${entering ? 'is-enter' : 'is-leave'} ${alert ? 'has-event' : ''}`}>
++      <div className="fl-header-activity-label">
++        <span>{entering ? 'VÀO' : 'RA'}</span>
++        <small>{entering ? 'Khách vừa vào máy' : 'Khách vừa rời máy'}</small>
++      </div>
++
++      {alert ? (
++        <button
++          type="button"
++          className="fl-header-activity-event"
++          onClick={() => onOpen?.(alert)}
++          title="Bấm để tới máy"
++        >
++          <CustomerAvatar
++            apiUrl={apiUrl}
++            code={alert.memberCode}
++            name={alert.customerName}
++            unknown={unknown}
++            size={32}
++            className="fl-avatar-live"
++          />
++          <span>
++            <b>Máy {alert.machineNumber}</b>
++            <small>{alert.customerName || (unknown ? 'Unknown Player' : `Member ${alert.memberCode}`)}</small>
++          </span>
++          <strong>→</strong>
++          <i className="fl-header-activity-progress" />
++        </button>
++      ) : (
++        <div className="fl-header-activity-empty">Chưa có sự kiện mới</div>
++      )}
++
++      {alert && (
++        <button
++          type="button"
++          className="fl-header-activity-close"
++          onClick={() => onDismiss?.(alert.id)}
++          aria-label="Đóng thông báo"
++        >
++          ×
++        </button>
++      )}
++    </div>
++  );
++}
++
+ function FallbackMachineGrid({ machines, onOpen, apiUrl, selectedTable }) {
+   return (
+     <div className="fl-fallback-grid">
+@@ -285,6 +406,14 @@
+   onOpenCustomer = null,
+   carts = {},
+   foods = [],
++  onCartSetQty = null,
++  onCartUpdateItem = null,
++  onCartClear = null,
++  onAddOffMenu = null,
++  onCheckout = null,
++  initialMachineNumber = '',
++  initialDetailTab = 'machine',
++  focusRequestId = 0,
+ }) {
+   const [snapshot, setSnapshot] = useState(null);
+   const [loading, setLoading] = useState(true);
+@@ -296,7 +425,8 @@
+   const [query, setQuery] = useState('');
+   const [floor, setFloor] = useState('ALL');
+   const [status, setStatus] = useState(STATUS.ALL);
+-  const [area, setArea] = useState('ALL');
++  const [selectedAreas, setSelectedAreas] = useState([]);
++  const [areaMenuOpen, setAreaMenuOpen] = useState(false);
+ 
+   const [selectedNumber, setSelectedNumber] = useState(null);
+   const [history, setHistory] = useState([]);
+@@ -344,6 +474,8 @@
+   const orderRefreshTimerRef = useRef(null);
+   const locateTimerRef = useRef(null);
+   const alertTimersRef = useRef(new Map());
++  // Chặn response hồ sơ của machine cũ ghi đè machine vừa chọn.
++  const customerProfileRequestRef = useRef(0);
+   const activityHighlightTimersRef = useRef(new Map());
+ 
+   useEffect(() => {
+@@ -510,7 +642,7 @@
+       const unknownMachine = isMachineUnknown(machine);
+ 
+       if (floor !== 'ALL' && machine.floor !== floor) return false;
+-      if (area !== 'ALL' && machine.area !== area) return false;
++      if (selectedAreas.length > 0 && !selectedAreas.includes(machine.area)) return false;
+ 
+       if (status === STATUS.PLAYING && !playing) return false;
+       if (status === STATUS.AVAILABLE && (playing || unknownMachine)) return false;
+@@ -528,7 +660,7 @@
+         machine.gameTypeName,
+       ].some((value) => text(value).toLowerCase().includes(needle));
+     });
+-  }, [machines, query, floor, area, status]);
++  }, [machines, query, floor, selectedAreas, status]);
+ 
+   const searchMatches = useMemo(() => {
+     const needle = query.trim().toLowerCase();
+@@ -844,7 +976,7 @@
+     if (clearFilters) {
+       setQuery('');
+       setFloor('ALL');
+-      setArea('ALL');
++      setSelectedAreas([]);
+       setStatus(STATUS.ALL);
+     }
+ 
+@@ -885,6 +1017,15 @@
+   }, [layoutMachineByNumber]);
+ 
+   useEffect(() => {
++    const number = text(initialMachineNumber);
++    if (!number || !layoutMachineByNumber.has(number)) return;
++    const tab = ['machine', 'customer', 'orders', 'cart'].includes(initialDetailTab)
++      ? initialDetailTab
++      : 'machine';
++    locateMachine(number, { clearFilters: false, openDetail: true, zoom: false, tab });
++  }, [focusRequestId, initialMachineNumber, initialDetailTab, layoutMachineByNumber, locateMachine]);
++
++  useEffect(() => {
+     if (!selectedNumber || machineByNumber.has(text(selectedNumber))) return;
+     setSelectedNumber(null);
+   }, [machineByNumber, selectedNumber]);
+@@ -899,7 +1040,12 @@
+         apiUrl(`/api/user/floorlens/history/${encodeURIComponent(number)}`),
+         { params: { limit: 30 }, timeout: 10000 }
+       );
+-      setHistory(Array.isArray(response.data?.rows) ? response.data.rows : []);
++      const rows = Array.isArray(response.data?.rows) ? response.data.rows : [];
++      setHistory(
++        [...rows].sort((a, b) =>
++          floorlensWallClockSortValue(b?.startedAt) - floorlensWallClockSortValue(a?.startedAt)
++        )
++      );
+     } catch (requestError) {
+       setHistory([]);
+       setHistoryError(requestError?.response?.data?.error || requestError?.message || 'Không tải được lịch sử');
+@@ -943,6 +1089,8 @@
+   const loadCustomerProfile = useCallback(async (memberCode) => {
+     const code = text(memberCode).replace(/\s+/g, '');
+     if (!code) return;
++    const requestId = customerProfileRequestRef.current + 1;
++    customerProfileRequestRef.current = requestId;
+     setCustomerProfileCode(code);
+     setCustomerProfileLoading(true);
+     setCustomerProfileError('');
+@@ -971,6 +1119,7 @@
+         }),
+       ]);
+ 
++      if (requestId !== customerProfileRequestRef.current) return;
+       if (profileResult.status === 'fulfilled') setCustomerProfile(profileResult.value.data || null);
+       else throw profileResult.reason;
+ 
+@@ -982,13 +1131,14 @@
+           : []
+       );
+     } catch (requestError) {
++      if (requestId !== customerProfileRequestRef.current) return;
+       setCustomerProfile(null);
+       setCustomerSpending(null);
+       setCustomerSpendingAll(null);
+       setCustomerMachineHistory([]);
+       setCustomerProfileError(requestError?.response?.data?.error || requestError?.message || 'Không tải được hồ sơ khách');
+     } finally {
+-      setCustomerProfileLoading(false);
++      if (requestId === customerProfileRequestRef.current) setCustomerProfileLoading(false);
+     }
+   }, [apiUrl]);
+ 
+@@ -1004,9 +1154,19 @@
+     }
+     if (number) setSelectedNumber(number);
+     setActiveDetailTab('customer');
+-    loadCustomerProfile(code);
+     if (locate && number) locateMachine(number, { tab: 'customer' });
+-  }, [loadCustomerProfile, locateMachine]);
++  }, [locateMachine]);
++
++  useEffect(() => {
++    customerProfileRequestRef.current += 1;
++    setCustomerProfileCode('');
++    setCustomerProfile(null);
++    setCustomerProfileLoading(false);
++    setCustomerProfileError('');
++    setCustomerSpending(null);
++    setCustomerSpendingAll(null);
++    setCustomerMachineHistory([]);
++  }, [selectedNumber]);
+ 
+   useEffect(() => {
+     setExpandedOrderIds(new Set());
+@@ -1015,7 +1175,7 @@
+       return;
+     }
+     if (activeDetailTab === 'orders') loadMachineOrders(selected.machineNumber, selected.area);
+-    if (activeDetailTab === 'customer' && selected.memberCode && !isUnknownPlayer(selected)) {
++    if (activeDetailTab === 'customer' && isVerifiedPlaying(selected) && selected.memberCode && !isUnknownPlayer(selected)) {
+       const code = text(selected.memberCode).replace(/\s+/g, '');
+       if (code && code !== customerProfileCode) loadCustomerProfile(code);
+     }
+@@ -1031,7 +1191,7 @@
+   const resetFilters = () => {
+     setQuery('');
+     setFloor('ALL');
+-    setArea('ALL');
++    setSelectedAreas([]);
+     setStatus(STATUS.ALL);
+   };
+ 
+@@ -1058,6 +1218,8 @@
+   }, []);
+ 
+   const showAll = () => setStatus(STATUS.ALL);
++  const latestEnterAlert = alerts.find((item) => item.kind === 'ENTER') || null;
++  const latestLeaveAlert = alerts.find((item) => item.kind === 'LEAVE') || null;
+ 
+   return (
+     <div className="fl-shell">
+@@ -1067,7 +1229,29 @@
+             <span className="fl-test-badge">TEST</span>
+             <h1>FloorLens</h1>
+           </div>
+-          <p>Table + vị trí khách + trạng thái order + lịch sử máy theo thời gian thực.</p>
++        </div>
++
++        <div className="fl-header-activity-board" aria-live="polite">
++          <HeaderActivityCard
++            kind="ENTER"
++            alert={latestEnterAlert}
++            apiUrl={apiUrl}
++            onDismiss={dismissAlert}
++            onOpen={(alert) => {
++              dismissAlert(alert.id);
++              locateMachine(alert.machineNumber, { clearFilters: true, tab: 'machine' });
++            }}
++          />
++          <HeaderActivityCard
++            kind="LEAVE"
++            alert={latestLeaveAlert}
++            apiUrl={apiUrl}
++            onDismiss={dismissAlert}
++            onOpen={(alert) => {
++              dismissAlert(alert.id);
++              locateMachine(alert.machineNumber, { clearFilters: true, tab: 'machine' });
++            }}
++          />
+         </div>
+ 
+         <div className="fl-header-actions">
+@@ -1196,10 +1380,51 @@
+           ))}
+         </div>
+ 
+-        <select value={area} onChange={(event) => setArea(event.target.value)}>
+-          <option value="ALL">Tất cả khu vực</option>
+-          {areaOptions.map((name) => <option key={name} value={name}>{name}</option>)}
+-        </select>
++        <div className="fl-area-multi">
++          <button
++            type="button"
++            className={`fl-area-multi-trigger ${areaMenuOpen ? 'is-open' : ''}`}
++            onClick={() => setAreaMenuOpen((value) => !value)}
++          >
++            <span>
++              {selectedAreas.length === 0
++                ? 'Tất cả khu vực'
++                : selectedAreas.length === 1
++                  ? selectedAreas[0]
++                  : `${selectedAreas.length} khu vực`}
++            </span>
++            <b>⌄</b>
++          </button>
++
++          {areaMenuOpen && (
++            <div className="fl-area-multi-menu">
++              <label className="fl-area-check is-all">
++                <input
++                  type="checkbox"
++                  checked={selectedAreas.length === 0}
++                  onChange={() => setSelectedAreas([])}
++                />
++                <span>Tất cả khu vực</span>
++              </label>
++
++              {areaOptions.map((name) => (
++                <label className="fl-area-check" key={name}>
++                  <input
++                    type="checkbox"
++                    checked={selectedAreas.includes(name)}
++                    onChange={(event) => {
++                      setSelectedAreas((prev) => {
++                        if (event.target.checked) return [...new Set([...prev, name])];
++                        return prev.filter((value) => value !== name);
++                      });
++                    }}
++                  />
++                  <span>{name}</span>
++                </label>
++              ))}
++            </div>
++          )}
++        </div>
+ 
+         <select value={status} onChange={(event) => setStatus(event.target.value)}>
+           <option value={STATUS.ALL}>Tất cả trạng thái</option>
+@@ -1210,7 +1435,7 @@
+           <option value={STATUS.UNKNOWN}>Unknown player</option>
+         </select>
+ 
+-        {(query || floor !== 'ALL' || area !== 'ALL' || status !== STATUS.ALL) && (
++        {(query || floor !== 'ALL' || selectedAreas.length > 0 || status !== STATUS.ALL) && (
+           <button type="button" className="fl-reset-button" onClick={resetFilters}>Đặt lại</button>
+         )}
+       </section>
+@@ -1363,9 +1588,15 @@
+                     const requestedAvatarWidth = Number(avatarCfg.width || 0);
+                     const requestedAvatarHeight = Number(avatarCfg.height || 0);
+                     const avatarSize = clamp(
+-                      Math.max(requestedAvatarWidth, requestedAvatarHeight, Math.min(geometry.width, geometry.height) * 0.9),
+-                      22,
+-                      42
++                      Math.max(requestedAvatarWidth, requestedAvatarHeight, Math.min(geometry.width, geometry.height) * 0.78),
++                      20,
++                      38
++                    );
++                    const sourceAvatarPosition = text(avatarCfg.position) || 'top';
++                    const screenAvatarPosition = avatarScreenPosition(sourceAvatarPosition, transform);
++                    const avatarSlotStyle = avatarPositionStyle(
++                      screenAvatarPosition,
++                      Number(avatarCfg.offset ?? avatarCfg.distance ?? 2)
+                     );
+                     const isSelected = selectedNumber === number;
+                     const isCurrentTable = selectedTable &&
+@@ -1443,8 +1674,8 @@
+ 
+                         {playing && (
+                           <span
+-                            className="fl-map-avatar-slot pos-top"
+-                            style={{ bottom: '100%', left: '50%', transform: 'translate(-50%,0)', marginBottom: 2 }}
++                            className={`fl-map-avatar-slot pos-${screenAvatarPosition}`}
++                            style={avatarSlotStyle}
+                           >
+                             <span
+                               className={`fl-avatar-click-target ${isUnknownPlayer(machine) ? 'is-unknown' : ''}`}
+@@ -1483,11 +1714,8 @@
+                                 name={machine.customerName}
+                                 unknown={isUnknownPlayer(machine)}
+                                 size={avatarSize}
+-                                className={`tone-${tone}`}
++                                className="fl-avatar-live"
+                               />
+-                              <span className={`fl-avatar-order-dot tone-${tone}`}>
+-                                {tone === 'ordered' ? '✓' : tone === 'not-ordered' ? '!' : '?'}
+-                              </span>
+                             </span>
+                           </span>
+                         )}
+@@ -1528,11 +1756,9 @@
+               <button
+                 type="button"
+                 className={activeDetailTab === 'customer' ? 'active' : ''}
+-                disabled={!customerProfileCode && (!selected.memberCode || isUnknownPlayer(selected))}
++                disabled={!selected.memberCode || isUnknownPlayer(selected) || !isVerifiedPlaying(selected)}
+                 onClick={() => {
+                   setActiveDetailTab('customer');
+-                  const code = customerProfileCode || (selected.memberCode && !isUnknownPlayer(selected) ? selected.memberCode : '');
+-                  if (code) loadCustomerProfile(code);
+                 }}
+               >
+                 Khách
+@@ -1602,7 +1828,7 @@
+                   <div><span>Khu vực</span><b>{selected.area || '—'}</b></div>
+                   <div><span>Tầng</span><b>{selected.floor || '—'}</b></div>
+                   <div><span>Session</span><b>{selected.sessionId || '—'}</b></div>
+-                  <div><span>Bắt đầu</span><b>{formatDateTime(selected.startedAt)}</b></div>
++                  <div><span>Bắt đầu</span><b>{formatFloorlensDateTime(selected.startedAt)}</b></div>
+                 </div>
+ 
+                 {isVerifiedPlaying(selected) && !isUnknownPlayer(selected) && (
+@@ -1611,7 +1837,6 @@
+                       <span>{selected.orderStatus === 'ORDERED' ? '✓' : '!'}</span>
+                       <div>
+                         <b>{selected.orderStatus === 'ORDERED' ? 'Khách đã order' : 'Khách chưa order'}</b>
+-                        <small>Business day 06:00 → 05:59</small>
+                       </div>
+                     </div>
+ 
+@@ -1667,8 +1892,8 @@
+                         return (
+                           <div className="fl-history-row" key={row.sessionId || `${row.startedAt}-${index}`}>
+                             <div className="fl-history-time">
+-                              <b>{formatShortTime(row.startedAt)}</b>
+-                              <small>{row.active ? 'Đang chơi' : row.endedAt ? `Rời ${formatShortTime(row.endedAt)}` : 'Đã đóng'}</small>
++                              <b>{formatFloorlensShortTime(row.startedAt)}</b>
++                              <small>{row.active ? 'Đang chơi' : row.endedAt ? `Rời ${formatFloorlensShortTime(row.endedAt)}` : 'Đã đóng'}</small>
+                             </div>
+                             <span
+                               className={`fl-history-avatar-action ${row.unknownPlayer || !row.memberCode ? 'is-disabled' : ''}`}
+@@ -1702,8 +1927,8 @@
+ 
+             {activeDetailTab === 'customer' && (
+               <div className="fl-customer-profile-tab">
+-                {!customerProfileCode && (!selected.memberCode || isUnknownPlayer(selected)) ? (
+-                  <div className="fl-panel-message">Unknown Player không có Customer Profile.</div>
++                {!selected.memberCode || isUnknownPlayer(selected) || !isVerifiedPlaying(selected) ? (
++                  <div className="fl-panel-message">Máy này hiện không có khách có member để hiển thị.</div>
+                 ) : customerProfileLoading ? (
+                   <div className="fl-panel-message">Đang tải hồ sơ khách…</div>
+                 ) : customerProfileError ? (
+@@ -1713,8 +1938,8 @@
+                     <div className="fl-profile-hero">
+                       <CustomerAvatar
+                         apiUrl={apiUrl}
+-                        code={customerProfile?.member?.code || customerProfileCode || selected.memberCode}
+-                        name={customerProfile?.member?.name || (customerProfileCode === text(selected.memberCode) ? selected.customerName : '')}
++                        code={customerProfile?.member?.code || selected.memberCode}
++                        name={customerProfile?.member?.name || (selected.customerName)}
+                         size={82}
+                         className={`tone-${orderToneOf(selected)}`}
+                       />
+@@ -1723,8 +1948,8 @@
+                           <span className="fl-pill tone-playing">PLAYING</span>
+                           <span className={`fl-pill tone-${orderToneOf(selected)}`}>{statusLabelOf(selected).toUpperCase()}</span>
+                         </div>
+-                        <h3>{customerProfile?.member?.name || (customerProfileCode === text(selected.memberCode) ? selected.customerName : '') || `Member ${customerProfileCode || selected.memberCode}`}</h3>
+-                        <p>#{customerProfile?.member?.code || customerProfileCode || selected.memberCode}</p>
++                        <h3>{customerProfile?.member?.name || (selected.customerName) || `Member ${selected.memberCode}`}</h3>
++                        <p>#{customerProfile?.member?.code || selected.memberCode}</p>
+                         <p>{customerProfile?.member?.level || customerProfile?.member?.membershipType || 'Chưa có level'}</p>
+                       </div>
+                     </div>
+@@ -1737,19 +1962,23 @@
+                     </div>
+ 
+                     <div className="fl-detail-actions">
++                      {typeof onSelectTable === 'function' && (
++                        <button type="button" className="primary" onClick={selectForOrder}>
++                          Chọn máy & mở Menu order
++                        </button>
++                      )}
+                       {typeof onOpenCustomer === 'function' && (
+                         <button
+                           type="button"
+-                          className="primary"
+-                          onClick={() => onOpenCustomer(customerProfile?.member?.code || customerProfileCode || selected.memberCode)}
++                          onClick={() => onOpenCustomer(customerProfile?.member?.code || selected.memberCode)}
+                         >
+-                          Mở Customer Insights tại đây
++                          Customer Insights
+                         </button>
+                       )}
+                       <button type="button" onClick={() => locateMachine(selected.machineNumber, { tab: 'customer' })}>
+                         Tới máy hiện tại
+                       </button>
+-                      <button type="button" onClick={() => loadCustomerProfile(customerProfile?.member?.code || customerProfileCode || selected.memberCode)}>
++                      <button type="button" onClick={() => loadCustomerProfile(customerProfile?.member?.code || selected.memberCode)}>
+                         ↻ Refresh
+                       </button>
+                     </div>
+@@ -1771,7 +2000,7 @@
+                             >
+                               <b>{row.machineNumber}</b>
+                               <span>{row.area}</span>
+-                              <small>{formatShortTime(row.startedAt)} → {row.active ? 'đang chơi' : formatShortTime(row.endedAt)}</small>
++                              <small>{formatFloorlensShortTime(row.startedAt)} → {row.active ? 'đang chơi' : formatFloorlensShortTime(row.endedAt)}</small>
+                             </button>
+                           ))}
+                         </div>
+@@ -1819,7 +2048,6 @@
+                 <div className="fl-section-title">
+                   <div>
+                     <h3>Orders tại máy {selected.machineNumber}</h3>
+-                    <small>Business day 06:00 → 05:59</small>
+                   </div>
+                   <button type="button" onClick={() => loadMachineOrders(selected.machineNumber, selected.area)}>↻</button>
+                 </div>
+@@ -1829,7 +2057,7 @@
+                 ) : machineOrdersError ? (
+                   <div className="fl-panel-message is-error">{machineOrdersError}</div>
+                 ) : machineOrders.length === 0 ? (
+-                  <div className="fl-panel-message">Máy này chưa có order trong business day hiện tại.</div>
++                  <div className="fl-panel-message">Máy này chưa có order trong ca/ngày hiện tại.</div>
+                 ) : machineOrders.map((order) => {
+                   const key = text(order.id);
+                   const expanded = expandedOrderIds.has(key);
+@@ -1867,38 +2095,159 @@
+                 <div className="fl-section-title">
+                   <div>
+                     <h3>Giỏ hàng máy {selected.machineNumber}</h3>
+-                    <small>Chưa gửi order</small>
++                    <small>Giỏ đang chọn, chưa gửi order</small>
+                   </div>
+                   <span className="fl-cart-count">{selectedCartCount} món</span>
+                 </div>
+ 
++                <div className="fl-cart-toolbar">
++                  {typeof onSelectTable === 'function' && (
++                    <button type="button" className="primary" onClick={selectForOrder}>
++                      + Mở Menu
++                    </button>
++                  )}
++                  {typeof onAddOffMenu === 'function' && (
++                    <button
++                      type="button"
++                      onClick={() => onAddOffMenu({
++                        area: selected.area,
++                        tableNo: selected.machineNumber,
++                      })}
++                    >
++                      + Món ngoài menu
++                    </button>
++                  )}
++                  {selectedCartRows.length > 0 && typeof onCartClear === 'function' && (
++                    <button
++                      type="button"
++                      className="danger"
++                      onClick={() => onCartClear({
++                        area: selected.area,
++                        tableNo: selected.machineNumber,
++                      })}
++                    >
++                      Xóa giỏ
++                    </button>
++                  )}
++                </div>
++
+                 {selectedCartRows.length === 0 ? (
+                   <div className="fl-panel-message">Giỏ hàng của máy này đang trống.</div>
+                 ) : (
+-                  <div className="fl-cart-list">
+-                    {selectedCartRows.map((row) => (
+-                      <div className="fl-cart-row" key={row.cartKey}>
+-                        <b>{row.qty}×</b>
+-                        <div>
+-                          <strong>{row.code ? `${row.code} - ` : ''}{row.name}</strong>
+-                          {row.note && <small>Note: {row.note}</small>}
++                  <>
++                    <div className="fl-cart-list">
++                      {selectedCartRows.map((row) => (
++                        <div className="fl-cart-row fl-cart-row-editable" key={row.cartKey}>
++                          <div className="fl-cart-item-main">
++                            {row.imageUrl ? (
++                              <img
++                                src={/^https?:\/\//i.test(row.imageUrl)
++                                  ? row.imageUrl
++                                  : apiUrl(row.imageUrl.startsWith('/') ? row.imageUrl : `/${row.imageUrl}`)}
++                                alt=""
++                                loading="lazy"
++                              />
++                            ) : (
++                              <span className="fl-cart-item-icon">{row.offMenu ? 'H100' : '🍽'}</span>
++                            )}
++                            <div>
++                              {row.offMenu && typeof onCartUpdateItem === 'function' ? (
++                                <input
++                                  className="fl-cart-name-input"
++                                  value={row.rawName}
++                                  onChange={(event) => onCartUpdateItem({
++                                    area: selected.area,
++                                    tableNo: selected.machineNumber,
++                                    cartKey: row.cartKey,
++                                    patch: { name: event.target.value, isOffMenu: true },
++                                  })}
++                                  placeholder="Tên món ngoài menu..."
++                                />
++                              ) : (
++                                <strong>{row.code ? `${row.code} - ` : ''}{row.name}</strong>
++                              )}
++                              <small>{row.price > 0 ? formatMoneyVnd(row.lineTotal) : 'Chưa có giá'}</small>
++                            </div>
++                          </div>
++
++                          <div className="fl-cart-qty-controls">
++                            <button
++                              type="button"
++                              disabled={typeof onCartSetQty !== 'function'}
++                              onClick={() => onCartSetQty?.({
++                                area: selected.area,
++                                tableNo: selected.machineNumber,
++                                cartKey: row.cartKey,
++                                qty: Math.max(0, row.qty - 1),
++                              })}
++                            >
++                              −
++                            </button>
++                            <b>{row.qty}</b>
++                            <button
++                              type="button"
++                              disabled={typeof onCartSetQty !== 'function'}
++                              onClick={() => onCartSetQty?.({
++                                area: selected.area,
++                                tableNo: selected.machineNumber,
++                                cartKey: row.cartKey,
++                                qty: row.qty + 1,
++                              })}
++                            >
++                              +
++                            </button>
++                            <button
++                              type="button"
++                              className="remove"
++                              disabled={typeof onCartSetQty !== 'function'}
++                              onClick={() => onCartSetQty?.({
++                                area: selected.area,
++                                tableNo: selected.machineNumber,
++                                cartKey: row.cartKey,
++                                qty: 0,
++                              })}
++                            >
++                              Xóa
++                            </button>
++                          </div>
++
++                          {typeof onCartUpdateItem === 'function' && (
++                            <input
++                              className="fl-cart-note-input"
++                              value={row.note}
++                              onChange={(event) => onCartUpdateItem({
++                                area: selected.area,
++                                tableNo: selected.machineNumber,
++                                cartKey: row.cartKey,
++                                patch: { note: event.target.value },
++                              })}
++                              placeholder="Ghi chú món..."
++                            />
++                          )}
+                         </div>
+-                        <span>{row.price > 0 ? formatMoneyVnd(row.lineTotal) : '—'}</span>
+-                      </div>
+-                    ))}
++                      ))}
++                    </div>
++
+                     <div className="fl-cart-total">
+                       <span>Tổng tạm tính</span>
+                       <b>{selectedCartTotal > 0 ? formatMoneyVnd(selectedCartTotal) : 'Chưa đủ giá'}</b>
+                     </div>
+-                  </div>
+-                )}
+ 
+-                {typeof onSelectTable === 'function' && (
+-                  <div className="fl-detail-actions">
+-                    <button type="button" className="primary" onClick={selectForOrder}>
+-                      {selectedCartRows.length ? 'Mở Menu để chỉnh / thêm món' : 'Chọn máy & mở Menu'}
+-                    </button>
+-                  </div>
++                    {typeof onCheckout === 'function' && (
++                      <button
++                        type="button"
++                        className="fl-cart-checkout"
++                        onClick={() => onCheckout({
++                          area: selected.area,
++                          tableNo: selected.machineNumber,
++                          memberCode: isUnknownPlayer(selected) ? '' : text(selected.memberCode),
++                          customerName: isUnknownPlayer(selected) ? '' : text(selected.customerName),
++                        })}
++                      >
++                        Order giỏ hàng này
++                      </button>
++                    )}
++                  </>
+                 )}
+               </div>
+             )}
+@@ -1907,57 +2256,6 @@
+ 
+       </section>
+ 
+-      <div className="fl-alert-stack" aria-live="polite">
+-        {alerts.map((alert) => {
+-          const entering = alert.kind === 'ENTER';
+-          const unknown = alert.unknownPlayer || !text(alert.memberCode);
+-          return (
+-            <div
+-              key={alert.id}
+-              className={`fl-activity-toast ${entering ? 'is-enter' : 'is-leave'}`}
+-              role="button"
+-              tabIndex={0}
+-              onClick={() => {
+-                dismissAlert(alert.id);
+-                locateMachine(alert.machineNumber, { clearFilters: true });
+-              }}
+-              onKeyDown={(event) => {
+-                if (event.key === 'Enter' || event.key === ' ') {
+-                  event.preventDefault();
+-                  dismissAlert(alert.id);
+-                  locateMachine(alert.machineNumber, { clearFilters: true });
+-                }
+-              }}
+-            >
+-              <CustomerAvatar
+-                apiUrl={apiUrl}
+-                code={alert.memberCode}
+-                name={alert.customerName}
+-                unknown={unknown}
+-                size={46}
+-              />
+-              <div className="fl-toast-copy">
+-                <b>{entering ? 'Khách vào máy' : 'Khách rời máy'} {alert.machineNumber}</b>
+-                <span>{alert.customerName || (unknown ? 'Unknown Player' : `Member ${alert.memberCode}`)}</span>
+-                <small>Bấm để tới máy</small>
+-              </div>
+-              <span className="fl-toast-arrow">→</span>
+-              <button
+-                type="button"
+-                className="fl-toast-close"
+-                onClick={(event) => {
+-                  event.stopPropagation();
+-                  dismissAlert(alert.id);
+-                }}
+-                aria-label="Đóng thông báo"
+-              >
+-                ×
+-              </button>
+-              <span className="fl-toast-progress" />
+-            </div>
+-          );
+-        })}
+-      </div>
+     </div>
+   );
+ }

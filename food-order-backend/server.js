@@ -17,6 +17,7 @@ const jwt = require('jsonwebtoken');
 const productsRouter = require('./routes/products');
 const ordersRouter = require('./routes/orders');
 const sqliteStore = require('./sqliteStore');
+const { createFloorlensService } = require('./floorlensService');
 const rateLimitPkg = require('express-rate-limit');
 const rateLimit = rateLimitPkg.rateLimit || rateLimitPkg;
 const { ipKeyGenerator } = rateLimitPkg;
@@ -167,6 +168,36 @@ const io = new Server(server, {
   pingTimeout: 60000,
 });
 app.locals.io = io;
+const floorlensService = createFloorlensService({
+  io,
+  // FloorLens đọc tên từ Database/order history trước.
+  // Nếu member đang chơi mà Database chưa có tên hợp lệ, đưa đúng member đó vào Priority Queue
+  // để Customer API cập nhật Database ở nền. Không gọi API trực tiếp từ browser/FloorLens.
+  resolveCustomerName: (memberCode) => {
+    try {
+      const code = String(memberCode || '').replace(/\s+/g, '').trim();
+      if (!code) return '';
+
+      const identity = getBestKnownCustomerIdentity(code);
+      if (identity?.name) return identity.name;
+
+      queueCustomerDatabaseSync(code, {
+        force: false,
+        by: 'floorlens-active-member-priority',
+        priority: 240,
+        emit: true,
+      });
+
+      return '';
+    } catch (_) {
+      return '';
+    }
+  },
+
+  // Gắn trạng thái order của khách đang chơi vào đúng snapshot FloorLens.
+  // Hàm này chỉ đọc dữ liệu order local/SQLite đã nạp trong RAM, không gọi API ngoài.
+  enrichSnapshot: (baseSnapshot) => enrichFloorlensSnapshotWithOrders(baseSnapshot),
+});
 
 app.use(cors({
   origin: allowOrigins,
@@ -199,7 +230,13 @@ app.use('/thumbs', express.static(THUMBS_DIR, {
   },
 }));
 
-app.use('/api/products', productsRouter);
+// Products GET vẫn public để User/Menu đọc bình thường.
+// Mọi mutation phải là Admin để không thể sửa/xóa dữ liệu chỉ bằng cách gọi endpoint trực tiếp.
+function protectProductMutations(req, res, next) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(String(req.method || '').toUpperCase())) return next();
+  return authenticateJWT(req, res, () => authorizeRoles('admin')(req, res, next));
+}
+app.use('/api/products', protectProductMutations, productsRouter);
 // KHÔNG mount ordersRouter ở đây, vì sẽ chặn app.post('/api/orders') bên dưới
 // ===================================================================
 // ======================  QZ SIGNING (NEW)  ==========================
@@ -269,7 +306,7 @@ app.get('/api/staffs', (_req, res) => {
 });
 
 // Cập nhật danh sách nhân viên (ghi đè toàn bộ). Yêu cầu body là array các object { id/code, name }.
-app.post('/api/staffs', (req, res) => {
+app.post('/api/staffs', authenticateJWT, authorizeRoles('admin'), (req, res) => {
   try {
     const list = Array.isArray(req.body) ? req.body : [];
     // normalize
@@ -288,7 +325,7 @@ app.post('/api/staffs', (req, res) => {
   }
 });
 // Cập nhật hoặc tạo nhân viên theo id
-app.put('/api/staffs/:id', (req, res) => {
+app.put('/api/staffs/:id', authenticateJWT, authorizeRoles('admin'), (req, res) => {
   try {
     const idParam = req.params.id;
     const { id = idParam, code, name } = req.body || {};
@@ -311,7 +348,7 @@ app.put('/api/staffs/:id', (req, res) => {
 });
 
 // Xoá nhân viên theo id
-app.delete('/api/staffs/:id', (req, res) => {
+app.delete('/api/staffs/:id', authenticateJWT, authorizeRoles('admin'), (req, res) => {
   try {
     const id = String(req.params.id || '').trim();
     if (!id) return res.status(400).json({ error: 'id required' });
@@ -443,39 +480,11 @@ function updateProductMenusByImageName(imageNameLower, updater) {
   return sqliteStore.updateProductMenusByImageName(imageNameLower, updater);
 }
 
-// ====== Stock helper ======
-function adjustStockByImageName(imageName, delta, actor, reason = '') {
-  const key = String(imageName || '').toLowerCase();
-  const refs = getFoodsByImageName(key);
-  if (!refs.length) return null;
-
-  const beforeQty = Math.max(0, Number(refs[0].quantity ?? 0));
-  const afterQty  = Math.max(0, beforeQty + Number(delta || 0));
-  const prevStatus = refs[0].status;
-  const newStatus  = afterQty <= 0 ? 'Sold Out' : 'Available';
-
-  refs.forEach(f => { f.quantity = afterQty; f.status = newStatus; });
-  saveFoods();
-
-  io.emit('foodQuantityUpdated', { imageName: key, quantity: afterQty });
-
-  if (prevStatus !== newStatus) {
-    io.emit('foodStatusUpdated', { updatedFoods: refs });
-    addStatusHistory({
-      at: new Date().toISOString(),
-      by: actor || 'system',
-      role: 'admin',
-      imageName: key,
-      imageUrl: refs[0].imageUrl,
-      type: refs[0].type,
-      from: prevStatus,
-      to: newStatus,
-      count: refs.length,
-      affectedIds: refs.map(f => f.id),
-      reason,
-    });
-  }
-  return { afterQty, newStatus };
+// ====== Legacy stock helper ======
+// Tồn kho món đã được bỏ hoàn toàn. Giữ function dạng no-op để các order cũ
+// không thể phát foodQuantityUpdated hoặc ghi đè Sold Out / Available.
+function adjustStockByImageName(_imageName, _delta, _actor, _reason = '') {
+  return { disabled: true };
 }
 
 function maybeAuth(req, _res, next) {
@@ -512,12 +521,11 @@ try {
 foods.forEach((f, i) => {
   if (typeof f.order !== 'number') f.order = i;
 
-  if (typeof f.quantity !== 'number') {
-    f.quantity = f.status === 'Sold Out' ? 0 : 1;
-  } else {
-    if (f.quantity <= 0) f.status = 'Sold Out';
-    else if (!f.status || f.status === 'Sold Out') f.status = 'Available';
-  }
+  // quantity chỉ còn là field legacy để tương thích DB cũ.
+  // TUYỆT ĐỐI không suy ra status từ quantity, nếu không restart backend có thể
+  // tự đảo Sold Out <-> Available.
+  if (typeof f.quantity !== 'number') f.quantity = 1;
+  if (!['Available', 'Sold Out'].includes(f.status)) f.status = 'Available';
 });
 
 function saveFoods() {
@@ -595,6 +603,19 @@ try {
   console.error('[SQLite] Import orders failed:', e.message);
 }
 
+// V8 Report: backfill 1 lần cho dữ liệu order cũ sang businessDate + order_items.
+// Những lần restart sau, query chỉ tìm record còn thiếu nên gần như không tốn thời gian.
+try {
+  if (typeof sqliteStore.backfillReportData === 'function') {
+    const migrated = sqliteStore.backfillReportData();
+    if (migrated?.orders) {
+      console.log(`[Report V8] Backfilled ${migrated.orders} orders / ${migrated.items} items`);
+    }
+  }
+} catch (e) {
+  console.error('[Report V8] Backfill failed:', e.message);
+}
+
 let orders = [];
 try {
   orders = sqliteStore.loadOrders();
@@ -605,6 +626,7 @@ try {
 
 function persistOrder(order) {
   sqliteStore.upsertOrder(order);
+  invalidateFloorlensOrderIndex();
   clearMemberSearchCache();
   clearCustomerInsightsCache();
 }
@@ -620,6 +642,7 @@ function persistOrders(orderList) {
     }
   }
 
+  invalidateFloorlensOrderIndex();
   clearMemberSearchCache();
   clearCustomerInsightsCache();
 }
@@ -628,6 +651,7 @@ function reloadOrdersSafe(context = 'orders') {
   try {
     const fresh = sqliteStore.loadOrders();
     orders = fresh;
+    invalidateFloorlensOrderIndex();
     return fresh;
   } catch (error) {
     console.error(`[SQLite] ${context} loadOrders failed:`, error);
@@ -640,6 +664,192 @@ function reloadOrdersSafe(context = 'orders') {
 
     throw error;
   }
+}
+
+
+// ===================================================================
+// ================= FLOORLENS + ORDER STATUS =========================
+// ===================================================================
+// FloorLens dùng đúng business day của Food: 06:00 -> 05:59 hôm sau.
+let floorlensOrderIndexCache = null;
+let floorlensOrderIndexCacheKey = '';
+
+function invalidateFloorlensOrderIndex() {
+  floorlensOrderIndexCache = null;
+  floorlensOrderIndexCacheKey = '';
+}
+
+function floorlensBusinessWindow(nowInput = new Date()) {
+  // Business day cố định theo giờ Việt Nam (UTC+7), không phụ thuộc timezone Windows Server.
+  const nowMs = new Date(nowInput).getTime();
+  const vnOffsetMs = 7 * 60 * 60 * 1000;
+  const businessShiftMs = 6 * 60 * 60 * 1000;
+  const shiftedVn = new Date(nowMs + vnOffsetMs - businessShiftMs);
+
+  const y = shiftedVn.getUTCFullYear();
+  const m = shiftedVn.getUTCMonth();
+  const d = shiftedVn.getUTCDate();
+  const fromMs = Date.UTC(y, m, d, 6, 0, 0, 0) - vnOffsetMs;
+  const from = new Date(fromMs);
+  const to = new Date(fromMs + 24 * 60 * 60 * 1000 - 1);
+  return { from, to };
+}
+
+function floorlensOrderMemberCode(order = {}) {
+  return String(order.memberCard || order?.customer?.code || '')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
+function floorlensOrderTableKey(order = {}) {
+  const area = String(order.area || '').trim();
+  const tableNo = String(order.tableNo || '').trim();
+  return area && tableNo ? `${area}#${tableNo}` : '';
+}
+
+function buildFloorlensOrderIndex(nowInput = new Date()) {
+  const { from, to } = floorlensBusinessWindow(nowInput);
+  const cacheKey = from.toISOString();
+  if (floorlensOrderIndexCache && floorlensOrderIndexCacheKey === cacheKey) {
+    return floorlensOrderIndexCache;
+  }
+
+  const fromMs = from.getTime();
+  const toMs = to.getTime();
+  const byMember = new Map();
+
+  for (const order of Array.isArray(orders) ? orders : []) {
+    if (!order) continue;
+    if (String(order.status || '').toUpperCase() === 'CANCELLED') continue;
+
+    const code = floorlensOrderMemberCode(order);
+    if (!code) continue;
+
+    const at = Date.parse(order.createdAt || order.updatedAt || '');
+    if (!Number.isFinite(at) || at < fromMs || at > toMs) continue;
+
+    const current = byMember.get(code) || {
+      code,
+      orderCount: 0,
+      latestOrderId: null,
+      latestOrderAt: null,
+      latestOrderStaff: '',
+      latestOrderArea: '',
+      latestOrderTableNo: '',
+      tableKeys: new Set(),
+    };
+
+    current.orderCount += 1;
+    const tableKey = floorlensOrderTableKey(order);
+    if (tableKey) current.tableKeys.add(tableKey);
+
+    const latestMs = Date.parse(current.latestOrderAt || '') || 0;
+    if (!latestMs || at >= latestMs) {
+      current.latestOrderId = order.id ?? null;
+      current.latestOrderAt = order.createdAt || order.updatedAt || null;
+      current.latestOrderStaff = String(order.staff || '').trim();
+      current.latestOrderArea = String(order.area || '').trim();
+      current.latestOrderTableNo = String(order.tableNo || '').trim();
+    }
+
+    byMember.set(code, current);
+  }
+
+  floorlensOrderIndexCache = { from, to, byMember };
+  floorlensOrderIndexCacheKey = cacheKey;
+  return floorlensOrderIndexCache;
+}
+
+function enrichFloorlensSnapshotWithOrders(baseSnapshot = {}) {
+  const machines = Array.isArray(baseSnapshot.machines) ? baseSnapshot.machines : [];
+  const orderIndex = buildFloorlensOrderIndex();
+
+  let orderedCount = 0;
+  let notOrderedCount = 0;
+  let unknownPlayerCount = 0;
+
+  const enrichedMachines = machines.map((machine) => {
+    const playing = Boolean(
+      machine?.checkState === 'ok' &&
+      machine?.online !== false &&
+      machine?.isPlaying
+    );
+    const code = String(machine?.memberCode || '').replace(/\s+/g, '').trim();
+    const unknownPlayer = Boolean(playing && (machine?.unknownPlayer || !code));
+
+    if (!playing) {
+      return {
+        ...machine,
+        orderStatus: 'NONE',
+        hasOrdered: false,
+        orderCountToday: 0,
+        orderedAtCurrentMachine: false,
+      };
+    }
+
+    if (unknownPlayer) {
+      unknownPlayerCount += 1;
+      return {
+        ...machine,
+        orderStatus: 'UNKNOWN',
+        hasOrdered: null,
+        orderCountToday: 0,
+        orderedAtCurrentMachine: false,
+      };
+    }
+
+    const info = orderIndex.byMember.get(code) || null;
+    const hasOrdered = Boolean(info && info.orderCount > 0);
+    if (hasOrdered) orderedCount += 1;
+    else notOrderedCount += 1;
+
+    const currentTableKey = machine?.area && machine?.machineNumber
+      ? `${machine.area}#${machine.machineNumber}`
+      : '';
+
+    return {
+      ...machine,
+      orderStatus: hasOrdered ? 'ORDERED' : 'NOT_ORDERED',
+      hasOrdered,
+      orderCountToday: info?.orderCount || 0,
+      latestOrderId: info?.latestOrderId ?? null,
+      latestOrderAt: info?.latestOrderAt ?? null,
+      latestOrderStaff: info?.latestOrderStaff || '',
+      latestOrderArea: info?.latestOrderArea || '',
+      latestOrderTableNo: info?.latestOrderTableNo || '',
+      orderedAtCurrentMachine: Boolean(currentTableKey && info?.tableKeys?.has(currentTableKey)),
+    };
+  });
+
+  return {
+    ...baseSnapshot,
+    orderedCount,
+    notOrderedCount,
+    // Dùng unknown count từ dữ liệu session thực tế để ordered + notOrdered + unknown = playing.
+    unknownCount: unknownPlayerCount,
+    orderBusinessFrom: orderIndex.from.toISOString(),
+    orderBusinessTo: orderIndex.to.toISOString(),
+    machines: enrichedMachines,
+  };
+}
+
+function enrichFloorlensHistoryWithOrders(rows = []) {
+  const orderIndex = buildFloorlensOrderIndex();
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    const code = String(row?.memberCode || '').replace(/\s+/g, '').trim();
+    if (!code || row?.unknownPlayer) {
+      return { ...row, orderStatus: 'UNKNOWN', hasOrdered: null, orderCountToday: 0 };
+    }
+    const info = orderIndex.byMember.get(code) || null;
+    return {
+      ...row,
+      orderStatus: info ? 'ORDERED' : 'NOT_ORDERED',
+      hasOrdered: Boolean(info),
+      orderCountToday: info?.orderCount || 0,
+      latestOrderId: info?.latestOrderId ?? null,
+      latestOrderAt: info?.latestOrderAt ?? null,
+    };
+  });
 }
 
 // Route phụ trong routes/orders.js sẽ gọi hàm này để đồng bộ lại bộ nhớ của server.js
@@ -812,7 +1022,7 @@ function saveMembers() {
 // ====== External Customer API ======
 const CUSTOMER_API_URL =
   process.env.CUSTOMER_API_URL ||
-  'http://192.168.101.58:8090/api/user_number_level_by_id';
+  'http://192.168.101.58:8111/api/customer_playing_info';
 
 // Database-first customer sync:
 // - User/Admin luôn đọc thông tin khách từ SQLite.
@@ -876,6 +1086,57 @@ let customerSyncLastResult = {
   stoppedByApi: false,
 };
 
+// Realtime progress của worker Customer API -> SQLite.
+// Frontend nhận qua Socket, không cần poll API liên tục.
+let customerSyncLiveProgress = {
+  runId: null,
+  running: false,
+  startedAt: null,
+  updatedAt: null,
+  finishedAt: null,
+  target: 0,
+  processed: 0,
+  updated: 0,
+  newlySynced: 0,
+  changed: 0,
+  failed: 0,
+  stoppedByApi: false,
+  currentCodes: [],
+  lastCodes: [],
+  queueAtStart: 0,
+  queued: 0,
+  processing: 0,
+  ratePerMinute: 0,
+  etaSeconds: null,
+};
+
+function buildCustomerSyncLivePayload(extra = {}) {
+  const startedMs = Date.parse(customerSyncLiveProgress.startedAt || '');
+  const elapsedMs = Number.isFinite(startedMs) ? Math.max(1, Date.now() - startedMs) : 0;
+  const processed = Number(customerSyncLiveProgress.processed || 0);
+  const target = Number(customerSyncLiveProgress.target || 0);
+  const ratePerMinute = elapsedMs > 0 ? Math.round((processed / elapsedMs) * 60000 * 10) / 10 : 0;
+  const remaining = Math.max(0, target - processed);
+  const etaSeconds = ratePerMinute > 0 ? Math.round((remaining / ratePerMinute) * 60) : null;
+
+  return {
+    ...customerSyncLiveProgress,
+    ...extra,
+    queued: customerSyncQueue.size,
+    processing: customerSyncProcessing.size,
+    ratePerMinute,
+    etaSeconds,
+    percent: target > 0 ? Math.min(100, Math.round((processed / target) * 1000) / 10) : 0,
+  };
+}
+
+function emitCustomerSyncLive(extra = {}) {
+  const payload = buildCustomerSyncLivePayload(extra);
+  customerSyncLiveProgress = { ...customerSyncLiveProgress, ...payload };
+  io.emit('customerSyncProgress', payload);
+  return payload;
+}
+
 let customerApiHealth = {
   ok: false, // chỉ phản ánh khả năng kết nối API, không phản ánh riêng 1 mã khách có tồn tại hay không
   connectionStatus: 'UNKNOWN', // UNKNOWN | ONLINE | OFFLINE | TIMEOUT | HTTP_ERROR
@@ -936,6 +1197,11 @@ function isMeaningfulCustomerName(value, codeInput = '') {
     'dang kiem tra khach',
     'chua co thong tin',
     'chua co ten',
+    'chua co du lieu trong database',
+    'database chua co du lieu',
+    'khong doc duoc database',
+    'loi doc database',
+    'database error',
     'unknown',
     'not found',
     'loading',
@@ -1000,9 +1266,10 @@ function getBestKnownCustomerIdentity(codeInput) {
   let lastSeenAt = m.lastSeenAt || null;
   let ordersCount = 0;
 
-  const customerOrders = (orders || [])
-    .filter((o) => cleanMemberId(o?.customer?.code || o?.memberCard || '') === code)
-    .sort((a, b) => new Date(b?.createdAt || b?.updatedAt || 0) - new Date(a?.createdAt || a?.updatedAt || 0));
+  const customerOrders = (typeof sqliteStore.queryOrders === 'function'
+    ? sqliteStore.queryOrders({ customerId: code, includeClosed: true })
+    : (orders || []).filter((o) => cleanMemberId(o?.customer?.code || o?.memberCard || '') === code)
+  ).sort((a, b) => new Date(b?.createdAt || b?.updatedAt || 0) - new Date(a?.createdAt || a?.updatedAt || 0));
 
   ordersCount = customerOrders.length;
 
@@ -1338,7 +1605,7 @@ function extractExternalCustomerPayload(json) {
 
   let payload = json.data ?? json.result ?? json.customer ?? json;
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     if (Array.isArray(payload)) {
       payload = payload[0] || null;
       continue;
@@ -1356,6 +1623,13 @@ function extractExternalCustomerPayload(json) {
       continue;
     }
 
+    // API mới /api/customer_playing_info trả { data: { customer, machine } }.
+    // Phần Customer chỉ lấy object customer; machine để FloorLens xử lý sau.
+    if (payload.customer && typeof payload.customer === 'object') {
+      payload = payload.customer;
+      continue;
+    }
+
     if (payload.data && typeof payload.data === 'object') {
       payload = payload.data;
       continue;
@@ -1370,7 +1644,20 @@ function extractExternalCustomerPayload(json) {
 function normalizeExternalCustomer(data, fallbackCode = '') {
   if (!data || typeof data !== 'object') return null;
 
+  // API phía ngoài từng thay đổi naming giữa các version. Tìm thêm theo tên key
+  // đã normalize để bắt được cả Date_Of_Birth / date-of-birth / Registration Date...
+  const fieldByNormalizedKey = (accepted = []) => {
+    const wanted = new Set(accepted.map((key) => String(key).toLowerCase().replace(/[^a-z0-9]/g, '')));
+    for (const [key, value] of Object.entries(data)) {
+      const normalized = String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (wanted.has(normalized) && value !== undefined && value !== null && String(value).trim() !== '') return value;
+    }
+    return null;
+  };
+
   const code = cleanMemberId(
+    data.customer_number ??
+    data.CustomerNumber ??
     data.Number ??
     data.number ??
     data.UserNumber ??
@@ -1394,22 +1681,27 @@ function normalizeExternalCustomer(data, fallbackCode = '') {
     .trim();
 
   const fullName = meaningfulCustomerName(
+    data.preferred_name ||
     data.PreferredName ||
+    data.preferredName ||
     data.FullName ||
     data.CustomerName ||
     data.MemberName ||
+    data.customer_name ||
     data.Name ||
+    data.name ||
     joinedName,
     code
   );
 
   const membershipType = meaningfulCustomerLevel(
+    data.level ||
+    data.Level ||
     data.MembershipType ||
     data.Membership ||
     data.MembershipLevel ||
     data.MemberLevel ||
     data.LevelName ||
-    data.Level ||
     data.TierName ||
     data.Tier ||
     ''
@@ -1427,6 +1719,14 @@ function normalizeExternalCustomer(data, fallbackCode = '') {
     surname: data.Surname || data.LastName || null,
     forename: data.Forename || data.FirstName || null,
     middleName: data.MiddleName || null,
+    dateOfBirth:
+      data.DOB ?? data.DateOfBirth ?? data.Date_Of_Birth ?? data.BirthDate ?? data.Birth_Date ?? data.birth_date ?? data.date_of_birth ?? data.Birthday ?? data.BirthdayDate ?? data.CustomerDOB ?? data.dateOfBirth ?? data.dob ??
+      fieldByNormalizedKey(['dob', 'dateofbirth', 'birthdate', 'birthday', 'birthdaydate', 'customerdob']) ?? null,
+    registeredAt:
+      data.RegisteredAt ?? data.RegisteredDate ?? data.RegistrationDate ?? data.RegisterDate ?? data.DateRegistered ?? data.Register_Date ?? data.Registration_Date ?? data.registration_date ?? data.registered_at ??
+      fieldByNormalizedKey(['registeredat', 'registereddate', 'registrationdate', 'registerdate', 'dateregistered', 'registrationdatetime', 'registerdatetime']) ?? null,
+    memberSince:
+      data.MemberSince ?? data.Since ?? data.JoinDate ?? data.JoinedAt ?? data.MembershipStartDate ?? data.memberSince ?? null,
     raw: data,
   };
 }
@@ -1470,7 +1770,7 @@ async function fetchCustomerFromExternalDetailed(
     try {
       const json = await postJsonExternal(
         CUSTOMER_API_URL,
-        { id: cleanCode },
+        { customer_number: cleanCode },
         timeoutMs
       );
 
@@ -1639,7 +1939,11 @@ function upsertMemberFromExternal(external, { by = 'customer-api', save = true }
     surname: external.surname ?? prev.surname ?? null,
     forename: external.forename ?? prev.forename ?? null,
     middleName: external.middleName ?? prev.middleName ?? null,
-    apiSource: 'user_number_level_by_id',
+    dateOfBirth: external.dateOfBirth ?? prev.dateOfBirth ?? prev.dob ?? prev.birthDate ?? null,
+    dob: external.dateOfBirth ?? prev.dob ?? prev.dateOfBirth ?? prev.birthDate ?? null,
+    registeredAt: external.registeredAt ?? prev.registeredAt ?? prev.registeredDate ?? null,
+    memberSince: external.memberSince ?? prev.memberSince ?? prev.since ?? null,
+    apiSource: 'customer_playing_info',
     apiSyncedAt: nowIso,
     lastApiAttemptAt: nowIso,
     lastApiSuccessAt: nowIso,
@@ -1740,6 +2044,8 @@ async function syncCustomerDatabaseFromApi(
     };
   }
 
+  const wasApiSynced = Boolean(members[code]?.apiSyncedAt);
+
   const detailed = await fetchCustomerFromExternalDetailed(code, {
     force,
     timeoutMs,
@@ -1772,6 +2078,7 @@ async function syncCustomerDatabaseFromApi(
       apiOk: true,
       status: detailed.fromCache ? 'CACHE_HIT' : 'SUCCESS',
       changed: updated.changed,
+      firstApiSync: !wasApiSynced,
       member: dbMember,
       apiStatus: { ...customerApiHealth },
     };
@@ -1910,6 +2217,30 @@ async function runCustomerSyncWorker() {
   customerSyncWorkerRunning = true;
   customerSyncLastRunAt = new Date().toISOString();
 
+  const initialTarget = Math.min(customerSyncQueue.size, CUSTOMER_SYNC_MAX_PER_RUN);
+  customerSyncLiveProgress = {
+    runId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    running: true,
+    startedAt: customerSyncLastRunAt,
+    updatedAt: customerSyncLastRunAt,
+    finishedAt: null,
+    target: initialTarget,
+    processed: 0,
+    updated: 0,
+    newlySynced: 0,
+    changed: 0,
+    failed: 0,
+    stoppedByApi: false,
+    currentCodes: [],
+    lastCodes: [],
+    queueAtStart: customerSyncQueue.size,
+    queued: customerSyncQueue.size,
+    processing: customerSyncProcessing.size,
+    ratePerMinute: 0,
+    etaSeconds: null,
+  };
+  emitCustomerSyncLive();
+
   const summary = {
     processed: 0,
     updated: 0,
@@ -1936,6 +2267,10 @@ async function runCustomerSyncWorker() {
         customerSyncProcessing.add(item.code);
       }
 
+      customerSyncLiveProgress.currentCodes = items.map((item) => item.code);
+      customerSyncLiveProgress.updatedAt = new Date().toISOString();
+      emitCustomerSyncLive();
+
       const rows = await Promise.all(items.map(async (item) => {
         try {
           return await syncCustomerDatabaseFromApi(item.code, {
@@ -1960,10 +2295,12 @@ async function runCustomerSyncWorker() {
       }));
 
       summary.processed += rows.length;
+      let newlySyncedBatch = 0;
       for (const row of rows) {
         if (row?.apiOk) {
           summary.updated += 1;
           if (row.changed) summary.changed += 1;
+          if (row.firstApiSync) newlySyncedBatch += 1;
         } else {
           summary.failed += 1;
         }
@@ -1972,6 +2309,26 @@ async function runCustomerSyncWorker() {
           summary.stoppedByApi = true;
         }
       }
+
+      customerSyncLiveProgress = {
+        ...customerSyncLiveProgress,
+        processed: summary.processed,
+        updated: summary.updated,
+        newlySynced: Number(customerSyncLiveProgress.newlySynced || 0) + newlySyncedBatch,
+        changed: summary.changed,
+        failed: summary.failed,
+        stoppedByApi: summary.stoppedByApi,
+        currentCodes: [],
+        lastCodes: items.map((item) => item.code),
+        updatedAt: new Date().toISOString(),
+      };
+      emitCustomerSyncLive({
+        lastStatuses: rows.map((row, index) => ({
+          code: items[index]?.code || '',
+          status: row?.status || 'ERROR',
+          apiOk: Boolean(row?.apiOk),
+        })),
+      });
 
       // Nhường event loop giữa các nhóm request.
       if (!summary.stoppedByApi && customerSyncQueue.size > 0) {
@@ -1982,6 +2339,20 @@ async function runCustomerSyncWorker() {
     customerSyncWorkerRunning = false;
     customerSyncLastFinishedAt = new Date().toISOString();
     customerSyncLastResult = summary;
+
+    customerSyncLiveProgress = {
+      ...customerSyncLiveProgress,
+      running: false,
+      finishedAt: customerSyncLastFinishedAt,
+      updatedAt: customerSyncLastFinishedAt,
+      processed: summary.processed,
+      updated: summary.updated,
+      changed: summary.changed,
+      failed: summary.failed,
+      stoppedByApi: summary.stoppedByApi,
+      currentCodes: [],
+    };
+    emitCustomerSyncLive();
 
     if (summary.updated > 0) {
       io.emit('customersUpdated', {
@@ -2120,42 +2491,190 @@ const APP_VERSION =
 
 io.on('connection', (socket) => {
   socket.emit('appVersion', APP_VERSION);
+  socket.emit('floorlensUpdated', floorlensService.getSnapshot());
 });
 
 
 // Danh sách khách hàng có phân trang + tìm kiếm
-app.get('/api/customers', authenticateJWT, authorizeRoles('admin'), (req, res) => {
-  const norm = (s) => String(s || '').toLowerCase();
-  const q = norm(req.query.q || '');
-  const page = Math.max(1, parseInt(req.query.page || '1', 10));
-
-  // Tăng giới hạn để Báo cáo join đủ Tên KH + Level cho tất cả mã KH
-  const MAX_LIMIT = 70000;
-  const limit = Math.max(1, Math.min(MAX_LIMIT, parseInt(req.query.limit || '50', 10)));
-
-  const all = Object.entries(members || {}).map(([code, m]) => {
-    const name  = m?.name || m?.customerName || '';
-    const level = m?.level || m?.memberLevel || m?.tier || '';
-    return { id: code, code, name, level };
-  });
-
-  const filtered = q
-    ? all.filter(it => [it.code, it.name, it.level].some(v => norm(v).includes(q)))
-    : all;
-
-  const start = (page - 1) * limit;
-  const items = filtered.slice(start, start + limit);
-  res.json({ items, total: filtered.length, page, limit });
-});
-
-
- // Alias để FE fallback: giữ đúng output & phân trang như /api/customers
- app.get('/api/members', authenticateJWT, authorizeRoles('admin'), (req, res) => {
-   req.url = req.url.replace('/api/members', '/api/customers');
-   app._router.handle(req, res);
- });
+// Danh sách khách hàng dùng chung MemberApi ở phần dưới.
+// Không khai báo route /api/customers hoặc /api/members tại đây,
+// tránh route cũ chặn filter Level/summary/phân trang toàn Database.
 
 app.get('/api/version', (_req, res) => res.json({ version: APP_VERSION }));
+
+// FloorLens dành cho FSP: service đã whitelist dữ liệu trước khi trả về browser.
+// Endpoint này tuyệt đối không proxy nguyên payload customer/session thô của FloorLens upstream.
+app.get('/api/user/floorlens', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(floorlensService.getSnapshot());
+});
+
+// Layout thật của FloorLens để User nhìn đúng sơ đồ máy hiện tại.
+app.get('/api/user/floorlens/layout', async (req, res) => {
+  try {
+    const force = String(req.query?.refresh || '').toLowerCase() === 'true';
+    const layout = await floorlensService.getLayout({ force });
+    res.setHeader('Cache-Control', 'private, max-age=60');
+    res.json(layout);
+  } catch (error) {
+    console.error('[FloorLens] layout error:', error?.message || error);
+    res.status(502).json({ error: error?.message || 'Cannot load FloorLens layout' });
+  }
+});
+
+// Proxy ảnh nền map qua Food backend để browser User không phải gọi trực tiếp máy .58.
+app.get('/api/user/floorlens/map-image', async (req, res) => {
+  try {
+    const force = String(req.query?.refresh || '').toLowerCase() === 'true';
+    const image = await floorlensService.getMapImage({ force });
+    if (!image?.buffer) return res.status(404).end();
+    res.setHeader('Content-Type', image.contentType || 'image/png');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.send(image.buffer);
+  } catch (error) {
+    console.error('[FloorLens] map image error:', error?.message || error);
+    res.status(502).json({ error: error?.message || 'Cannot load FloorLens map image' });
+  }
+});
+
+// Avatar khách: backend cache + giới hạn concurrency, frontend chỉ cần dùng URL này trong <img>.
+app.get('/api/user/floorlens/avatar/:memberCode', async (req, res) => {
+  try {
+    const code = String(req.params.memberCode || '').replace(/\s+/g, '').trim();
+    if (!code) return res.status(400).json({ error: 'memberCode required' });
+
+    const avatar = await floorlensService.getAvatar(code);
+    if (!avatar?.buffer) {
+      res.setHeader('Cache-Control', 'private, max-age=600');
+      return res.status(404).end();
+    }
+
+    res.setHeader('Content-Type', avatar.contentType || 'image/jpeg');
+    res.setHeader('Cache-Control', 'private, max-age=21600');
+    res.send(avatar.buffer);
+  } catch (error) {
+    console.warn('[FloorLens] avatar error:', req.params.memberCode, error?.message || error);
+    res.status(502).end();
+  }
+});
+
+// Lịch sử session theo từng máy trong Gaming Date hiện tại.
+app.get('/api/user/floorlens/history/:machineNumber', (req, res) => {
+  try {
+    const machineNumber = String(req.params.machineNumber || '').trim();
+    const limit = Math.min(100, Math.max(1, Number(req.query?.limit || 30)));
+    const rows = floorlensService.getMachineHistory(machineNumber, limit);
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      machineNumber,
+      gamingDate: floorlensService.getSnapshot()?.gamingDate || null,
+      rows: enrichFloorlensHistoryWithOrders(rows),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error?.message || 'Cannot load machine history' });
+  }
+});
+
+// Orders theo từng máy trong business day hiện tại.
+// FloorLens/User chỉ đọc dữ liệu local SQLite; không gọi API ngoài.
+app.get('/api/user/floorlens/orders/:machineNumber', (req, res) => {
+  try {
+    const machineNumber = String(req.params.machineNumber || '').trim();
+    const area = String(req.query?.area || '').trim();
+    const limit = Math.min(100, Math.max(1, Number(req.query?.limit || 40)));
+    if (!machineNumber) return res.status(400).json({ error: 'machineNumber required' });
+
+    const { from, to } = floorlensBusinessWindow();
+    const fromIso = from.toISOString();
+    const toIso = to.toISOString();
+
+    let rows;
+    if (typeof sqliteStore.queryOrders === 'function') {
+      rows = sqliteStore.queryOrders({
+        area: area || undefined,
+        tableNo: machineNumber,
+        from: fromIso,
+        to: toIso,
+        includeClosed: true,
+      });
+    } else {
+      rows = reloadOrdersSafe('GET /api/user/floorlens/orders').filter((order) => {
+        const at = Date.parse(order?.createdAt || '');
+        if (!Number.isFinite(at) || at < from.getTime() || at > to.getTime()) return false;
+        if (String(order?.tableNo || '') !== machineNumber) return false;
+        if (area && String(order?.area || '') !== area) return false;
+        return true;
+      });
+    }
+
+    rows = (Array.isArray(rows) ? rows : [])
+      .sort((a, b) => Date.parse(b?.createdAt || '') - Date.parse(a?.createdAt || ''))
+      .slice(0, limit)
+      .map((order) => ({
+        ...order,
+        customerName:
+          order?.customerName ||
+          (order?.customer && typeof order.customer === 'object' ? order.customer.name : '') ||
+          null,
+        cancelReason: order?.cancelReason ?? order?.reason ?? null,
+      }));
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      machineNumber,
+      area: area || null,
+      businessFrom: fromIso,
+      businessTo: toIso,
+      gamingDate: floorlensService.getSnapshot()?.gamingDate || null,
+      rows,
+    });
+  } catch (error) {
+    console.error('GET /api/user/floorlens/orders/:machineNumber error:', error);
+    res.status(500).json({ error: error?.message || 'Cannot load machine orders' });
+  }
+});
+
+// Lịch sử các máy một member đã chơi trong Gaming Date hiện tại.
+// Frontend FloorLens đã dùng endpoint này ở tab Customer.
+app.get('/api/user/floorlens/customer/:memberCode/machines', (req, res) => {
+  try {
+    const memberCode = String(req.params.memberCode || '').replace(/\s+/g, '').trim();
+    const limit = Math.min(200, Math.max(1, Number(req.query?.limit || 80)));
+    if (!memberCode) return res.status(400).json({ error: 'memberCode required' });
+
+    const rows = typeof floorlensService.getCustomerMachineHistory === 'function'
+      ? floorlensService.getCustomerMachineHistory(memberCode, limit)
+      : [];
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      memberCode,
+      gamingDate: floorlensService.getSnapshot()?.gamingDate || null,
+      rows,
+    });
+  } catch (error) {
+    console.error('GET /api/user/floorlens/customer/:memberCode/machines error:', error);
+    res.status(500).json({ error: error?.message || 'Cannot load customer machine history' });
+  }
+});
+
+// Endpoint test cũ đã vô hiệu hoá.
+// Auto-DONE an toàn hiện được kích hoạt ở server khi khách mới THỰC SỰ gửi order
+// và FloorLens đang xác nhận đúng member đó trên cùng machine.
+app.post('/api/user/table-test/auto-done-on-enter', (_req, res) => {
+  res.status(410).json({
+    error: 'TABLE_TEST_ENTER_AUTO_DONE_DEPRECATED',
+    message: 'Auto DONE now runs safely when the new customer places an order.',
+  });
+});
+
+app.post('/api/admin/floorlens/sync', authenticateJWT, authorizeRoles('admin'), async (_req, res) => {
+  try {
+    res.json(await floorlensService.sync());
+  } catch (error) {
+    res.status(502).json({ error: error?.message || 'FloorLens sync failed' });
+  }
+});
 
 // ====== MENU TYPES API (NEW) ======
 const MENU_TYPES = [
@@ -2541,9 +3060,9 @@ app.get('/api/user/customer-profile/search', (req, res) => {
     const qNorm = normalizeMemberSearchText(q);
     const qTokens = qNorm.split(' ').filter(Boolean);
 
-    const stats = buildMemberOrderStats();
-const exactStats = buildMemberOrderStatsExact({ includeCancelled: true });
-const allRows = getMemberSearchBaseRows();
+    // getMemberSearchBaseRows đã cache sẵn orderCount/totalQty/lastOrderAt.
+    // Không quét toàn bộ orders thêm 2 lần cho mỗi ký tự user gõ.
+    const allRows = getMemberSearchBaseRows();
 
     const filtered = allRows.filter((r) => {
       const code = String(r.code || '').toLowerCase();
@@ -2560,34 +3079,19 @@ const allRows = getMemberSearchBaseRows();
     const normalized = filtered.map((r) => {
       const code = cleanMemberId(r.code || r.id || '');
       const m = members[code] || {};
-      const st = stats.get(code) || {};
-
       const name =
         meaningfulCustomerName(m.name || m.customerName, code) ||
         meaningfulCustomerName(r.name, code) ||
-        meaningfulCustomerName(st.name, code) ||
         '';
 
       const level =
         meaningfulCustomerLevel(m.level || m.memberLevel || m.tier) ||
         meaningfulCustomerLevel(r.level) ||
-        meaningfulCustomerLevel(st.level) ||
         '';
 
-      const exact = exactStats.get(code) || {};
-const ordersCount = Number(exact.orderCount || 0) || 0;
-
-      const totalQty = Math.max(
-        Number(r.totalQty || 0) || 0,
-        Number(st.totalQty || 0) || 0
-      );
-
-const lastOrderAt =
-  exact.lastOrderAt ||
-  st.lastOrderAt ||
-  r.lastOrderAt ||
-  m.lastSeenAt ||
-  null;
+      const ordersCount = Number(r.ordersCount || 0) || 0;
+      const totalQty = Number(r.totalQty || 0) || 0;
+      const lastOrderAt = r.lastOrderAt || m.lastSeenAt || null;
 
       return {
         ...r,
@@ -2625,8 +3129,6 @@ const lastOrderAt =
 // Quick spending summary cho Order Form
 app.get('/api/user/customer-spending/:code', (req, res) => {
   try {
-    orders = reloadOrdersSafe('GET /api/user/customer-spending/:code');
-
     const code = cleanMemberId(req.params.code || '');
     if (!code) return res.status(400).json({ error: 'Thiếu mã khách' });
 
@@ -2655,8 +3157,6 @@ res.json({
 // Spending detail cho Insights
 app.get('/api/user/customer-spending/:code/detail', (req, res) => {
   try {
-    orders = reloadOrdersSafe('GET /api/user/customer-spending/:code/detail');
-
     const code = cleanMemberId(req.params.code || '');
     if (!code) return res.status(400).json({ error: 'Thiếu mã khách' });
 
@@ -2677,10 +3177,18 @@ app.get('/api/user/customer-spending/:code/detail', (req, res) => {
     res.status(500).json({ error: 'Cannot build customer spending detail' });
   }
 });
-app.get('/api/user/customer-profile/:code', (req, res) => {
+app.get('/api/user/customer-profile/:code', async (req, res) => {
   try {
     const code = cleanMemberId(req.params.code || '');
     if (!code) return res.status(400).json({ error: 'Thiếu mã khách' });
+
+    // Refresh nhẹ qua Customer API (có cache/in-flight guard). Nếu API lỗi vẫn dùng local DB.
+    try {
+      const apiResult = await fetchCustomerFromExternalDetailed(code, { force: false, timeoutMs: CUSTOMER_API_TIMEOUT_MS });
+      if (apiResult?.status === 'FOUND' && apiResult?.data) {
+        upsertMemberFromExternal(apiResult.data, { by: 'customer-profile', save: true });
+      }
+    } catch (_) {}
 
     const m = members[code] || {};
     const identity = getBestKnownCustomerIdentity(code);
@@ -2702,6 +3210,33 @@ const exactOrdersCount = allCustomerOrders.length;
       ? buildCustomerRecommendations(insight, data.topItems, 12)
       : data.topItems.slice(0, 12);
 
+    // "Since" trong UI là lúc khách bắt đầu session FloorLens hiện tại,
+    // không phải ngày gia nhập membership. Một khách có thể chơi nhiều máy;
+    // ưu tiên session đang active mới nhất để Customer Insights hiển thị đúng ngữ cảnh hiện tại.
+    let currentFloorlensSession = null;
+    try {
+      const liveMachines = Array.isArray(floorlensService.getSnapshot()?.machines)
+        ? floorlensService.getSnapshot().machines
+        : [];
+      const liveRows = liveMachines
+        .filter((machine) =>
+          machine?.checkState === 'ok' &&
+          machine?.online !== false &&
+          machine?.isPlaying &&
+          cleanMemberId(machine?.memberCode) === code
+        )
+        .sort((a, b) => String(b?.startedAt || '').localeCompare(String(a?.startedAt || '')));
+      if (liveRows[0]) {
+        currentFloorlensSession = {
+          machineNumber: liveRows[0].machineNumber ?? null,
+          area: liveRows[0].area ?? null,
+          floor: liveRows[0].floor ?? null,
+          sessionId: liveRows[0].sessionId ?? null,
+          startedAt: liveRows[0].startedAt ?? null,
+        };
+      }
+    } catch (_) {}
+
     res.json({
 member: {
   code,
@@ -2717,7 +3252,11 @@ member: {
   ordersCount: exactOrdersCount,
   apiSyncedAt: m.apiSyncedAt || null,
   membershipType: m.membershipType || null,
+  dateOfBirth: m.dateOfBirth || m.dob || m.birthDate || null,
+  registeredAt: m.registeredAt || m.registeredDate || null,
+  memberSince: m.memberSince || m.since || null,
 },
+      currentFloorlensSession,
       history: Array.isArray(m.history)
         ? m.history.slice().sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0)).slice(0, 80)
         : [],
@@ -2909,10 +3448,11 @@ app.post('/api/customer-events/:id/cancel', (req, res) => {
 let customerInsightsCache = {
   at: 0,
   data: null,
+  ranges: new Map(),
 };
 
 function clearCustomerInsightsCache() {
-  customerInsightsCache = { at: 0, data: null };
+  customerInsightsCache = { at: 0, data: null, ranges: new Map() };
 }
 
 const CUSTOMER_INSIGHTS_CACHE_MS = Number(
@@ -2933,19 +3473,15 @@ function getOrdersByCustomerCodeExact(codeInput, { includeCancelled = true } = {
   const code = cleanMemberId(codeInput);
   if (!code) return [];
 
-  return (orders || []).filter((o) => {
-    const orderCode = cleanMemberId(
-      o.memberCard ||
-      o.customer?.code ||
-      ''
-    );
+  const source = typeof sqliteStore.queryOrders === 'function'
+    ? sqliteStore.queryOrders({ customerId: code, includeClosed: true })
+    : (orders || []).filter((o) => {
+        const orderCode = cleanMemberId(o.memberCard || o.customer?.code || '');
+        return orderCode === code;
+      });
 
-    if (orderCode !== code) return false;
-
-    if (!includeCancelled && String(o.status || '').toUpperCase() === 'CANCELLED') {
-      return false;
-    }
-
+  return source.filter((o) => {
+    if (!includeCancelled && String(o.status || '').toUpperCase() === 'CANCELLED') return false;
     return true;
   });
 }
@@ -3204,7 +3740,13 @@ function buildCustomerSpending(codeInput, opts = {}) {
     to,
   });
 
-  const rows = (orders || [])
+  const sourceOrders = Array.isArray(opts.orderRows)
+    ? opts.orderRows
+    : (typeof sqliteStore.queryOrders === 'function'
+        ? sqliteStore.queryOrders({ customerId: code, includeClosed: true })
+        : (orders || []).filter((o) => getOrderCustomerCode(o) === code));
+
+  const rows = sourceOrders
     .filter((o) => getOrderCustomerCode(o) === code)
     .filter(isOrderCountedForSpending)
     .filter((o) => orderInSpendingRange(o, fromDate, toDate))
@@ -3274,11 +3816,33 @@ function buildCustomerSpending(codeInput, opts = {}) {
     orders: detailOrders.slice(0, limit),
   };
 }
+function normalizeInsightImageUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  // DB cũ có thể lưu absolute URL với IP/host cũ. Insights luôn trả path tương đối
+  // để frontend ghép với REACT_APP_API_URL hiện tại.
+  const marker = raw.indexOf('/images/');
+  if (marker >= 0) return raw.slice(marker);
+
+  return raw;
+}
+
 function buildFoodMetaMap() {
   const meta = new Map();
 
-  // Từ foods.json: lấy imageUrl, type, status
-  for (const f of foods || []) {
+  // routes/products có thể cập nhật SQLite trực tiếp, vì vậy Insights phải đọc foods
+  // mới nhất từ DB thay vì phụ thuộc biến foods trong memory.
+  let foodsForMeta = foods || [];
+  try {
+    foodsForMeta = sqliteStore.loadFoods();
+    foods = foodsForMeta;
+  } catch (e) {
+    console.warn('[Insights] reload foods failed, use memory cache:', e?.message || e);
+  }
+
+  // Từ foods: lấy imageUrl, type, status
+  for (const f of foodsForMeta || []) {
     const imageName = extractImageName(f.imageUrl);
     if (!imageName) continue;
 
@@ -3286,7 +3850,7 @@ function buildFoodMetaMap() {
     meta.set(imageName, {
       ...prev,
       imageName,
-      imageUrl: f.imageUrl || prev.imageUrl || '',
+      imageUrl: normalizeInsightImageUrl(f.imageUrl || prev.imageUrl || ''),
       type: f.type || prev.type || '',
       status: f.status || prev.status || '',
       quantity: f.quantity ?? prev.quantity ?? null,
@@ -3308,13 +3872,25 @@ function buildFoodMetaMap() {
     meta.set(imageName, {
       ...prev,
       imageName,
-      imageUrl: prev.imageUrl || p.imageUrl || '',
+      imageUrl: normalizeInsightImageUrl(prev.imageUrl || p.imageUrl || ''),
       productCode: String(p.productCode || p.code || prev.productCode || '').trim(),
       name: String(p.name || p.productName || prev.name || imageName).trim(),
       itemGroup: String(p.itemGroup || p.group || prev.itemGroup || '').trim(),
       menuType: String(p.menuType || prev.menuType || '').trim(),
       price: Number.isFinite(Number(p.price)) ? Number(p.price) : prev.price ?? null,
     });
+  }
+
+  // Alias theo mã món/tên món giúp các order lịch sử vẫn tìm được ảnh hiện tại
+  // kể cả khi file ảnh đã được rename sau khi order được tạo.
+  for (const [imageKey, row] of Array.from(meta.entries())) {
+    if (!row || String(imageKey).startsWith('code:') || String(imageKey).startsWith('name:')) continue;
+
+    const codeKey = String(row.productCode || '').trim().toLowerCase();
+    if (codeKey && !meta.has(`code:${codeKey}`)) meta.set(`code:${codeKey}`, row);
+
+    const nameKey = normalizeInsightText(row.name || '').toLowerCase();
+    if (nameKey && !meta.has(`name:${nameKey}`)) meta.set(`name:${nameKey}`, row);
   }
 
   return meta;
@@ -3358,13 +3934,23 @@ function getOrderItemLabel(key, item = {}, foodMetaMap) {
     };
   }
 
-  const meta = foodMetaMap.get(key) || {};
+  let meta = foodMetaMap.get(key) || {};
+
+  // Nếu order lưu imageName cũ, fallback theo productCode rồi tên món.
+  if (!meta.imageUrl) {
+    const codeKey = String(item.productCode || item.code || '').trim().toLowerCase();
+    if (codeKey) meta = foodMetaMap.get(`code:${codeKey}`) || meta;
+  }
+  if (!meta.imageUrl) {
+    const nameKey = normalizeInsightText(item.name || item.productName || '').toLowerCase();
+    if (nameKey) meta = foodMetaMap.get(`name:${nameKey}`) || meta;
+  }
 
   return {
     key,
     isOffMenu: false,
     imageName: key,
-    imageUrl: meta.imageUrl || item.imageUrl || '',
+    imageUrl: normalizeInsightImageUrl(meta.imageUrl || item.imageUrl || ''),
     productCode: meta.productCode || item.productCode || item.code || '',
     name: meta.name || item.name || item.productName || key,
     itemGroup: meta.itemGroup || item.group || '',
@@ -3380,7 +3966,7 @@ function pushLimited(arr, value, max = 30) {
   if (arr.length > max) arr.splice(0, arr.length - max);
 }
 
-function buildCustomerInsightsSnapshot({ from = null, to = null } = {}) {
+function buildCustomerInsightsSnapshot({ from = null, to = null, orderRows = null } = {}) {
   const foodMetaMap = buildFoodMetaMap();
 
   const overallItems = new Map();
@@ -3395,7 +3981,9 @@ function buildCustomerInsightsSnapshot({ from = null, to = null } = {}) {
   const fromMs = from ? Date.parse(from) : NaN;
   const toMs = to ? Date.parse(to) : NaN;
 
-  const validOrders = (orders || []).filter((o) => {
+  const sourceOrders = Array.isArray(orderRows) ? orderRows : (orders || []);
+
+  const validOrders = sourceOrders.filter((o) => {
     // Không tính order đã huỷ vào sở thích
     if (!o || o.status === 'CANCELLED') return false;
 
@@ -3618,30 +4206,42 @@ function buildCustomerInsightsSnapshot({ from = null, to = null } = {}) {
   };
 }
 
-function getCustomerInsightsSnapshot({ force = false, from = null, to = null } = {}) {
+function getCustomerInsightsSnapshot({ force = false, from = null, to = null, orderRows = null } = {}) {
   const now = Date.now();
   const hasRange = Number.isFinite(Date.parse(from || '')) || Number.isFinite(Date.parse(to || ''));
 
-  // Chỉ dùng cache chung cho chế độ toàn thời gian. Các khoảng ngày được tính riêng
-  // để không trả nhầm dữ liệu giữa Today / 7 days / 30 days / This month.
+  if (hasRange) {
+    const rangeKey = `${from || ''}|${to || ''}`;
+    const cached = customerInsightsCache.ranges?.get(rangeKey);
+
+    if (!force && cached && now - cached.at < CUSTOMER_INSIGHTS_CACHE_MS) {
+      return cached.data;
+    }
+
+    const data = buildCustomerInsightsSnapshot({ from, to, orderRows });
+    if (!customerInsightsCache.ranges) customerInsightsCache.ranges = new Map();
+    customerInsightsCache.ranges.set(rangeKey, { at: now, data });
+
+    // Không giữ cache vô hạn khi user đổi nhiều khoảng thời gian.
+    while (customerInsightsCache.ranges.size > 12) {
+      const oldestKey = customerInsightsCache.ranges.keys().next().value;
+      customerInsightsCache.ranges.delete(oldestKey);
+    }
+
+    return data;
+  }
+
   if (
     !force &&
-    !hasRange &&
     customerInsightsCache.data &&
     now - customerInsightsCache.at < CUSTOMER_INSIGHTS_CACHE_MS
   ) {
     return customerInsightsCache.data;
   }
 
-  const data = buildCustomerInsightsSnapshot({ from, to });
-
-  if (!hasRange) {
-    customerInsightsCache = {
-      at: now,
-      data,
-    };
-  }
-
+  const data = buildCustomerInsightsSnapshot({ orderRows });
+  customerInsightsCache.at = now;
+  customerInsightsCache.data = data;
   return data;
 }
 
@@ -3728,15 +4328,17 @@ function toPublicInsightCustomer(customer = {}) {
 // Hỗ trợ from/to để frontend lọc Today / 7 days / 30 days / This month / All time.
 app.get('/api/user/customer-insights/overview', (req, res) => {
   try {
-    // Reload nhanh để số liệu luôn khớp với SQLite sau khi vừa tạo/cập nhật order.
-    orders = reloadOrdersSafe('GET /api/user/customer-insights/overview');
-
     const limit = Math.max(1, Math.min(200, Number(req.query.limit || 100)));
     const force = String(req.query.force || '').toLowerCase() === 'true';
     const from = req.query.from || null;
     const to = req.query.to || null;
 
-    const data = getCustomerInsightsSnapshot({ force, from, to });
+    const hasRange = Boolean(from || to);
+    const orderRows = hasRange && typeof sqliteStore.queryOrders === 'function'
+      ? sqliteStore.queryOrders({ from, to, includeClosed: true })
+      : null;
+
+    const data = getCustomerInsightsSnapshot({ force, from, to, orderRows });
 
     res.set('Cache-Control', 'no-store');
     res.json({
@@ -3763,12 +4365,14 @@ app.get('/api/user/customer-insights/overview', (req, res) => {
 // Chỉ trả các field cần hiển thị để response gọn, không trả giá từng món.
 app.get('/api/user/customer-insights/list', (req, res) => {
   try {
-    orders = reloadOrdersSafe('GET /api/user/customer-insights/list');
-
     const type = String(req.query.type || 'customers').toLowerCase();
     const from = req.query.from || null;
     const to = req.query.to || null;
-    const data = getCustomerInsightsSnapshot({ force: false, from, to });
+    const hasRange = Boolean(from || to);
+    const orderRows = hasRange && typeof sqliteStore.queryOrders === 'function'
+      ? sqliteStore.queryOrders({ from, to, includeClosed: true })
+      : null;
+    const data = getCustomerInsightsSnapshot({ force: false, from, to, orderRows });
 
     res.set('Cache-Control', 'no-store');
 
@@ -3908,27 +4512,60 @@ function pushMemberHistory(code, entry) {
 const MemberApi = {
 list(req, res) {
     try {
-      const { q, limit = 100, page = 1 } = req.query || {};
-      let arr = Object.keys(members).map(code => memberToRow(code, members[code]));
-      if (q) {
-        const qn = (q || '').toLowerCase();
-        arr = arr.filter(r =>
-          (r.code || '').toLowerCase().includes(qn) ||
-          (r.name || '').toLowerCase().includes(qn)
+      const { q = '', level = '', limit = 100, page = 1 } = req.query || {};
+      const requestedLevels = String(level || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+      if (typeof sqliteStore.queryMembersPage === 'function') {
+        const result = sqliteStore.queryMembersPage({
+          q,
+          levels: requestedLevels,
+          limit,
+          page,
+        });
+
+        return res.json({
+          ...result,
+          items: (result.items || []).map((m) => memberToRow(m.code, m)),
+        });
+      }
+
+      // Fallback cho sqliteStore cũ nếu deploy lệch file: giữ behavior hiện tại.
+      const allRows = Object.keys(members).map((code) => memberToRow(code, members[code]));
+      const byLevel = {};
+      for (const row of allRows) {
+        const lv = String(row.level || 'Chưa có level').trim() || 'Chưa có level';
+        byLevel[lv] = (byLevel[lv] || 0) + 1;
+      }
+
+      let arr = allRows;
+      const qn = String(q || '').toLowerCase().trim();
+      if (qn) {
+        arr = arr.filter((r) =>
+          String(r.code || '').toLowerCase().includes(qn) ||
+          String(r.name || '').toLowerCase().includes(qn) ||
+          String(r.level || '').toLowerCase().includes(qn)
         );
       }
-      arr.sort((a,b) => a.code.localeCompare(b.code));
-      // phân trang: tính start và end index
-      const lim  = Math.max(1, Number(limit));   // số bản ghi mỗi trang
-      const pg   = Math.max(1, Number(page));    // số trang
+      if (requestedLevels.length) {
+        const levelSet = new Set(requestedLevels.map((v) => v.toLowerCase()));
+        arr = arr.filter((r) => levelSet.has(String(r.level || '').trim().toLowerCase()));
+      }
+      arr.sort((a, b) => String(a.code || '').localeCompare(String(b.code || ''), undefined, { numeric: true }));
+      const lim = Math.max(1, Math.min(70000, Number(limit) || 100));
+      const totalPages = Math.max(1, Math.ceil(arr.length / lim));
+      const pg = Math.min(totalPages, Math.max(1, Number(page) || 1));
       const start = (pg - 1) * lim;
-      const end   = start + lim;
-      const sliced = arr.slice(start, end);
+
       return res.json({
         total: arr.length,
         page: pg,
         limit: lim,
-        items: sliced,
+        totalPages,
+        items: arr.slice(start, start + lim),
+        summary: { total: allRows.length, byLevel },
       });
     } catch (err) {
       console.error('list members error:', err);
@@ -4194,10 +4831,98 @@ function recoverMemberFromKnownHistory(codeInput, actor = 'admin-check-fallback'
   };
 }
 
-// Xem trạng thái API khách hàng — dùng để hiển thị trong Admin
+
+// Sửa một lần khi backend khởi động các placeholder UI đã vô tình bị lưu vào Database
+// bởi phiên bản cũ (ví dụ: "Không đọc được Database").
+// Chỉ đụng tới record có name/level KHÔNG hợp lệ; dữ liệu thật không bị thay đổi.
+function repairLegacyCustomerPlaceholdersFromHistory() {
+  let checked = 0;
+  let repaired = 0;
+
+  for (const [codeRaw, rec] of Object.entries(members || {})) {
+    const code = cleanMemberId(codeRaw);
+    if (!code) continue;
+
+    const rawName = String(rec?.name || rec?.customerName || '').trim();
+    const rawLevel = String(rec?.level || rec?.memberLevel || rec?.tier || '').trim();
+
+    const hasInvalidStoredName = Boolean(rawName) && !isMeaningfulCustomerName(rawName, code);
+    const hasInvalidStoredLevel = Boolean(rawLevel) && !isMeaningfulCustomerLevel(rawLevel);
+
+    if (!hasInvalidStoredName && !hasInvalidStoredLevel) continue;
+
+    checked += 1;
+    try {
+      const result = recoverMemberFromKnownHistory(code, 'startup-placeholder-repair');
+      if (result?.changed) repaired += 1;
+    } catch (error) {
+      console.warn(`[Customer repair] ${code}:`, error?.message || error);
+    }
+  }
+
+  if (checked > 0) {
+    console.log(`[Customer repair] checked=${checked}, repaired=${repaired}`);
+  }
+
+  return { checked, repaired };
+}
+
+repairLegacyCustomerPlaceholdersFromHistory();
+
+// Xem trạng thái Customer API + SQLite + luồng API -> SQLite.
+// Mục tiêu: Admin phân biệt rõ "API reachable" với "API đang trả data"
+// và "Database thật sự vừa nhận dữ liệu từ API".
 app.get('/api/customer-api/status', (_req, res) => {
+  let database = {
+    ok: false,
+    status: 'ERROR',
+    lastApiSyncedAt: null,
+    syncedLastHour: 0,
+    syncedLast24h: 0,
+    checkedAt: new Date().toISOString(),
+    queryMs: null,
+    error: null,
+  };
+
+  try {
+    if (typeof sqliteStore.getCustomerSyncHealth === 'function') {
+      database = { ...database, ...sqliteStore.getCustomerSyncHealth() };
+    } else {
+      // Fallback an toàn nếu sqliteStore cũ hơn server.js.
+      sqliteStore.getInfo();
+      database.ok = true;
+      database.status = 'ONLINE';
+    }
+  } catch (error) {
+    database.error = error?.message || String(error);
+  }
+
+  const connectionStatus = customerApiHealth.connectionStatus || 'UNKNOWN';
+  const lookupStatus = customerApiHealth.lookupStatus || 'IDLE';
+
+  let apiDataStatus = 'UNKNOWN';
+  if (connectionStatus !== 'ONLINE') apiDataStatus = connectionStatus;
+  else if (lookupStatus === 'FOUND') apiDataStatus = 'DATA_OK';
+  else if (lookupStatus === 'NOT_FOUND') apiDataStatus = 'NO_DATA';
+  else if (lookupStatus === 'INVALID_RESPONSE') apiDataStatus = 'INVALID_RESPONSE';
+  else if (lookupStatus === 'IDLE') apiDataStatus = 'IDLE';
+  else apiDataStatus = lookupStatus;
+
+  const lastResult = customerSyncLastResult || {};
+  let databaseSyncStatus = 'IDLE';
+  if (!database.ok) databaseSyncStatus = 'DATABASE_ERROR';
+  else if (customerSyncWorkerRunning) databaseSyncStatus = 'RUNNING';
+  else if (Number(lastResult.updated || 0) > 0) databaseSyncStatus = 'UPDATED';
+  else if (Number(lastResult.failed || 0) > 0) databaseSyncStatus = 'FAILED';
+  else if (database.lastApiSyncedAt) databaseSyncStatus = 'SYNCED_BEFORE';
+
   res.json({
     ...customerApiHealth,
+    connectionStatus,
+    lookupStatus,
+    apiDataStatus,
+    database,
+    databaseSyncStatus,
     architecture: 'DATABASE_FIRST_PRIORITY_QUEUE',
     appReadsFrom: 'SQLITE',
     apiWritesTo: 'SQLITE',
@@ -4218,6 +4943,7 @@ app.get('/api/customer-api/status', (_req, res) => {
     workerLastRunAt: customerSyncLastRunAt,
     workerLastFinishedAt: customerSyncLastFinishedAt,
     workerLastResult: customerSyncLastResult,
+    liveProgress: buildCustomerSyncLivePayload(),
   });
 });
 
@@ -4583,8 +5309,8 @@ if (!effective) effective = [];
 
     const imageName = extractImageName(imageUrl);
     const existed = foods.find(f => extractImageName(f.imageUrl) === imageName);
-    const baseQty = typeof existed?.quantity === 'number' ? existed.quantity : 1;
-    const baseStatus = baseQty <= 0 ? 'Sold Out' : 'Available';
+    const baseQty = typeof existed?.quantity === 'number' ? existed.quantity : 1; // legacy only
+    const baseStatus = existed?.status === 'Sold Out' ? 'Sold Out' : 'Available';
 
     const maxOrder = foods.reduce((m, f) => (typeof f.order === 'number' && f.order > m ? f.order : m), -1);
     const newFood = {
@@ -4611,30 +5337,39 @@ if (!effective) effective = [];
 app.post('/api/update-status/:id', authenticateJWT, authorizeRoles('admin', 'kitchen'), (req, res) => {
   try {
     const foodId = Number(req.params.id);
-    const { newStatus } = req.body;
-    const target = foods.find(f => f.id === foodId);
+    const { newStatus } = req.body || {};
+    if (!['Available', 'Sold Out'].includes(newStatus)) {
+      return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
+    }
+
+    // Luôn lấy snapshot mới nhất từ SQLite để tránh global foods cũ ghi đè dữ liệu
+    // vừa được Quản lý/Hàng hóa cập nhật.
+    foods = sqliteStore.loadFoods();
+
+    const target = foods.find(f => Number(f.id) === foodId);
     if (!target) return res.status(404).json({ message: 'Not found' });
-    if (!['Available', 'Sold Out'].includes(newStatus)) return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
 
     const prevStatus = target.status;
     const imageName = extractImageName(target.imageUrl);
-
-    let newQty = newStatus === 'Sold Out' ? 0 : (target.quantity > 0 ? target.quantity : 10);
-
+    const updatedAt = new Date().toISOString();
     const updatedFoods = [];
-    foods.forEach((f) => {
-      if (extractImageName(f.imageUrl) === imageName) {
-        f.status = newStatus;
-        f.quantity = newQty;
-        updatedFoods.push(f);
-      }
-    });
 
-    saveFoods();
+    for (const f of foods) {
+      if (extractImageName(f.imageUrl) !== imageName) continue;
+
+      // quantity là legacy field; không thay đổi và không dùng để suy status.
+      f.status = newStatus;
+      f.updatedAt = updatedAt;
+      sqliteStore.upsertFood(f);
+      updatedFoods.push(f);
+    }
+
+    // Đồng bộ lại bộ nhớ bằng đúng dữ liệu vừa ghi DB.
+    foods = sqliteStore.loadFoods();
 
     if (prevStatus !== newStatus) {
       addStatusHistory({
-        at: new Date().toISOString(),
+        at: updatedAt,
         by: req.user?.sub || 'unknown',
         role: req.user?.role || 'unknown',
         imageName,
@@ -4648,79 +5383,321 @@ app.post('/api/update-status/:id', authenticateJWT, authorizeRoles('admin', 'kit
     }
 
     io.emit('foodStatusUpdated', { updatedFoods });
-    io.emit('foodQuantityUpdated', { imageName, quantity: newQty });
 
-    res.json({ success: true, quantity: newQty });
+    return res.json({
+      success: true,
+      status: newStatus,
+      imageName,
+      updated: updatedFoods.length,
+    });
   } catch (e) {
     console.error('Update status error:', e);
-    res.status(500).json({ error: 'Cập nhật trạng thái thất bại' });
+    return res.status(500).json({ error: 'Cập nhật trạng thái thất bại' });
   }
 });
 
 // --- Cập nhật SỐ LƯỢNG (Admin + Kitchen) ---
-app.post('/api/update-quantity/:id', authenticateJWT, authorizeRoles('admin', 'kitchen'), (req, res) => {
-  try {
-    const foodId = Number(req.params.id);
-    const { op, value } = req.body || {};
-    const target = foods.find(f => f.id === foodId);
-    if (!target) return res.status(404).json({ message: 'Not found' });
-
-    const imageName = extractImageName(target.imageUrl);
-    let currentQty = typeof target.quantity === 'number' ? target.quantity : (target.status === 'Sold Out' ? 0 : 1);
-
-    let newQty;
-    if (op === 'inc') {
-      const delta = Number(value || 0);
-      newQty = Math.max(0, currentQty + delta);
-    } else if (op === 'set') {
-      newQty = Math.max(0, Number(value || 0));
-    } else {
-      return res.status(400).json({ error: 'Invalid op. Use "inc" or "set".' });
-    }
-
-    const prevStatus = target.status;
-    const newStatus = newQty <= 0 ? 'Sold Out' : 'Available';
-
-    const updatedFoods = [];
-    foods.forEach((f) => {
-      if (extractImageName(f.imageUrl) === imageName) {
-        f.quantity = newQty;
-        f.status = newStatus;
-        updatedFoods.push(f);
-      }
-    });
-
-    saveFoods();
-
-    if (prevStatus !== newStatus) {
-      addStatusHistory({
-        at: new Date().toISOString(),
-        by: req.user?.sub || 'unknown',
-        role: req.user?.role || 'unknown',
-        imageName,
-        imageUrl: target.imageUrl,
-        type: target.type,
-        from: prevStatus,
-        to: newStatus,
-        count: updatedFoods.length,
-        affectedIds: updatedFoods.map(f => f.id),
-      });
-      io.emit('foodStatusUpdated', { updatedFoods });
-    }
-
-    io.emit('foodQuantityUpdated', { imageName, quantity: newQty });
-    res.json({ success: true, quantity: newQty, status: newStatus });
-  } catch (e) {
-    console.error('Update quantity error:', e);
-    res.status(500).json({ error: 'Cập nhật số lượng thất bại' });
-  }
+app.post('/api/update-quantity/:id', authenticateJWT, authorizeRoles('admin', 'kitchen'), (_req, res) => {
+  return res.status(410).json({
+    error: 'FOOD_STOCK_DISABLED',
+    message: 'Ứng dụng không còn quản lý tồn kho món. Hãy dùng Sold Out / Available.',
+  });
 });
 
-// --- Tạo order (public) + trừ tồn kho ---
+// ===== FloorLens order source station =====
+// Metadata phụ để biết order được gửi từ iPad nào.
+// QUAN TRỌNG: sourceStation tuyệt đối không được làm hỏng việc tạo order.
+// Giá trị lạ/thiếu sẽ được bỏ qua thay vì throw error.
+const FLOORLENS_ORDER_STATION_CODES = new Set([
+  'TECH',
+  'PIT14',
+  'PIT15',
+  'PIT33',
+  'PIT2F',
+  'RECEPTION1',
+  'RECEPTION2',
+  'BC1',
+  'BC2',
+  'CENTER3022',
+  'KITCHENIPAD',
+]);
+
+function normalizeFloorlensOrderStation(value) {
+  const raw = String(value == null ? '' : value)
+    .trim()
+    .toUpperCase()
+    .replace(/[\s_-]+/g, '');
+
+  if (!raw) return '';
+
+  const aliases = {
+    TECH: 'TECH',
+    PIT14: 'PIT14',
+    PIT15: 'PIT15',
+    PIT33: 'PIT33',
+    PIT2F: 'PIT2F',
+    RECEPTION1: 'RECEPTION1',
+    RECEPTION2: 'RECEPTION2',
+    BC1: 'BC1',
+    BC2: 'BC2',
+    CENTER: 'CENTER3022',
+    CENTER3022: 'CENTER3022',
+    KITCHEN: 'KITCHENIPAD',
+    KITCHENIPAD: 'KITCHENIPAD',
+  };
+
+  const normalized = aliases[raw] || raw;
+  return FLOORLENS_ORDER_STATION_CODES.has(normalized) ? normalized : '';
+}
+
+// Auto-DONE an toàn theo FloorLens:
+// Chỉ chạy KHI KHÁCH MỚI GỬI ORDER, không chạy chỉ vì ENTER/LEAVE.
+// Server tự xác minh FloorLens đang có đúng member mới ở đúng machine, sau đó
+// DONE toàn bộ order PENDING/IN_PROGRESS còn mở của member KHÁC trên machine đó.
+// Auto-DONE 06:00 ở phía trên vẫn giữ nguyên và hoạt động độc lập.
+function autoDonePreviousCustomerOrdersOnNewOrder(newOrder) {
+  try {
+    if (!newOrder || newOrder.quickOrder || !newOrder.area || !newOrder.tableNo) return [];
+    if (isDiningTableOrder(newOrder.area, newOrder.tableNo)) return [];
+
+    const machineNumber = String(newOrder.tableNo || '').trim();
+    const area = String(newOrder.area || '').trim();
+    const newMemberCode = floorlensOrderMemberCode(newOrder);
+    if (!machineNumber || !newMemberCode) return [];
+
+    const liveSnapshot = floorlensService.getSnapshot() || {};
+    const liveMachine = (Array.isArray(liveSnapshot.machines) ? liveSnapshot.machines : [])
+      .find((machine) => String(machine?.machineNumber || '').trim() === machineNumber);
+
+    if (!liveMachine) return [];
+
+    const liveVerified = liveMachine.checkState === 'ok' && liveMachine.online !== false && liveMachine.isPlaying;
+    if (!liveVerified || liveMachine.unknownPlayer) return [];
+
+    const liveMemberCode = String(liveMachine.memberCode || '').replace(/\s+/g, '').trim();
+    if (!liveMemberCode || liveMemberCode !== newMemberCode) return [];
+
+    const liveArea = String(liveMachine.area || '').trim();
+    if (liveArea && area && liveArea !== area) return [];
+
+    const { from, to } = floorlensBusinessWindow();
+    let candidateOrders = [];
+
+    if (typeof sqliteStore.queryOrders === 'function') {
+      candidateOrders = sqliteStore.queryOrders({
+        area: area || undefined,
+        tableNo: machineNumber,
+        from: from.toISOString(),
+        to: to.toISOString(),
+        includeClosed: true,
+      });
+    } else {
+      candidateOrders = reloadOrdersSafe('AUTO DONE new customer order').filter((order) => {
+        const at = Date.parse(order?.createdAt || '');
+        return (
+          Number.isFinite(at) &&
+          at >= from.getTime() &&
+          at <= to.getTime() &&
+          String(order?.tableNo || '') === machineNumber &&
+          (!area || String(order?.area || '') === area)
+        );
+      });
+    }
+
+    const nowIso = new Date().toISOString();
+    const changedOrders = [];
+
+    for (const order of Array.isArray(candidateOrders) ? candidateOrders : []) {
+      if (!order || String(order.id) === String(newOrder.id)) continue;
+
+      const status = String(order.status || '').toUpperCase();
+      if (!['PENDING', 'IN_PROGRESS'].includes(status)) continue;
+      const wasAlreadyClosed = order.tableClosed === true;
+
+      const previousMemberCode = floorlensOrderMemberCode(order);
+      if (!previousMemberCode || previousMemberCode === newMemberCode) continue;
+
+      const oldCreatedMs = Date.parse(order.createdAt || '');
+      const newCreatedMs = Date.parse(newOrder.createdAt || '');
+      if (Number.isFinite(oldCreatedMs) && Number.isFinite(newCreatedMs) && oldCreatedMs > newCreatedMs) continue;
+
+      order.status = 'DONE';
+      order.updatedAt = nowIso;
+      if (!wasAlreadyClosed) {
+        order.tableClosed = true;
+        order.closedAt = nowIso;
+        order.closedBy = 'system-floorlens-new-customer-order';
+      }
+      order.autoDoneAt = nowIso;
+      order.autoDoneReason = 'AUTO_DONE_NEW_CUSTOMER_AFTER_NEW_ORDER';
+      order.autoDonePreviousMemberCode = previousMemberCode;
+      order.autoDoneNewMemberCode = newMemberCode;
+      order.autoDoneMachineNumber = machineNumber;
+      order.autoDoneSessionId = String(liveMachine.sessionId || '').trim() || null;
+      order.autoDoneTriggeredByOrderId = newOrder.id;
+
+      persistOrder(order);
+
+      const cacheIndex = orders.findIndex((row) => String(row?.id) === String(order.id));
+      if (cacheIndex >= 0) orders[cacheIndex] = order;
+      else orders.unshift(order);
+
+      changedOrders.push(order);
+
+      io.emit('orderUpdated', {
+        orderId: order.id,
+        status: order.status,
+        order,
+        reason: order.autoDoneReason,
+      });
+    }
+
+    if (changedOrders.length > 0) {
+      io.emit('floorlensAutoDoneOrders', {
+        machineNumber,
+        area,
+        newMemberCode,
+        newOrderId: newOrder.id,
+        orderIds: changedOrders.map((order) => order.id),
+        at: nowIso,
+      });
+      console.log(`[AUTO DONE FloorLens] machine=${machineNumber} newMember=${newMemberCode} newOrder=#${newOrder.id} done=${changedOrders.map((o) => `#${o.id}`).join(',')}`);
+    }
+
+    return changedOrders;
+  } catch (error) {
+    // Không bao giờ làm hỏng order mới nếu auto-DONE phụ bị lỗi.
+    console.error('[AUTO DONE FloorLens] skipped because of error:', error?.message || error);
+    return [];
+  }
+}
+
+
+const DINING_TABLES_BY_AREA = new Map([
+  ['Roulette 1', new Set(['Bàn ăn 1', 'Bàn ăn 2'])],
+  ['Reception 1', new Set(['Bàn ăn 1', 'Bàn ăn 2'])],
+  ['Multi', new Set(['Bàn ăn 1'])],
+  ['2 Floor', new Set(['Bàn ăn 1', 'Bàn ăn 2', 'Bàn ăn 3', 'Bàn ăn 4'])],
+  ['Kitchen', new Set(['Bàn ăn 1', 'Bàn ăn 2', 'Bàn ăn 3'])],
+]);
+
+function isDiningTableOrder(area, tableNo) {
+  const areaName = String(area || '').trim();
+  const tableName = String(tableNo || '').trim();
+  const allowed = DINING_TABLES_BY_AREA.get(areaName);
+  return Boolean(allowed && allowed.has(tableName));
+}
+
+// Preflight FloorLens trước khi ghi order:
+// - Bàn ăn được phép order tự do, không ràng buộc FloorLens machine/customer.
+// - Nếu machine đang có member khác -> trả 409, KHÔNG ghi DB / KHÔNG gửi Kitchen.
+// - Nếu member cần order đang chơi ở machine khác -> trả suggestedMachine để UI đổi bàn.
+// - Không chặn Quick Order (không gắn machine).
+function getFloorlensOrderPlacementConflict({ area, tableNo, memberCard }) {
+  try {
+    if (isDiningTableOrder(area, tableNo)) return null;
+    const machineNumber = String(tableNo == null ? '' : tableNo).trim();
+    const requestedMemberCode = String(memberCard == null ? '' : memberCard).replace(/\s+/g, '').trim();
+    if (!machineNumber || !requestedMemberCode) return null;
+
+    const snapshot = floorlensService.getSnapshot() || {};
+    const liveMachines = Array.isArray(snapshot.machines) ? snapshot.machines : [];
+    const verified = liveMachines.filter((machine) => (
+      machine &&
+      machine.checkState === 'ok' &&
+      machine.online !== false &&
+      machine.isPlaying === true
+    ));
+
+    const selectedMachine = verified.find(
+      (machine) => String(machine?.machineNumber || '').trim() === machineNumber
+    ) || null;
+
+    const requestedCustomerMachines = verified
+      .filter((machine) => !machine?.unknownPlayer)
+      .filter((machine) => String(machine?.memberCode || '').replace(/\s+/g, '').trim() === requestedMemberCode)
+      .map((machine) => ({
+        machineNumber: String(machine?.machineNumber || '').trim(),
+        area: String(machine?.area || '').trim(),
+        memberCode: requestedMemberCode,
+        customerName: String(machine?.customerName || '').trim() || null,
+        sessionId: String(machine?.sessionId || '').trim() || null,
+        startedAt: machine?.startedAt || null,
+      }));
+
+    const occupantCode = selectedMachine && !selectedMachine.unknownPlayer
+      ? String(selectedMachine?.memberCode || '').replace(/\s+/g, '').trim()
+      : '';
+
+    // Đúng member đang ở đúng machine => hợp lệ, kể cả member đó có chơi thêm machine khác.
+    if (selectedMachine && occupantCode && occupantCode === requestedMemberCode) return null;
+
+    const suggestedMachine = requestedCustomerMachines.find(
+      (machine) => machine.machineNumber !== machineNumber
+    ) || null;
+
+    // Machine đang có khách khác đã xác định member.
+    if (selectedMachine && occupantCode && occupantCode !== requestedMemberCode) {
+      return {
+        reason: 'MACHINE_OCCUPIED_BY_OTHER_CUSTOMER',
+        selectedMachine: {
+          machineNumber,
+          area: String(selectedMachine?.area || area || '').trim(),
+          memberCode: occupantCode,
+          customerName: String(selectedMachine?.customerName || '').trim() || null,
+          sessionId: String(selectedMachine?.sessionId || '').trim() || null,
+          startedAt: selectedMachine?.startedAt || null,
+        },
+        requestedCustomer: {
+          memberCode: requestedMemberCode,
+        },
+        customerMachines: requestedCustomerMachines,
+        suggestedMachine,
+      };
+    }
+
+    // Machine đang trống/không xác định nhưng member lại đang chơi rõ ràng ở machine khác.
+    if (suggestedMachine) {
+      return {
+        reason: 'CUSTOMER_PLAYING_ON_OTHER_MACHINE',
+        selectedMachine: selectedMachine ? {
+          machineNumber,
+          area: String(selectedMachine?.area || area || '').trim(),
+          memberCode: occupantCode || null,
+          customerName: String(selectedMachine?.customerName || '').trim() || null,
+          sessionId: String(selectedMachine?.sessionId || '').trim() || null,
+          startedAt: selectedMachine?.startedAt || null,
+        } : {
+          machineNumber,
+          area: String(area || '').trim(),
+          memberCode: null,
+          customerName: null,
+          sessionId: null,
+          startedAt: null,
+        },
+        requestedCustomer: {
+          memberCode: requestedMemberCode,
+        },
+        customerMachines: requestedCustomerMachines,
+        suggestedMachine,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    // Preflight phụ không được làm sập order service nếu FloorLens snapshot có vấn đề.
+    console.error('[FloorLens order preflight] skipped because of error:', error?.message || error);
+    return null;
+  }
+}
+
+// --- Tạo order (public) — không quản lý tồn kho món ---
 app.post('/api/orders',orderLimiter, async (req, res) => {
   try {
 const {
   clientRequestId,
+  sourceStation,
+  quickOrder,
   area,
   tableNo,
   staff,
@@ -4728,14 +5705,15 @@ const {
   customerName,
   customer,
   note,
-  items,
-  consumeStock = true
+  items
 } = req.body || {};
 
-    if (!area || !tableNo) return res.status(400).json({ error: 'Thiếu khu vực/bàn' });
+    const isQuickOrder = quickOrder === true;
+    if (!isQuickOrder && (!area || !tableNo)) return res.status(400).json({ error: 'Thiếu khu vực/bàn' });
     if (!staff || !memberCard) return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (staff/memberCard)' });
     if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Giỏ trống' });
 const cleanClientRequestId = String(clientRequestId || '').trim();
+const cleanSourceStation = normalizeFloorlensOrderStation(sourceStation);
 
 if (cleanClientRequestId) {
   const existingOrder = orders.find(
@@ -4751,6 +5729,18 @@ if (cleanClientRequestId) {
     });
   }
 }
+
+    if (!isQuickOrder) {
+      const floorlensConflict = getFloorlensOrderPlacementConflict({ area, tableNo, memberCard });
+      if (floorlensConflict) {
+        return res.status(409).json({
+          error: 'FLOORLENS_ORDER_MACHINE_CONFLICT',
+          message: 'Khách/máy đang chọn không khớp dữ liệu FloorLens realtime.',
+          ...floorlensConflict,
+        });
+      }
+    }
+
     const productsForOrder = loadProductsSafe();
     const productByImageName = new Map();
     for (const p of productsForOrder) {
@@ -4761,8 +5751,12 @@ if (cleanClientRequestId) {
       if (key && !productByImageName.has(key)) productByImageName.set(key, p);
     }
 
-    const grouped = new Map();
+    // Luôn đọc trạng thái món mới nhất từ SQLite trước khi nhận order.
+    // quantity là legacy field và không được dùng để giới hạn order.
+    foods = sqliteStore.loadFoods();
+
     const orderItems = [];
+    const soldOutItems = [];
 for (const it of items) {
   const qty = Math.max(0, Number(it.qty || it.quantity || 0));
   const noteItem = (typeof it.note === 'string') ? it.note.trim() : '';
@@ -4805,6 +5799,16 @@ orderItems.push({
   const itemGroup = String(product.itemGroup || product.group || it.group || '').trim();
   const price = Number(product.price ?? it.price ?? 0) || 0;
 
+  // Sold Out là điều kiện duy nhất chặn order. Không kiểm tra quantity/tồn kho.
+  if (refFood.status === 'Sold Out') {
+    soldOutItems.push({
+      imageName,
+      productCode,
+      name: productName || cleanDishNameFromImageName(imageName),
+    });
+    continue;
+  }
+
   orderItems.push({
     isOffMenu: false,
     imageKey: imageName,
@@ -4817,56 +5821,19 @@ orderItems.push({
     productCode,
   });
 
-  // Chỉ món trong menu mới check tồn kho
-  grouped.set(imageName, (grouped.get(imageName) || 0) + qty);
 }
+    if (soldOutItems.length > 0) {
+      return res.status(409).json({
+        error: 'FOOD_SOLD_OUT',
+        message: 'Một số món đã được chuyển sang Sold Out.',
+        soldOut: soldOutItems,
+      });
+    }
+
     if (orderItems.length === 0) return res.status(400).json({ error: 'Không có món hợp lệ' });
 
-    const missing = [];
-    for (const [imageName, need] of grouped.entries()) {
-      const ref = getRefFoodByImageName(imageName);
-      const avail = Math.max(0, Number(ref?.quantity ?? 0));
-      if (need > avail) missing.push({ imageName, need, available: avail });
-    }
-    if (missing.length > 0) return res.status(409).json({ error: 'Insufficient stock', missing });
-
-    const statusChanges = [];
-    if (consumeStock) {
-      for (const [imageName, take] of grouped.entries()) {
-        const refs = getFoodsByImageName(imageName);
-        if (!refs.length) continue;
-        const beforeQty = Math.max(0, Number(refs[0].quantity ?? 0));
-        const afterQty  = Math.max(0, beforeQty - take);
-        const newStatus = afterQty <= 0 ? 'Sold Out' : 'Available';
-
-        refs.forEach(f => {
-          const prev = f.status;
-          f.quantity = afterQty;
-          f.status   = newStatus;
-          if (prev !== newStatus) statusChanges.push({ f, prevStatus: prev, newStatus, imageName });
-        });
-
-        io.emit('foodQuantityUpdated', { imageName, quantity: afterQty });
-      }
-      saveFoods();
-
-      if (statusChanges.length) {
-        io.emit('foodStatusUpdated', { updatedFoods: statusChanges.map(s => s.f) });
-        for (const sc of statusChanges) {
-          addStatusHistory({
-            at: new Date().toISOString(),
-            by: staff || 'unknown', role: 'user',
-            imageName: sc.imageName,
-            imageUrl: sc.f.imageUrl,
-            type: sc.f.type,
-            from: sc.prevStatus,
-            to: sc.newStatus,
-            count: getFoodsByImageName(sc.imageName).length,
-            affectedIds: getFoodsByImageName(sc.imageName).map(x => x.id),
-          });
-        }
-      }
-    }
+    // Không còn kiểm tra/trừ tồn kho. Available được order không giới hạn số lượng.
+    // Sold Out chỉ thay đổi thủ công qua /api/update-status.
     const cleanCard = cleanMemberId(memberCard);
     const customerSnapshot = await buildCustomerSnapshot(cleanCard, customer || {}, customerName);
     if (cleanClientRequestId) {
@@ -4886,8 +5853,10 @@ orderItems.push({
 const order = {
   id: nextOrderId(),
   clientRequestId: cleanClientRequestId || null,
-  area,
-  tableNo,
+  sourceStation: cleanSourceStation || null,
+  quickOrder: isQuickOrder,
+  area: isQuickOrder ? null : area,
+  tableNo: isQuickOrder ? null : tableNo,
   staff: cleanMemberId(staff),
   memberCard: cleanCard,
   customerName: customerSnapshot.name || null,
@@ -4901,12 +5870,16 @@ const order = {
   createdAt: new Date().toISOString(),
   status: 'PENDING',
   tableClosed: false,
-  consumeStock: !!consumeStock,
+  consumeStock: false,
   restocked: false,
   cancelReason: null,
 };
     orders.push(order);
     persistOrder(order);
+
+    // Chỉ sau khi order mới đã được lưu thành công mới xử lý các order cũ.
+    // Điều này là trigger an toàn: ENTER/LEAVE đơn thuần sẽ không DONE gì cả.
+    const autoDonePreviousOrders = autoDonePreviousCustomerOrdersOnNewOrder(order);
 
 const card = cleanCard;
 if (card) {
@@ -4917,8 +5890,8 @@ if (card) {
     at: now,
     type: 'ORDER',
     orderId: order.id,
-    area,
-    tableNo,
+    area: order.area,
+    tableNo: order.tableNo,
     items: orderItems,
     note: note || '',
   };
@@ -4951,8 +5924,24 @@ if (card) {
 
 
     io.emit('orderPlaced', { order });
+    if (cleanSourceStation) {
+      io.emit('floorlensOrderStationActivity', {
+        id: `ORDER-${order.id}-${Date.now()}`,
+        sourceStation: cleanSourceStation,
+        targetStation: 'KITCHEN',
+        orderId: order.id,
+        machineNumber: String(order.tableNo || ''),
+        area: order.area || '',
+        createdAt: order.createdAt,
+        order,
+      });
+    }
 
-    res.json({ ok: true, orderId: order.id });
+    res.json({
+      ok: true,
+      orderId: order.id,
+      autoDonePreviousOrderIds: autoDonePreviousOrders.map((row) => row.id),
+    });
   } catch (e) {
     console.error('Create order error:', e);
     res.status(500).json({ error: 'Tạo order thất bại' });
@@ -4961,97 +5950,68 @@ if (card) {
 // User Orders View - chỉ xem, không cần quyền admin/kitchen
 app.get('/api/user/orders-view', (req, res) => {
   try {
-    orders = reloadOrdersSafe('GET /api/user/orders-view');
-
-    let list = [...orders];
     const { status, area, tableNo, from, to } = req.query || {};
 
-    if (area && tableNo) {
-      list = list.filter(
-        (o) =>
-          String(o.area || '') === String(area) &&
-          String(o.tableNo || '') === String(tableNo)
-      );
-    }
+    const list = typeof sqliteStore.queryOrders === 'function'
+      ? sqliteStore.queryOrders({
+          status,
+          area,
+          tableNo,
+          from,
+          to,
+          includeClosed: true,
+        })
+      : reloadOrdersSafe('GET /api/user/orders-view').filter(() => true);
 
-    if (status && status !== 'ALL') {
-      if (status === 'OPEN') {
-        list = list.filter((o) =>
-          ['PENDING', 'IN_PROGRESS'].includes(o.status)
-        );
-      } else {
-        list = list.filter((o) => o.status === status);
-      }
-    }
-
-    if (from) {
-      const fromMs = Date.parse(from);
-      if (!Number.isNaN(fromMs)) {
-        list = list.filter((o) => Date.parse(o.createdAt) >= fromMs);
-      }
-    }
-
-    if (to) {
-      const toMs = Date.parse(to);
-      if (!Number.isNaN(toMs)) {
-        list = list.filter((o) => Date.parse(o.createdAt) <= toMs);
-      }
-    }
-
-    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    res.json(
-      list.map((o) => ({
-        ...o,
-        cancelReason: o.cancelReason ?? null,
-      }))
-    );
+    res.set('Cache-Control', 'no-store');
+    res.json(list.map((o) => ({ ...o, cancelReason: o.cancelReason ?? null })));
   } catch (e) {
     console.error('GET /api/user/orders-view error:', e);
     res.status(500).json({ error: 'Cannot get orders view' });
   }
 });
+
 app.get('/api/orders', maybeAuth, (req, res) => {
   try {
-    // Reload nhanh từ SQLite để các cập nhật từ route phụ như item-price không bị stale
-    orders = reloadOrdersSafe('GET /api/orders');
-    let list = [...orders];
     const { customerId, status, area, tableNo, includeClosed, from, to } = req.query || {};
-// Thêm đoạn sau:
-if (customerId) {
-  const card = String(customerId).trim();
-  list = list.filter(o => String(o.memberCard || '') === card);
-}
+
+    // User được xem đúng orders của một bàn; Admin/Kitchen được xem filter rộng hơn.
     if (area && tableNo) {
-      list = list.filter(o => String(o.area) === String(area) && String(o.tableNo) === String(tableNo));
-      if (String(includeClosed || '').toLowerCase() !== 'true') {
-        list = list.filter(o => !o.tableClosed);
-      }
-      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      const normalized = list.map(o => ({ ...o, cancelReason: o.cancelReason ?? null }));
-      return res.json(normalized);
+      const list = typeof sqliteStore.queryOrders === 'function'
+        ? sqliteStore.queryOrders({
+            customerId,
+            area,
+            tableNo,
+            includeClosed: String(includeClosed || '').toLowerCase() === 'true',
+            from,
+            to,
+          })
+        : reloadOrdersSafe('GET /api/orders table').filter((o) =>
+            String(o.area || '') === String(area) &&
+            String(o.tableNo || '') === String(tableNo) &&
+            (String(includeClosed || '').toLowerCase() === 'true' || !o.tableClosed)
+          );
+
+      return res.json(list.map((o) => ({ ...o, cancelReason: o.cancelReason ?? null })));
     }
 
     if (!req.user || !['admin', 'kitchen'].includes(req.user.role)) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    if (status && status !== 'ALL') {
-      if (status === 'OPEN') list = list.filter(o => ['PENDING', 'IN_PROGRESS'].includes(o.status));
-      else                   list = list.filter(o => o.status === status);
-    }
-    if (from) {
-      const fromMs = Date.parse(from);
-      if (!Number.isNaN(fromMs)) list = list.filter(o => Date.parse(o.createdAt) >= fromMs);
-    }
-    if (to) {
-      const toMs = Date.parse(to);
-      if (!Number.isNaN(toMs)) list = list.filter(o => Date.parse(o.createdAt) <= toMs);
-    }
-    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    const normalized = list.map(o => ({ ...o, cancelReason: o.cancelReason ?? null }));
-    res.json(normalized);
+    const list = typeof sqliteStore.queryOrders === 'function'
+      ? sqliteStore.queryOrders({
+          customerId,
+          status,
+          area,
+          tableNo,
+          includeClosed: true,
+          from,
+          to,
+        })
+      : reloadOrdersSafe('GET /api/orders admin');
 
+    res.json(list.map((o) => ({ ...o, cancelReason: o.cancelReason ?? null })));
   } catch (e) {
     console.error('GET /api/orders error:', e);
     res.status(500).json({ error: 'Cannot get orders' });
@@ -5129,17 +6089,11 @@ app.post('/api/orders/:id/status',
         o.cancelReason = (reason == null ? o.cancelReason : String(reason).trim()) || null;
       }
 
-      let restocked = false;
-      if (status === ORDER_STATUS.CANCELLED && o.consumeStock !== false && !o.restocked) {
-        for (const it of (o.items || [])) {
-          const img = String(it.imageName || '').toLowerCase();
-          const qty = Number(it.qty || 0);
-          if (img && qty > 0) {
-            adjustStockByImageName(img, +qty, req.user?.sub || 'admin', 'order_cancelled_restock');
-          }
-        }
-        o.restocked = true;
-        restocked = true;
+      // Không còn tồn kho món: CANCELLED chỉ đổi trạng thái order, không hoàn kho
+      // và không được phép tác động Sold Out / Available của món.
+      const restocked = false;
+      if (status === ORDER_STATUS.CANCELLED && !o.restocked) {
+        o.restocked = true; // đánh dấu để order legacy không bị xử lý lại bởi code cũ
       }
 
       persistOrder(o);
@@ -5420,8 +6374,8 @@ if (!allMenus.has(menuName)) {
         // Thêm foods record nếu chưa có
         if (!foods.find(f => f.type === menuName && extractImageName(f.imageUrl) === imgLower)) {
           const ref = getRefFoodByImageName(imgLower);
-          const baseQty = typeof ref?.quantity === 'number' ? ref.quantity : 1;
-          const baseStatus = baseQty <= 0 ? 'Sold Out' : 'Available';
+          const baseQty = typeof ref?.quantity === 'number' ? ref.quantity : 1; // legacy only
+          const baseStatus = ref?.status === 'Sold Out' ? 'Sold Out' : 'Available';
 const VALID = new Set(['P','I-I+','V-One']);
 const ml = Array.isArray(menuLevels[menuName]) ? menuLevels[menuName] : [];
 const effective = [...new Set(ml.filter(x => VALID.has(x)))]; // có thể là []
@@ -5596,6 +6550,270 @@ function getDateRangeByPreset(preset) {
     }
   }
 }
+
+
+// ===================================================================
+// ===================== REPORT V8 — SCALABLE =========================
+// ===================================================================
+function readStaffMapForReport() {
+  try {
+    const rows = fs.existsSync(STAFFS_JSON)
+      ? JSON.parse(fs.readFileSync(STAFFS_JSON, 'utf8') || '[]')
+      : [];
+    const map = new Map();
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const id = String(row?.id ?? row?.code ?? '').trim();
+      if (id) map.set(id, String(row?.name || '').trim());
+    });
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+function buildReportProductMeta() {
+  const byImage = new Map();
+  const byCode = new Map();
+  const menuByImage = new Map();
+
+  try {
+    for (const p of loadProductsSafe()) {
+      const image = String(p?.imageName || extractImageName(p?.imageUrl) || '').trim().toLowerCase();
+      const code = String(p?.productCode || p?.code || '').trim().toLowerCase();
+      const meta = {
+        name: String(p?.name || p?.productName || '').trim(),
+        itemGroup: String(p?.itemGroup || p?.group || '').trim(),
+        menuType: String(p?.menuType || '').trim(),
+        menus: Array.isArray(p?.menus) ? p.menus.map(String) : [],
+      };
+      if (image && !byImage.has(image)) byImage.set(image, meta);
+      if (code && !byCode.has(code)) byCode.set(code, meta);
+    }
+  } catch (_) {}
+
+  try {
+    const latestFoods = sqliteStore.loadFoods();
+    latestFoods.forEach((f) => {
+      const image = extractImageName(f?.imageUrl);
+      const type = String(f?.type || '').trim();
+      if (!image || !type) return;
+      if (!menuByImage.has(image)) menuByImage.set(image, new Set());
+      menuByImage.get(image).add(type);
+    });
+  } catch (_) {}
+
+  return { byImage, byCode, menuByImage };
+}
+
+function reportMemberFallback(code, cache) {
+  const clean = String(code || '').replace(/\s+/g, '').trim();
+  if (!clean || typeof sqliteStore.getMemberByCode !== 'function') return null;
+  if (cache.has(clean)) return cache.get(clean);
+  let member = null;
+  try { member = sqliteStore.getMemberByCode(clean); } catch (_) {}
+  cache.set(clean, member || null);
+  return member || null;
+}
+
+function reportCategory(row, metaMaps) {
+  const image = String(row?.imageName || '').split('/').pop().toLowerCase();
+  const code = String(row?.productCode || '').trim().toLowerCase();
+  const meta = metaMaps.byImage.get(image) || metaMaps.byCode.get(code) || {};
+  const parts = new Set();
+  const group = String(row?.itemGroup || meta.itemGroup || '').trim();
+  if (group) parts.add(group);
+  if (meta.menuType) parts.add(meta.menuType);
+  (meta.menus || []).forEach((m) => { if (m) parts.add(String(m)); });
+  const menus = metaMaps.menuByImage.get(image);
+  if (menus) menus.forEach((m) => { if (m) parts.add(m); });
+  return Array.from(parts).join(', ');
+}
+
+function formatReportDateTime(value) {
+  const date = new Date(value || '');
+  if (!Number.isFinite(date.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type)?.value || '';
+  return `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')}`;
+}
+
+function enrichScalableReport(data, exchangeRate) {
+  const rate = Math.max(1, Number(exchangeRate) || 27000);
+  const staffMap = readStaffMapForReport();
+  const metaMaps = buildReportProductMeta();
+  const memberCache = new Map();
+  const enrichCustomer = (row) => {
+    const snapshotName = meaningfulCustomerName(row?.name || row?.customerName, row?.code || row?.memberCard);
+    const snapshotLevel = meaningfulCustomerLevel(row?.level || row?.customerLevel);
+    const member = (!snapshotName || !snapshotLevel)
+      ? reportMemberFallback(row?.code || row?.memberCard, memberCache)
+      : null;
+    return {
+      ...row,
+      name: String(snapshotName || member?.name || member?.customerName || '').trim(),
+      level: String(snapshotLevel || member?.level || member?.memberLevel || '').trim(),
+    };
+  };
+
+  if (data?.type === 'orders_detail') {
+    data.rows = (data.rows || []).map((row) => {
+      const snapshotName = meaningfulCustomerName(row.customerName, row.memberCard);
+      const snapshotLevel = meaningfulCustomerLevel(row.customerLevel);
+      const member = (!snapshotName || !snapshotLevel) ? reportMemberFallback(row.memberCard, memberCache) : null;
+      const meta = metaMaps.byImage.get(String(row.imageName || '').toLowerCase()) ||
+        metaMaps.byCode.get(String(row.productCode || '').toLowerCase()) || {};
+      const price = Number(row.unitPrice || 0) || 0;
+      return {
+        orderId: row.orderId,
+        staffId: row.staff || '',
+        staffName: staffMap.get(String(row.staff || '')) || '',
+        code: row.productCode || '',
+        name: row.itemName || meta.name || '',
+        category: reportCategory(row, metaMaps),
+        memberCode: row.memberCard || '',
+        memberName: snapshotName || member?.name || member?.customerName || '',
+        memberLevel: snapshotLevel || member?.level || member?.memberLevel || '',
+        qty: Number(row.qty || 0),
+        price,
+        priceUSD: price / rate,
+        lineTotal: Number(row.lineTotal || 0),
+        dateTime: formatReportDateTime(row.createdAt),
+        createdAt: row.createdAt,
+        table: [row.area, row.tableNo].filter((v) => String(v || '').trim()).join('-') || '(Không rõ bàn)',
+      };
+    });
+  } else if (data?.type === 'khachhang_tomtat') {
+    data.rows = (data.rows || []).map(enrichCustomer);
+  } else if (data?.type === 'khachhang_chitiet') {
+    data.customers = (data.customers || []).map(enrichCustomer);
+  } else if (data?.type === 'hanghoa_mon') {
+    data.rows = (data.rows || []).map((row) => {
+      const meta = metaMaps.byCode.get(String(row.code || '').toLowerCase()) || {};
+      return {
+        ...row,
+        name: row.name || meta.name || '',
+        group: row.group || meta.itemGroup || '(Chưa có nhóm)',
+      };
+    });
+  }
+
+  return data;
+}
+
+app.get('/api/reports/scalable', authenticateJWT, authorizeRoles('admin'), (req, res) => {
+  try {
+    const type = String(req.query.type || 'orders_detail');
+    const data = sqliteStore.queryScalableReport({
+      type,
+      from: req.query.from || '',
+      to: req.query.to || '',
+      page: req.query.page || 1,
+      limit: req.query.limit || 100,
+      exchangeRate: req.query.exchangeRate || 27000,
+    });
+    res.json(enrichScalableReport(data, req.query.exchangeRate));
+  } catch (e) {
+    console.error('[Report V8] Query failed:', e);
+    res.status(500).json({ error: e?.message || 'Cannot build report' });
+  }
+});
+
+function csvCell(value) {
+  let text = value == null ? '' : String(value);
+  // Chặn CSV/Excel formula injection từ dữ liệu text.
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+async function writeCsvLine(res, values) {
+  const line = values.map(csvCell).join(',') + '\r\n';
+  if (!res.write(line)) await new Promise((resolve) => res.once('drain', resolve));
+}
+
+app.get('/api/reports/scalable/export.csv', authenticateJWT, authorizeRoles('admin'), async (req, res) => {
+  const type = String(req.query.type || 'orders_detail');
+  const allowedTypes = new Set(['orders_detail','hanghoa_mon','hanghoa_nhom','hanghoa_ban','khachhang_tomtat','khachhang_chitiet']);
+  if (!allowedTypes.has(type)) return res.status(400).json({ error: 'INVALID_REPORT_TYPE' });
+  const rate = Math.max(1, Number(req.query.exchangeRate) || 27000);
+  const safeType = type.replace(/[^a-z0-9_-]/gi, '_');
+  const filename = `report-${safeType}-${Date.now()}.csv`;
+
+  try {
+    const staffMap = readStaffMapForReport();
+    const metaMaps = buildReportProductMeta();
+    const memberCache = new Map();
+    const iterator = sqliteStore.iterateScalableReportRows({
+      type,
+      from: req.query.from || '',
+      to: req.query.to || '',
+    });
+
+    res.status(200);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    res.write('\uFEFF'); // UTF-8 BOM để Excel đọc tiếng Việt đúng.
+
+    if (type === 'orders_detail') {
+      await writeCsvLine(res, ['Mã order','Mã nhân viên','Tên nhân viên','Mã món','Tên món','Menu Category','Mã khách hàng','Tên khách hàng','Số lượng','Giá','Giá USD','Ngày giờ','Bàn']);
+      for (const row of iterator) {
+        const snapshotName = meaningfulCustomerName(row.customerName, row.memberCard);
+        const member = snapshotName ? null : reportMemberFallback(row.memberCard, memberCache);
+        const price = Number(row.unitPrice || 0) || 0;
+        await writeCsvLine(res, [
+          row.orderId,
+          row.staff || '',
+          staffMap.get(String(row.staff || '')) || '',
+          row.productCode || '',
+          row.itemName || '',
+          reportCategory(row, metaMaps),
+          row.memberCard || '',
+          snapshotName || member?.name || member?.customerName || '',
+          row.qty || 0,
+          price,
+          price / rate,
+          formatReportDateTime(row.createdAt),
+          [row.area, row.tableNo].filter((v) => String(v || '').trim()).join('-'),
+        ]);
+      }
+    } else if (type === 'hanghoa_mon') {
+      await writeCsvLine(res, ['Tên món','Mã món','Nhóm hàng','Số lượng','Doanh thu']);
+      for (const row of iterator) await writeCsvLine(res, [row.name,row.code,row.group,row.qty,row.revenue]);
+    } else if (type === 'hanghoa_nhom') {
+      await writeCsvLine(res, ['Nhóm hàng','Số lượng món','Doanh thu']);
+      for (const row of iterator) await writeCsvLine(res, [row.group,row.qty,row.revenue]);
+    } else if (type === 'hanghoa_ban') {
+      await writeCsvLine(res, ['Bàn','Số lượng món','Doanh thu']);
+      for (const row of iterator) await writeCsvLine(res, [[row.area,row.tableNo].filter((v)=>String(v||'').trim()).join('-'),row.qty,row.revenue]);
+    } else if (type === 'khachhang_tomtat') {
+      await writeCsvLine(res, ['Mã khách hàng','Tên khách hàng','Level','Số lượng món đã order','Tổng doanh thu']);
+      for (const row of iterator) {
+        const snapshotName = meaningfulCustomerName(row.name, row.code);
+        const snapshotLevel = meaningfulCustomerLevel(row.level);
+        const member = (!snapshotName || !snapshotLevel) ? reportMemberFallback(row.code, memberCache) : null;
+        await writeCsvLine(res, [row.code,snapshotName || member?.name || '',snapshotLevel || member?.level || member?.memberLevel || '',row.qty,row.revenue]);
+      }
+    } else {
+      await writeCsvLine(res, ['Mã KH','Tên KH','Level','Món','Số lượng','Doanh thu món']);
+      for (const row of iterator) {
+        const snapshotName = meaningfulCustomerName(row.customerName, row.code);
+        const snapshotLevel = meaningfulCustomerLevel(row.level);
+        const member = (!snapshotName || !snapshotLevel) ? reportMemberFallback(row.code, memberCache) : null;
+        await writeCsvLine(res, [row.code,snapshotName || member?.name || '',snapshotLevel || member?.level || member?.memberLevel || '',row.itemName,row.qty,row.revenue]);
+      }
+    }
+
+    res.end();
+  } catch (e) {
+    console.error('[Report V8] CSV export failed:', e);
+    if (!res.headersSent) return res.status(500).json({ error: e?.message || 'Export failed' });
+    try { res.end(); } catch (_) {}
+  }
+});
 
 app.get('/api/report', authenticateJWT, authorizeRoles('admin'), (req, res) => {
   // from/to dạng ISO, hoặc dùng “week”, “lastWeek”, “month”, “lastMonth”, “year”, “lastYear”
@@ -6318,7 +7536,7 @@ app.get('/api/local-ai/hybrid-status', maybeAuth, (req, res) => {
 // Mount ordersRouter sau các route /api/orders chính trong server.js
 // để /api/orders tạo order dùng được customer snapshot từ Database,
 // còn các route phụ trong routes/orders.js như item-price vẫn hoạt động.
-app.use('/api/orders', ordersRouter);
+app.use('/api/orders', authenticateJWT, authorizeRoles('admin'), ordersRouter);
 // Chạy 1 lần khi backend khởi động để tự cập nhật đơn cũ
 autoDoneOldOrdersByBusinessDay06();
 
@@ -6499,6 +7717,7 @@ checkCustomerEventAlarms();
 setInterval(checkCustomerEventAlarms, 60 * 1000);
 
 // ====== Start ======
+floorlensService.start();
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Backend running on http://0.0.0.0:${PORT}`);
   console.log(`CORS origins: ${Array.isArray(allowOrigins) ? allowOrigins.join(', ') : allowOrigins}`);

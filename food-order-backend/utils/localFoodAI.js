@@ -251,35 +251,88 @@ function inRange(order, range) {
   return t >= range.from.getTime() && t <= range.to.getTime();
 }
 
+const AI_DATA_CACHE = {
+  orders: { at: 0, value: null },
+  foods: { at: 0, value: null },
+  products: { at: 0, value: null },
+};
+
+function cachedAiData(key, ttlMs, loader, fallback) {
+  const slot = AI_DATA_CACHE[key];
+  const now = Date.now();
+  if (slot?.value != null && now - slot.at < ttlMs) return slot.value;
+
+  try {
+    const value = loader();
+    if (slot) { slot.value = value; slot.at = now; }
+    return value;
+  } catch {
+    // Nếu SQLite lỗi thoáng qua, giữ snapshot tốt gần nhất thay vì làm Chatbot rỗng dữ liệu.
+    if (slot?.value != null) return slot.value;
+    return fallback();
+  }
+}
+
+function createLazyMembers(paths = {}) {
+  if (!sqliteStore?.getMemberByCode || !sqliteStore?.loadMembers) {
+    return readJsonSafe(paths.members, {});
+  }
+
+  let allMembers = null;
+  const oneByOne = new Map();
+  const ensureAll = () => {
+    if (!allMembers) allMembers = sqliteStore.loadMembers() || {};
+    return allMembers;
+  };
+
+  return new Proxy({}, {
+    get(_target, prop) {
+      if (prop === 'toJSON') return () => ensureAll();
+      if (typeof prop !== 'string') return undefined;
+      if (allMembers) return allMembers[prop];
+      if (oneByOne.has(prop)) return oneByOne.get(prop);
+
+      let row;
+      try { row = sqliteStore.getMemberByCode(prop) || undefined; } catch { row = undefined; }
+      oneByOne.set(prop, row);
+      return row;
+    },
+    ownKeys() {
+      return Reflect.ownKeys(ensureAll());
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      const all = ensureAll();
+      if (!Object.prototype.hasOwnProperty.call(all, prop)) return undefined;
+      return { enumerable: true, configurable: true };
+    },
+  });
+}
+
 function loadData(paths = {}) {
-  let orders = [];
-  let members = {};
-  let productsRaw = [];
+  const orders = cachedAiData(
+    'orders',
+    2000,
+    () => (sqliteStore ? sqliteStore.loadOrders() : readJsonSafe(paths.orders, [])),
+    () => readJsonSafe(paths.orders, []),
+  );
 
-  try {
-    orders = sqliteStore ? sqliteStore.loadOrders() : readJsonSafe(paths.orders, []);
-  } catch {
-    orders = readJsonSafe(paths.orders, []);
-  }
+  const foods = cachedAiData(
+    'foods',
+    3000,
+    () => (sqliteStore ? sqliteStore.loadFoods() : readJsonSafe(paths.foods, [])),
+    () => readJsonSafe(paths.foods, []),
+  );
 
-    let foods = [];
-  try {
-    foods = sqliteStore ? sqliteStore.loadFoods() : readJsonSafe(paths.foods, []);
-  } catch {
-    foods = readJsonSafe(paths.foods, []);
-  }
+  const productsRaw = cachedAiData(
+    'products',
+    5000,
+    () => (sqliteStore ? sqliteStore.loadProducts() : readJsonSafe(paths.products, [])),
+    () => readJsonSafe(paths.products, []),
+  );
 
-  try {
-    productsRaw = sqliteStore ? sqliteStore.loadProducts() : readJsonSafe(paths.products, []);
-  } catch {
-    productsRaw = readJsonSafe(paths.products, []);
-  }
-
-  try {
-    members = sqliteStore ? sqliteStore.loadMembers() : readJsonSafe(paths.members, {});
-  } catch {
-    members = readJsonSafe(paths.members, {});
-  }
+  // Không load toàn bộ 60k+ customer cho mọi câu hỏi.
+  // Chỉ SELECT theo code khi cần; Object.keys/Object.entries mới materialize toàn bộ cho analytics/name search.
+  const members = createLazyMembers(paths);
 
   const products = Array.isArray(productsRaw)
     ? productsRaw
@@ -921,8 +974,10 @@ function getRelevantTraining(training, message, limit = 3) {
   if (!qTokens.size) return [];
   return (training || [])
     .map((t) => {
-      const content = String(t.content || '');
-      const tokens = norm(content).split(/\s+/).filter((x) => x.length >= 3);
+      const searchable = String(
+        t.content || t.correction || t.meaning || t.target || t.phrase || ''
+      );
+      const tokens = norm(searchable).split(/\s+/).filter((x) => x.length >= 3);
       let score = 0;
       tokens.forEach((x) => { if (qTokens.has(x)) score += 1; });
       return { ...t, score };
@@ -2053,8 +2108,7 @@ function answerSoldOutItems({ foods, products }) {
   const seen = new Set();
   for (const f of foods || []) {
     const status = norm(f.status || '');
-    const qty = Number(f.quantity);
-    const isSold = status.includes('sold out') || status.includes('soldout') || qty === 0;
+    const isSold = status.includes('sold out') || status.includes('soldout');
     if (!isSold) continue;
     const imageKey = basenameLower(f.imageUrl || f.imageName || '');
     const meta = imageKey ? (maps.byImage.get(imageKey) || {}) : {};
@@ -2065,13 +2119,12 @@ function answerSoldOutItems({ foods, products }) {
       name: String(meta.name || cleanDishName(imageKey) || imageKey || 'Không rõ tên').toUpperCase(),
       productCode: meta.productCode || f.productCode || f.code || '',
       menu: f.type || meta.menuType || '',
-      quantity: Number.isFinite(qty) ? qty : '',
     });
   }
-  if (!rows.length) return 'Hiện chưa thấy món nào đang Sold Out trong dữ liệu foods.json.';
+  if (!rows.length) return 'Hiện chưa thấy món nào đang Sold Out.';
   return [
-    `Mình thấy ${rows.length} món đang Sold Out/hết số lượng. Top hiển thị trước:`,
-    rows.slice(0, 20).map((x, i) => `${i + 1}. ${x.name}${x.productCode ? ` [${x.productCode}]` : ''}${x.menu ? ` — ${x.menu}` : ''}${x.quantity !== '' ? `, tồn ${x.quantity}` : ''}`).join('\n'),
+    `Mình thấy ${rows.length} món đang Sold Out. Top hiển thị trước:`,
+    rows.slice(0, 20).map((x, i) => `${i + 1}. ${x.name}${x.productCode ? ` [${x.productCode}]` : ''}${x.menu ? ` — ${x.menu}` : ''}`).join('\n'),
   ].join('\n');
 }
 
@@ -3105,7 +3158,7 @@ function isGeneralAppDataQuestion(message = '') {
 }
 function answerLocalFoodQuestion({ mode = 'user', message = '', history = [], context = {}, paths = {} } = {}) {
   let msg = String(message || '').trim();
-  const { orders, foods, products, members, memory } = loadData(paths);
+  const { orders, foods, products, members, training, memory } = loadData(paths);
   const maps = buildProductMaps(products, foods);
 
   if (!msg) {
@@ -3497,15 +3550,31 @@ if (code && specificRange) {
     };
   }
 
-  // 14) Training/memory fallback.
-  const related = getRelevantTraining(memory || [], msg, 3);
-  if (related.length) {
+  // 14) Admin training là knowledge trực tiếp; approved memory vẫn là fallback tiếp theo.
+  const relatedTraining = getRelevantTraining(training || [], msg, 3);
+  if (relatedTraining.length) {
     return {
       ok: true,
       mode,
-      provider: 'local-memory',
-      answer: related.map((x) => x.content).join('\n\n'),
+      provider: 'local-training',
+      answer: relatedTraining.map((x) => x.content).filter(Boolean).join('\n\n'),
     };
+  }
+
+  const relatedMemory = getRelevantTraining(memory || [], msg, 3);
+  if (relatedMemory.length) {
+    const memoryText = relatedMemory
+      .map((x) => x.content || x.correction || x.meaning || '')
+      .filter(Boolean)
+      .join('\n\n');
+    if (memoryText) {
+      return {
+        ok: true,
+        mode,
+        provider: 'local-memory',
+        answer: memoryText,
+      };
+    }
   }
 
   return {

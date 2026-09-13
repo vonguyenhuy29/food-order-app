@@ -18,3 +18,12 @@ temp_uploads/
 # editor
 .vscode/
 .idea/
+
+# ===== Production runtime / private files =====
+food-order-backend/data/*.db
+food-order-backend/data/*.db-wal
+food-order-backend/data/*.db-shm
+food-order-backend/data/backups/
+food-order-user/patch-backups/
+*.bak
+food-order-backend/certs/*.key

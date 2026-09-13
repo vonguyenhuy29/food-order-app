@@ -221,8 +221,7 @@ function syncMenusForImage(req, imageName, targetMenus = []) {
 
   // lấy trạng thái tham chiếu
   let ref = foods.find(f => basenameLower(f.imageUrl) === String(imageName).toLowerCase());
-  const refQty = Math.max(0, Number(ref?.quantity ?? 1));
-  const refStatus = refQty <= 0 ? 'Sold Out' : (ref?.status || 'Available');
+  const refStatus = ref?.status === 'Sold Out' ? 'Sold Out' : 'Available';
 
   // level access mặc định theo menu-levels.json
   const menuLevels = readMenuLevels();
@@ -232,6 +231,13 @@ function syncMenusForImage(req, imageName, targetMenus = []) {
   const srcAbs = findAnyImagePath(imageName, products);
 
   // ---- ADD ----
+  // Cấp ID từ snapshot foods hiện tại và tăng cursor tại chỗ.
+  // Không gọi MAX(SQLite)+1 lặp lại trước khi batch được ghi, tránh trùng ID khi thêm >1 menu cùng lúc.
+  let nextIdCursor = foods.reduce((maxId, row) => {
+    const n = Number(row?.id);
+    return Number.isFinite(n) ? Math.max(maxId, n) : maxId;
+  }, 0) + 1;
+
   const addedIds = [];
   for (const menu of toAdd) {
     const folder = menuFolderOf(menu);
@@ -243,7 +249,7 @@ function syncMenusForImage(req, imageName, targetMenus = []) {
       try { fs.copyFileSync(srcAbs, destAbs); } catch {}
     }
 
-    const id = nextFoodId(foods);
+    const id = nextIdCursor++;
     const maxOrder = foods.reduce((m, f) => Number.isFinite(f.order) ? Math.max(m, f.order) : m, -1);
     const key = canonicalMenuName(menu);
     const lv  = Array.isArray(menuLevels[key]) ? menuLevels[key].filter(x => VALID.has(x)) : ['V-One'];
@@ -258,7 +264,7 @@ function syncMenusForImage(req, imageName, targetMenus = []) {
       hash: undefined,
       levelAccess: lv.length ? lv : ['V-One'],
       order: maxOrder + 1,
-      quantity: refQty || (refStatus === 'Sold Out' ? 0 : 1),
+      quantity: 1, // legacy field only; stock is no longer managed
     };
     foods.push(newFood);
     addedIds.push(id);
@@ -306,6 +312,41 @@ function syncMenusForImage(req, imageName, targetMenus = []) {
 }
 
 // ====== API gốc (giữ nguyên phần sản phẩm, bỏ “reportGroup”, thêm “itemGroup”) ======
+
+// Tự sinh mã món kế tiếp theo Nhóm hàng.
+// Ví dụ nhóm Beverage đang có B1, B2, B3 -> trả B4.
+router.get('/next-code', (req, res) => {
+  try {
+    const itemGroup = String(req.query.itemGroup || '').trim();
+    if (!itemGroup) return res.status(400).json({ error: 'Thiếu itemGroup' });
+
+    const rows = readJson(PRODUCTS_FILE, []).filter(
+      p => String(p.itemGroup || '').trim().toLowerCase() === itemGroup.toLowerCase()
+    );
+
+    const parsed = rows
+      .map(p => String(p.productCode || p.code || '').trim().toUpperCase().match(/^([A-Z]+)[-_ ]?(\d+)$/))
+      .filter(Boolean)
+      .map(m => ({ prefix: m[1], number: Number(m[2]), width: String(m[2]).length }));
+
+    if (!parsed.length) {
+      return res.json({ itemGroup, code: '', prefix: '', nextNumber: null, reason: 'NO_EXISTING_CODE_PATTERN' });
+    }
+
+    const prefixCounts = new Map();
+    for (const row of parsed) prefixCounts.set(row.prefix, (prefixCounts.get(row.prefix) || 0) + 1);
+    const prefix = [...prefixCounts.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
+    const samePrefix = parsed.filter(r => r.prefix === prefix);
+    const maxNo = Math.max(...samePrefix.map(r => r.number));
+    const padWidth = Math.max(...samePrefix.map(r => r.width), 1);
+    const nextNumber = maxNo + 1;
+    const numberPart = String(nextNumber).padStart(padWidth, '0');
+
+    return res.json({ itemGroup, prefix, nextNumber, padWidth, code: `${prefix}${numberPart}` });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || 'Cannot generate next code' });
+  }
+});
 
 router.get('/', (req,res) => {
   let { q = '', type = '', group = '', itemGroup = '', sort = 'name', dir = 'asc', page = 1, limit = 200 } = req.query;
@@ -1059,23 +1100,18 @@ router.post('/sync-image-names-from-product-names', (req, res) => {
 
     for (const [oldLower, group] of groups.entries()) {
       const ref = group.products.find(p => String(p.name || '').trim()) || group.products[0];
-      const base = safeFileBaseFromProductName(ref?.name || '');
-      if (!base) {
+      const code = String(ref?.productCode || ref?.code || '').trim().toUpperCase();
+      const productName = safeFileBaseFromProductName(ref?.name || '');
+      if (!code || !productName) {
         skipped += 1;
         continue;
       }
 
+      const safeCode = code.replace(/[<>:"/\\|?*\x00-\x1F]/g, ' ').replace(/\s+/g, ' ').trim();
+      const base = `${safeCode} - ${productName}`.slice(0, 120);
       const ext = extFromImageValue(ref?.imageName || ref?.imageUrl || group.oldName);
       let target = `${base}${ext}`;
       let targetLower = target.toLowerCase();
-
-      if (targetLower !== oldLower && usedTargets.has(targetLower)) {
-        const code = String(ref?.productCode || ref?.code || '').trim().toUpperCase();
-        if (code) {
-          target = `${base} - ${code}${ext}`;
-          targetLower = target.toLowerCase();
-        }
-      }
 
       let i = 2;
       while (targetLower !== oldLower && usedTargets.has(targetLower)) {

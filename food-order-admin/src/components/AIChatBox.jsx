@@ -309,7 +309,7 @@ const visibleQuestionGroups = isAdminMode ? adminQuestionGroups : questionGroups
                   checked={trainingMode}
                   onChange={(e) => setTrainingMode(e.target.checked)}
                 />
-                Training mode: nội dung gửi sẽ được lưu vào data/ai-training.json
+                Training mode: nội dung gửi sẽ được lưu vào Database Chatbot
               </label>
             </div>
           )}

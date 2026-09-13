@@ -1,0 +1,33 @@
+--- /mnt/data/FoodList(20260826-150645).js	2026-08-27 09:05:06.367852151 +0000
++++ /mnt/data/floorlens-table-merge-test-update/user/src/components/FoodList.js	2026-08-27 09:19:26.545793928 +0000
+@@ -2552,7 +2552,7 @@
+                 fontWeight: 800,
+               }}
+             >
+-              ◉ FloorLens
++              ◉ FloorLens Test
+             </button>
+           </div>
+ {mode === 'orders' && (
+@@ -2971,7 +2971,20 @@
+   foods={foods}
+ />
+ ) : mode === 'floorlens' ? (
+-  <FloorLens apiUrl={apiUrl} socket={socket} />
++  <FloorLens
++    apiUrl={apiUrl}
++    socket={socket}
++    selectedTable={selectedTable}
++    onSelectTable={({ area, tableNo }) => {
++      setSelectedTable({ area, tableNo });
++      setMode('menu');
++      setToast(`Đã chọn máy ${tableNo}`);
++    }}
++    onOpenCustomer={(memberCode) => {
++      setInsightsOpenCode(String(memberCode || ''));
++      setMode('insights');
++    }}
++  />
+ ) : mode === 'menu' ? (
+   selectedLevel ? (
+               <>

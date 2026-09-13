@@ -179,6 +179,36 @@ const getImageName = (url) => {
 const tableKeyOf = (area, tableNo) => `${area}#${tableNo}`;
 const tableStatusTextOf = (o) => o?.tableClosed ? 'Done (thu bàn)' : 'Pending';
 const tableStatusColorOf = (o) => o?.tableClosed ? '#16a34a' : '#f59e0b';
+
+const FLOORLENS_STATION_LABELS = {
+  TECH: 'Tech',
+  PIT14: 'PIT 14',
+  PIT15: 'PIT 15',
+  PIT33: 'PIT 33',
+  PIT2F: 'PIT 2F',
+  RECEPTION1: 'Reception 1',
+  RECEPTION2: 'Reception 2',
+  BC1: 'BC1',
+  BC2: 'BC2',
+  CENTER3022: 'Center',
+};
+const normalizeFloorlensStationCode = (value) => String(value == null ? '' : value).trim().toUpperCase().replace(/[\s_-]+/g, '');
+const floorlensStationLabelOf = (value) => {
+  const raw = normalizeFloorlensStationCode(value);
+  if (!raw) return '';
+  const aliases = { CENTER: 'CENTER3022' };
+  const normalized = aliases[raw] || raw;
+  return FLOORLENS_STATION_LABELS[normalized] || String(value || '').trim();
+};
+const renderOrderIpadLine = (o, style = {}) => {
+  const label = floorlensStationLabelOf(o?.sourceStation);
+  if (!label) return null;
+  return (
+    <div style={{ fontSize: 13, color: '#475569', ...style }}>
+      iPad: <b style={{ color: '#0f172a' }}>{label}</b>
+    </div>
+  );
+};
 const normalizeOrderSearchText = (v) =>
   String(v || '')
     .normalize('NFD')
@@ -246,391 +276,6 @@ async function fetchMenuLevels() {
 
 // ====== Print Agent config ======
 const AGENT_PORT = Number(process.env.REACT_APP_AGENT_PORT || 9393);
-function CustomerInsightsPanel({ apiUrl, resolveImg }) {
-  const [loading, setLoading] = React.useState(false);
-  const [overview, setOverview] = React.useState(null);
-  const [customerCode, setCustomerCode] = React.useState('');
-  const [customer, setCustomer] = React.useState(null);
-
-  const loadOverview = React.useCallback(async (force = false) => {
-    try {
-      setLoading(true);
-      const res = await axios.get(apiUrl('/api/customer-insights/overview'), {
-        params: { limit: 100, force: force ? 'true' : 'false' },
-        headers: { 'Cache-Control': 'no-cache' },
-      });
-      setOverview(res.data || null);
-    } catch (e) {
-      alert('Load Insights thất bại: ' + (e?.response?.data?.error || e.message));
-    } finally {
-      setLoading(false);
-    }
-  }, [apiUrl]);
-
-  const loadCustomer = React.useCallback(async (code) => {
-    const clean = String(code || '').replace(/\s+/g, '').trim();
-    if (!clean) return;
-
-    try {
-      setLoading(true);
-      const res = await axios.get(apiUrl(`/api/customer-insights/customer/${encodeURIComponent(clean)}`));
-      setCustomer(res.data || null);
-      setCustomerCode(clean);
-    } catch (e) {
-      alert('Load khách thất bại: ' + (e?.response?.data?.error || e.message));
-    } finally {
-      setLoading(false);
-    }
-  }, [apiUrl]);
-
-  React.useEffect(() => {
-    loadOverview(false);
-  }, [loadOverview]);
-
-  React.useEffect(() => {
-    let timer = null;
-
-    const onMemberUpdated = (payload = {}) => {
-      const updatedCode = String(payload.code || payload.member?.code || '')
-        .replace(/\s+/g, '')
-        .trim();
-      const currentCode = String(customerCode || '').replace(/\s+/g, '').trim();
-
-      if (!updatedCode || !currentCode || updatedCode !== currentCode) return;
-
-      clearTimeout(timer);
-      timer = setTimeout(() => loadCustomer(currentCode), 350);
-    };
-
-    socket.on('memberUpdated', onMemberUpdated);
-
-    return () => {
-      clearTimeout(timer);
-      socket.off('memberUpdated', onMemberUpdated);
-    };
-  }, [loadCustomer, customerCode]);
-
-  React.useEffect(() => {
-    let timer = null;
-
-    const onCustomersUpdated = () => {
-      clearTimeout(timer);
-      timer = setTimeout(async () => {
-        await loadOverview(true);
-        const clean = String(customerCode || '').replace(/\s+/g, '').trim();
-        if (clean) await loadCustomer(clean);
-      }, 500);
-    };
-
-    socket.on('customersUpdated', onCustomersUpdated);
-
-    return () => {
-      clearTimeout(timer);
-      socket.off('customersUpdated', onCustomersUpdated);
-    };
-  }, [loadOverview, loadCustomer, customerCode]);
-
-  const topItems = overview?.topItems || [];
-  const topCustomers = overview?.topCustomers || [];
-
-  const cardStyle = {
-    background: '#fff',
-    border: '1px solid #e5e7eb',
-    borderRadius: 12,
-    padding: 14,
-  };
-
-  const th = {
-    textAlign: 'left',
-    padding: '8px 10px',
-    borderBottom: '1px solid #e5e7eb',
-    fontSize: 12,
-    color: '#374151',
-    whiteSpace: 'nowrap',
-  };
-
-  const td = {
-    padding: '8px 10px',
-    borderBottom: '1px solid #f3f4f6',
-    fontSize: 12,
-    verticalAlign: 'top',
-  };
-
-  const money = (n) =>
-    Number.isFinite(Number(n))
-      ? Number(n).toLocaleString('vi-VN')
-      : '';
-
-  return (
-    <div style={{ padding: 16, background: '#fff8dc', overflow: 'auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <h2 style={{ margin: 0 }}>Customer Insights</h2>
-
-        <button
-          onClick={() => loadOverview(true)}
-          disabled={loading}
-          style={{
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: 8,
-            background: '#fff',
-            cursor: 'pointer'
-          }}
-        >
-          {loading ? 'Loading…' : 'Refresh'}
-        </button>
-
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <input
-            value={customerCode}
-            onChange={(e) => setCustomerCode(e.target.value.replace(/\s+/g, ''))}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') loadCustomer(customerCode);
-            }}
-            placeholder="Nhập mã khách..."
-            style={{
-              width: 180,
-              padding: 8,
-              border: '1px solid #d1d5db',
-              borderRadius: 8
-            }}
-          />
-
-          <button
-            onClick={() => loadCustomer(customerCode)}
-            style={{
-              padding: '8px 12px',
-              border: 'none',
-              borderRadius: 8,
-              background: '#2563eb',
-              color: '#fff',
-              cursor: 'pointer'
-            }}
-          >
-            Xem khách
-          </button>
-        </div>
-      </div>
-
-      {overview && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginBottom: 12 }}>
-          <div style={cardStyle}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Orders đã phân tích</div>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{overview.totalOrders}</div>
-          </div>
-
-          <div style={cardStyle}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Khách có lịch sử</div>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{overview.totalCustomers}</div>
-          </div>
-
-          <div style={cardStyle}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Món từng được order</div>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{overview.totalItems}</div>
-          </div>
-
-          <div style={cardStyle}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Tổng số lượng món</div>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{overview.totalQty}</div>
-          </div>
-        </div>
-      )}
-
-      {customer && (
-        <div style={{ ...cardStyle, marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <h3 style={{ margin: 0 }}>
-              {customer.code} - {customer.name || 'Chưa có tên'}
-            </h3>
-            <span style={{
-              background: '#eef2ff',
-              color: '#3730a3',
-              borderRadius: 999,
-              padding: '3px 8px',
-              fontSize: 12,
-              fontWeight: 700
-            }}>
-              {customer.level || 'No level'}
-            </span>
-            {!customer.found && (
-              <span style={{ color: '#ef4444', fontSize: 12 }}>Chưa có lịch sử order</span>
-            )}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <h4 style={{ margin: '0 0 8px' }}>Món khách hay gọi</h4>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={th}>Món</th>
-                    <th style={th}>SL</th>
-                    <th style={th}>Số lần</th>
-                    <th style={th}>Ghi chú gần đây</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(customer.favoriteItems || []).slice(0, 10).map((it) => (
-                    <tr key={it.key}>
-                      <td style={td}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {it.imageUrl && (
-                            <img
-                              src={resolveImg(it.imageUrl)}
-                              alt=""
-                              style={{ width: 42, height: 42, objectFit: 'cover', borderRadius: 6 }}
-                            />
-                          )}
-                          <div>
-                            <b>{it.productCode ? `[${it.productCode}] ` : ''}{it.name}</b>
-                            <div style={{ color: '#6b7280' }}>{it.itemGroup || it.type || ''}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={td}>{it.qty}</td>
-                      <td style={td}>{it.orderCount}</td>
-                      <td style={td}>
-                        {(it.notes || []).slice(0, 2).map((n, idx) => (
-                          <div key={idx}>📝 {n.note}</div>
-                        ))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div>
-              <h4 style={{ margin: '0 0 8px' }}>Gợi ý món cho khách</h4>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={th}>Món gợi ý</th>
-                    <th style={th}>Độ phổ biến</th>
-                    <th style={th}>Lý do</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(customer.recommendations || []).slice(0, 10).map((it) => (
-                    <tr key={it.key}>
-                      <td style={td}>
-                        <b>{it.productCode ? `[${it.productCode}] ` : ''}{it.name}</b>
-                        <div style={{ color: '#6b7280' }}>{it.itemGroup || it.type || ''}</div>
-                      </td>
-                      <td style={td}>{it.qty} món / {it.customerCount} khách</td>
-                      <td style={td}>{it.reason || 'Món phổ biến'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {(customer.notes || []).length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <h4 style={{ margin: '0 0 8px' }}>Ghi chú món của khách</h4>
-              <div style={{ display: 'grid', gap: 6 }}>
-                {(customer.notes || []).slice(0, 12).map((n, idx) => (
-                  <div key={idx} style={{ fontSize: 12, background: '#f9fafb', border: '1px solid #eee', borderRadius: 8, padding: 8 }}>
-                    <b>{n.itemName}</b>: {n.note}
-                    <span style={{ color: '#6b7280' }}> • {n.at ? new Date(n.at).toLocaleString() : ''}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 12 }}>
-        <div style={cardStyle}>
-          <h3 style={{ marginTop: 0 }}>Bảng xếp hạng món được order nhiều nhất</h3>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={th}>#</th>
-                  <th style={th}>Món</th>
-                  <th style={th}>SL</th>
-                  <th style={th}>Số lần order</th>
-                  <th style={th}>Số khách</th>
-                  <th style={th}>Giá</th>
-                  <th style={th}>Ghi chú hay gặp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topItems.slice(0, 50).map((it, idx) => (
-                  <tr key={it.key}>
-                    <td style={td}>{idx + 1}</td>
-                    <td style={td}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {it.imageUrl && (
-                          <img
-                            src={resolveImg(it.imageUrl)}
-                            alt=""
-                            style={{ width: 42, height: 42, objectFit: 'cover', borderRadius: 6 }}
-                          />
-                        )}
-                        <div>
-                          <b>{it.productCode ? `[${it.productCode}] ` : ''}{it.name}</b>
-                          <div style={{ color: '#6b7280' }}>{it.itemGroup || it.type || ''}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={td}>{it.qty}</td>
-                    <td style={td}>{it.orderCount}</td>
-                    <td style={td}>{it.customerCount}</td>
-                    <td style={td}>{money(it.price)}</td>
-                    <td style={td}>
-                      {(it.notes || []).slice(0, 2).map((n, i) => (
-                        <div key={i}>📝 {n.note}</div>
-                      ))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div style={cardStyle}>
-          <h3 style={{ marginTop: 0 }}>Khách order nhiều</h3>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={th}>Khách</th>
-                <th style={th}>Level</th>
-                <th style={th}>Orders</th>
-                <th style={th}>Món thích</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topCustomers.slice(0, 50).map((c) => (
-                <tr
-                  key={c.code}
-                  onClick={() => loadCustomer(c.code)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td style={td}>
-                    <b>{c.code}</b>
-                    <div>{c.name}</div>
-                  </td>
-                  <td style={td}>{c.level}</td>
-                  <td style={td}>{c.orderCount}</td>
-                  <td style={td}>
-                    {(c.favoriteItems || []).slice(0, 2).map((it) => it.name).join(', ')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
 export default function AdminFoodList() {
   // ===== Auth state =====
   const [auth, setAuth] = useState(() => {
@@ -691,7 +336,6 @@ export default function AdminFoodList() {
   const [foods, setFoods] = useState([]);
   const [selectedType, setSelectedType] = useState('SNACK MENU');
   const [draggedId, setDraggedId] = useState(null);
-  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [showManage, setShowManage] = useState(false);
   // ——— defer app reload nếu đang mở modal Quản lý ———
@@ -1087,7 +731,7 @@ const printOrderAgent = useCallback(async (order) => {
 }, [agentBase, detectAgent]);
 
 // ===== Orders state =====
-const [tab, setTab] = useState('foods'); // 'foods' | 'orders' | 'insights'
+const [tab, setTab] = useState('foods'); // 'foods' | 'orders'
 const [orders, setOrders] = useState([]);
 const [ordersLoading, setOrdersLoading] = useState(false);
 const [ordersError, setOrdersError] = useState(null);
@@ -1437,21 +1081,6 @@ useEffect(() => {
     if (showHistoryRef.current) await fetchStatusHistory();
   });
 
-  const onQty = ({ imageName, quantity }) => {
-    const key = String(imageName || '').toLowerCase();
-    if (!key) return;
-
-    setFoods((prev) =>
-      prev.map((f) =>
-        getImageName(f.imageUrl) === key
-          ? { ...f, quantity, status: quantity <= 0 ? 'Sold Out' : 'Available' }
-          : f
-      )
-    );
-  };
-
-  socket.on('foodQuantityUpdated', onQty);
-
   return () => {
     clearTimeout(__mlTimer);
     socket.off('foodAdded', debounceFetch);
@@ -1461,7 +1090,6 @@ useEffect(() => {
     socket.off('foodsReordered', debounceFetch);
     socket.off('foodLevelsUpdated', debounceFetch);
     socket.off('statusHistoryAdded');
-    socket.off('foodQuantityUpdated', onQty);
     socket.off('menuLevelsUpdated', onMenuLevelsUpdated);
   };
 }, [
@@ -1664,18 +1292,13 @@ const handleToggleStatus = async (id, status) => {
 
   const newStatus = status === 'Available' ? 'Sold Out' : 'Available';
   const imageName = getImageName(target.imageUrl);
-  const newQty =
-    newStatus === 'Sold Out'
-      ? 0
-      : ((typeof target.quantity === 'number' && target.quantity > 0) ? target.quantity : 10);
-
   const prevFoods = foods;
 
-  // Update UI ngay lập tức
+  // Kitchen/Admin chỉ quản lý trạng thái món. Không dùng tồn kho/số lượng nữa.
   setFoods((prev) =>
     prev.map((f) =>
       getImageName(f.imageUrl) === imageName
-        ? { ...f, status: newStatus, quantity: newQty }
+        ? { ...f, status: newStatus }
         : f
     )
   );
@@ -1719,38 +1342,7 @@ const handleToggleStatus = async (id, status) => {
     }
   };
 
-  const handleDeleteEntireMenu = async (menuType, e) => {
-  e?.stopPropagation();
-  if (!isAdmin) return alert('Admin only.');
-  if (!menuType || menuType === SOLD_OUT_KEY) return;
-
-  if (!window.confirm(`Xóa toàn bộ menu "${menuType}"?`)) return;
-
-  try {
-    setBulkDeleting(true);
-    await axios.delete(apiUrl(`/api/menu-levels/${encodeURIComponent(menuType)}`));
-
-    // Xóa khỏi customMenus (nếu menu được tạo từ client)
-    setCustomMenus(prev => prev.filter(t => t !== menuType));
-
-    // Refresh
-    const data = await fetchFoods();
-    setLevelConfig(await fetchMenuLevels());
-
-    // Chọn menu kế tiếp hợp lý
-    const next =
-      MENU_TYPES.find(t => data.some(f => f.type === t)) ||
-      data[0]?.type ||
-      SOLD_OUT_KEY;
-    setSelectedType(next);
-
-    alert(`Đã xóa menu "${menuType}".`);
-  } catch (e) {
-    setApiError(e?.response?.data?.error || e?.message || 'API error');
-  } finally {
-    setBulkDeleting(false);
-  }
-};
+  // Xóa menu chỉ thực hiện trong Quản lý > Hàng hóa > Menu.
 
 
 // 2) --- handleAddMenu: đổi path ---
@@ -1821,14 +1413,6 @@ const handleDrop = async (targetId) => {
   }
 };
 
-  // ===== Quantity actions =====
-  const changeQty = async (id, delta) => {
-    try {
-      await axios.post(apiUrl(`/api/update-quantity/${id}`), { op: 'inc', value: delta });
-    } catch (e) {
-      alert('Update quantity failed: ' + (e?.response?.data?.error || e?.message || ''));
-    }
-  };
 const normalize = (s) => String(s || '')
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // bỏ dấu
   .replace(/[_\-./]+/g, ' ')                        // nối dấu câu thành khoảng trắng
@@ -2139,7 +1723,7 @@ const renderAdminOrderItems = (order = {}, { allowOffMenuPrice = false } = {}) =
   const td = { padding: '8px 12px', fontSize: 12, color: '#111' };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', height: '100vh', overflowX: 'hidden' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', height: '100vh', overflowX: 'hidden' }}>
       {authExpiredNotice && (
         <div
           style={{
@@ -2188,14 +1772,14 @@ const renderAdminOrderItems = (order = {}, { allowOffMenuPrice = false } = {}) =
         </div>
       )}
       {/* Sidebar */}
-      <div style={{ background: '#111', color: '#fff', padding: 16, overflowY: 'auto', overflowX: 'hidden', width: 260, minWidth: 260 }}>
+      <div style={{ background: '#111', color: '#fff', padding: 16, overflowY: 'auto', overflowX: 'hidden', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
         <div style={{ marginBottom: 12 }}>
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
   <h3 style={{ margin: 0 }}>
     {isAdmin ? 'Admin' : (isKitchen ? 'Kitchen' : 'User')}
   </h3>
 
-  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
     {isAdmin && (
       <button
         onClick={() => {
@@ -2248,20 +1832,6 @@ const renderAdminOrderItems = (order = {}, { allowOffMenuPrice = false } = {}) =
               Orders
             </button>
             <button
-  onClick={() => setTab('insights')}
-  style={{
-    background: tab === 'insights' ? '#10b981' : '#374151',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    padding: '6px 10px',
-    cursor: 'pointer',
-    fontSize: 12
-  }}
->
-  Insights
-</button>
-            <button
               onClick={async () => { setShowHistory(true); await fetchStatusHistory(); }}
               style={{ background: '#374151', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 12 }}
             >
@@ -2296,16 +1866,6 @@ const renderAdminOrderItems = (order = {}, { allowOffMenuPrice = false } = {}) =
                   }}
                 >
                   <span style={{ fontSize: 14 }}>{type}</span>
-                  {isAdmin && (
-                    <button
-                      onClick={(e) => handleDeleteEntireMenu(type, e)}
-                      disabled={bulkDeleting}
-                      title="Delete this entire menu (all items & images)"
-                      style={{ background: bulkDeleting ? '#6b7280' : '#dc2626', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 8px', fontSize: 12, cursor: bulkDeleting ? 'not-allowed' : 'pointer' }}
-                    >
-                      🗑️ Delete
-                    </button>
-                  )}
                 </div>
               );
             })}
@@ -2466,14 +2026,7 @@ const renderAdminOrderItems = (order = {}, { allowOffMenuPrice = false } = {}) =
               </button>
             </div>
           </div>
-          ) : (
-            <div style={{ display: 'grid', gap: 8 }}>
-    <div style={{ fontWeight: 700, marginBottom: 6 }}>Customer Insights</div>
-    <div style={{ fontSize: 12, color: '#d1d5db', lineHeight: 1.5 }}>
-      Xem sở thích khách hàng, món order nhiều, ghi chú món và gợi ý món theo lịch sử order.
-    </div>
-  </div>
-)}
+          ) : null}
       
       </div>
 
@@ -2541,47 +2094,17 @@ const renderAdminOrderItems = (order = {}, { allowOffMenuPrice = false } = {}) =
     )}
 
 
-          {/* LEVEL selector */}
-          {selectedType !== SOLD_OUT_KEY && (
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Access levels for this menu</div>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                {ALL_LEVELS.map(lv => {
-                  const checked = (currentLevels || []).includes(lv);
-                  return (
-                    <label key={lv} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, opacity: isAdmin ? 1 : 0.6 }}>
-                      <input
-                        type="checkbox"
-                        disabled={!isAdmin}
-                        checked={checked}
-                        onChange={() => {
-                          if (!isAdmin) return;
-                          setLevelConfig(prev => {
-                            const cur = new Set((prev[selectedType] || []));
-                            if (cur.has(lv)) cur.delete(lv); else cur.add(lv);
-                            return { ...prev, [selectedType]: Array.from(cur) };
-                          });
-                        }}
-                      />
-                      {lv}
-                    </label>
-                  );
-                })}
-              </div>
-              <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>
-                “Apply levels” will update <b>all items</b> in this menu; newly added items will also use these levels.
-              </div>
-            </div>
-          )}
+          {/* Access levels được quản lý tập trung trong Quản lý → Hàng hóa. */}
 
           {/* Grid */}
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
             {foodsForDisplay.map((food) => {
               const toSoldOut = food.status === 'Available';
+              // Nút thể hiện HÀNH ĐỘNG kế tiếp; badge bên cạnh thể hiện TRẠNG THÁI hiện tại.
               const toggleLabel = toSoldOut ? 'Sold out' : 'In stock';
+              const currentStatusLabel = toSoldOut ? 'IN STOCK' : 'SOLD OUT';
               const statusTextColor = toSoldOut ? '#065f46' : '#991b1b';
               const statusDotColor  = toSoldOut ? '#10b981' : '#ef4444';
-              const qty = typeof food.quantity === 'number' ? food.quantity : (food.status === 'Sold Out' ? 0 : 1);
 
               return (
                 <div
@@ -2657,17 +2180,6 @@ onDrop={(e) => {
     ↕ Drag
   </div>
 )}
-                    {isAdmin && (
-                      <div
-                        style={{
-                          position: 'absolute', right: 8, bottom: 8, background: '#111', color: '#fff',
-                          padding: '2px 6px', fontSize: 12, borderRadius: 12, opacity: 0.9,
-                        }}
-                        title="Quantity"
-                      >
-                        x{qty}
-                      </div>
-                    )}
                   </div>
 
                   {/* Action row */}
@@ -2693,7 +2205,7 @@ onDrop={(e) => {
                           fontSize: 12,
                           whiteSpace: 'nowrap',
                         }}
-                        title={toSoldOut ? 'Chuyển về SOLD OUT (số lượng → 0)' : 'Chuyển về IN STOCK (nếu đang 0 thì đặt 10)'}
+                        title={toSoldOut ? 'Đánh dấu món đã hết' : 'Đánh dấu món đã có lại'}
                       >
                         {toggleLabel}
                       </button>
@@ -2710,69 +2222,14 @@ onDrop={(e) => {
                         whiteSpace: 'nowrap',
                         marginLeft: isAdmin ? 0 : 'auto',
                       }}
-                      title={food.status}
+                      title={`Trạng thái hiện tại: ${food.status}`}
                     >
                       <span style={{ width: 8, height: 8, borderRadius: '50%', background: statusDotColor, display: 'inline-block' }} />
-                      {food.status}
+                      {currentStatusLabel}
                     </span>
                   </div>
 
-                  {/* Quantity controls — Ẩn với Kitchen */}
-                  {isAdmin && (
-                    <div style={{ padding: '0 10px 10px', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-                      <button
-                        onClick={() => changeQty(food.id, -1)}
-                        style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 16 }}
-                        title="Decrease"
-                      >−</button>
-                      <div
-                        style={{ minWidth: 44, textAlign: 'center', padding: '6px 10px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#f9fafb', fontWeight: 700 }}
-                        title="Current quantity"
-                      >
-                        {qty}
-                      </div>
-                      <button
-                        onClick={() => changeQty(food.id, +1)}
-                        style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 16 }}
-                        title="Increase"
-                      >+</button>
-                    </div>
-                  )}
-
-                  {isAdmin && (
-                    <div style={{ padding: '0 10px 10px', display: 'flex', gap: 6 }}>
-                      <button
-                        onClick={() => handleRenameFood(food.id)}
-                        style={{
-                          padding: '6px 10px',
-                          background: '#3b82f6',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 8,
-                          cursor: 'pointer',
-                          fontSize: 12,
-                        }}
-                        title="Rename this item (image)"
-                      >
-                        Rename
-                      </button>
-                      <button
-                        onClick={() => handleDeleteFood(food.id)}
-                        style={{
-                          padding: '6px 10px',
-                          background: '#ef4444',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 8,
-                          cursor: 'pointer',
-                          fontSize: 12,
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
+                                </div>
               );
             })}
 
@@ -2957,6 +2414,7 @@ onDrop={(e) => {
                 <div style={{ fontSize: 14, color: '#374151', marginBottom: 6 }}>
                   Staff: <b style={{ color: '#111827' }}>{getOrderStaffDisplay(o)}</b>
                 </div>
+                {renderOrderIpadLine(o, { marginBottom: 8 })}
 
                 <div
                   style={{
@@ -3078,6 +2536,7 @@ onDrop={(e) => {
                                 <div style={{ fontSize: 16, color: '#374151' }}>
                                   Staff: <b style={{ color: '#111827' }}>{getOrderStaffDisplay(o)}</b>
                                 </div>
+                                {renderOrderIpadLine(o, { fontSize: 15 })}
 
                                 <div
                                   style={{
@@ -3121,7 +2580,7 @@ onDrop={(e) => {
                                 Order items
                               </div>
 
-                              {renderAdminOrderItems(o, { allowOffMenuPrice: true })}
+                              {renderAdminOrderItems(o, { allowOffMenuPrice: isAdmin })}
 
                               {o.note && (
                                 <div
@@ -3193,9 +2652,7 @@ onDrop={(e) => {
             )}
           </div>
         </div>
-        ) : (
-  <CustomerInsightsPanel apiUrl={apiUrl} resolveImg={resolveImg} />
-      )}
+        ) : null}
 
       {/* ===== Status History Modal ===== */}
       {showHistory && (

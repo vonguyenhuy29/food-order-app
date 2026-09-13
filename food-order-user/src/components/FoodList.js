@@ -1,6 +1,8 @@
 // src/components/FoodList.js
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import AIChatBox from './AIChatBox.jsx';
+import FloorLens from './FloorLens.jsx';
+import TableTest from './TableTest.jsx';
 import axios from 'axios';
 import io from 'socket.io-client';
 
@@ -106,10 +108,10 @@ const BUSINESS_HOUR = 6;
 
 // Khu vực và số bàn hiện tại (cập nhật theo sơ đồ thực tế 08/2026)
 const AREA_DEFS = [
-  { name: 'Roulette 1', ranges: [[101, 117]] },
+  { name: 'Roulette 1', ranges: [[101, 117]], diningTables: ['Bàn ăn 1', 'Bàn ăn 2'] },
   { name: 'Roulette 2', ranges: [[201, 231]] },
   { name: 'Roulette 3', ranges: [[301, 317]] },
-  { name: 'Reception 1', tables: [7001, 7002, 7003, 7004, 7005, 7006, 7007, 7008] },
+  { name: 'Reception 1', tables: [7001, 7002, 7003, 7004, 7005, 7006, 7007, 7008], diningTables: ['Bàn ăn 1', 'Bàn ăn 2'] },
   { name: 'Reception 2', ranges: [[1001, 1004], [1009, 1020]] },
   {
     name: 'Center',
@@ -121,7 +123,7 @@ const AREA_DEFS = [
       3014, 3015, 3016, 3017, 3018, 3019, 3020, 3021, 3022, 3023, 3024, 3025, 3026, 3027,
     ],
   },
-  { name: 'Multi', tables: [501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 8001, 8002, 8003, 8004, 8005, 8006] },
+  { name: 'Multi', tables: [501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 8001, 8002, 8003, 8004, 8005, 8006], diningTables: ['Bàn ăn 1'] },
   { name: 'Table', ranges: [[11, 15], [21, 25]] },
   {
     name: '2 Floor',
@@ -133,11 +135,21 @@ const AREA_DEFS = [
       2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028,
       8007, 8008, 8009,
     ],
+    diningTables: ['Bàn ăn 1', 'Bàn ăn 2', 'Bàn ăn 3', 'Bàn ăn 4'],
   },
+  // Kitchen luôn nằm cuối danh sách khu vực để staff dễ nhận biết đây là khu bàn ăn riêng.
+  { name: 'Kitchen', diningTables: ['Bàn ăn 1', 'Bàn ăn 2', 'Bàn ăn 3'] },
 ];
+
+const DINING_TABLE_NOTES = {
+  'Roulette 1#Bàn ăn 1': 'Sau máy 112',
+  'Roulette 1#Bàn ăn 2': 'Sau máy 106',
+  'Multi#Bàn ăn 1': 'Kế bên Cashier 1',
+};
+const diningTableNoteOf = (area, tableNo) => DINING_TABLE_NOTES[`${String(area || '').trim()}#${String(tableNo || '').trim()}`] || '';
 const genTables = (areaOrRanges) => {
   const area = Array.isArray(areaOrRanges) ? { ranges: areaOrRanges } : (areaOrRanges || {});
-  const out = new Set(
+  const numbers = new Set(
     (Array.isArray(area.tables) ? area.tables : [])
       .map(Number)
       .filter(Number.isFinite)
@@ -147,19 +159,157 @@ const genTables = (areaOrRanges) => {
     const from = Number(a);
     const to = Number(b);
     if (!Number.isFinite(from) || !Number.isFinite(to)) return;
-    for (let i = from; i <= to; i += 1) out.add(i);
+    for (let i = from; i <= to; i += 1) numbers.add(i);
   });
 
-  return Array.from(out).sort((a, b) => a - b);
+  const dining = (Array.isArray(area.diningTables) ? area.diningTables : [])
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+
+  return [...Array.from(numbers).sort((a, b) => a - b), ...dining];
 };
+const isDiningTableNo = (tableNo) => /^bàn ăn\s*\d+$/i.test(String(tableNo || '').trim());
 const tableKeyOf = (area, tableNo) => (area && tableNo) ? `${area}#${tableNo}` : '';
-const tableStatusTextOf = (o) => o?.tableClosed ? 'Done (thu bàn)' : 'Pending';
+const compareTableNo = (a, b) => {
+  const an = Number(a); const bn = Number(b);
+  if (Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
+  return String(a ?? '').localeCompare(String(b ?? ''), 'vi', { numeric: true, sensitivity: 'base' });
+};
+const FLOORLENS_ORDER_STATION_KEY = 'food.floorlensOrderStation';
+const currentFloorlensOrderStation = () => {
+  try {
+    const fromUrl = String(new URLSearchParams(window.location.search).get('station') || '').trim().toUpperCase();
+    if (fromUrl) {
+      localStorage.setItem(FLOORLENS_ORDER_STATION_KEY, fromUrl);
+      return fromUrl;
+    }
+    return String(localStorage.getItem(FLOORLENS_ORDER_STATION_KEY) || '').trim().toUpperCase();
+  } catch { return ''; }
+};
+const tableStatusTextOf = (o) => o?.tableClosed ? 'Done' : 'Pending';
 const tableStatusColorOf = (o) => o?.tableClosed ? '#16a34a' : '#f59e0b';
 
+const FLOORLENS_STATION_LABELS = {
+  TECH: 'Tech',
+  PIT14: 'PIT 14',
+  PIT15: 'PIT 15',
+  PIT33: 'PIT 33',
+  PIT2F: 'PIT 2F',
+  RECEPTION1: 'Reception 1',
+  RECEPTION2: 'Reception 2',
+  BC1: 'BC1',
+  BC2: 'BC2',
+  CENTER3022: 'Center',
+  KITCHENIPAD: 'Kitchen',
+};
+const normalizeFloorlensStationCode = (value) => String(value == null ? '' : value).trim().toUpperCase().replace(/[\s_-]+/g, '');
+const floorlensStationLabelOf = (value) => {
+  const raw = normalizeFloorlensStationCode(value);
+  if (!raw) return '';
+  const aliases = { CENTER: 'CENTER3022' };
+  const normalized = aliases[raw] || raw;
+  return FLOORLENS_STATION_LABELS[normalized] || String(value || '').trim();
+};
+const renderOrderIpadLine = (o, style = {}) => {
+  const label = floorlensStationLabelOf(o?.sourceStation);
+  if (!label) return null;
+  return (
+    <div style={{ fontSize: 13, color: '#475569', ...style }}>
+      iPad: <b style={{ color: '#0f172a' }}>{label}</b>
+    </div>
+  );
+};
+
+const LOCAL_ORDERS_MAX_PER_TABLE = 40;
+const LOCAL_CLOSED_ORDER_KEEP_MS = 2 * 24 * 60 * 60 * 1000;
+
+/* CART_SAFETY_V2_AUTO_GUARDIAN */
+/* CART_GUARDIAN_V21_RACE_FIX */
+const CART_GUARDIAN_MIGRATION_KEY = 'foodCartGuardianV2Migrated';
+
+const cartOwnerCodeOf = (item = {}) =>
+  String(item?.ownerMemberCode || '').replace(/\s+/g, '').trim();
+
+const cartSafetySummary = (cart = {}) => {
+  const rows = Object.values(cart || {}).filter((item) => item && Number(item.qty || 0) > 0);
+  const owners = Array.from(new Set(rows.map(cartOwnerCodeOf).filter(Boolean)));
+  const hasUnowned = rows.some((item) => !cartOwnerCodeOf(item));
+  return {
+    itemRows: rows.length,
+    owners,
+    hasUnowned,
+    hasItems: rows.length > 0,
+  };
+};
+
+const keepOnlyCartOwner = (cart = {}, memberCode = '') => {
+  const wanted = String(memberCode || '').replace(/\s+/g, '').trim();
+  if (!wanted) return {};
+  return Object.fromEntries(
+    Object.entries(cart || {}).filter(([, item]) =>
+      item &&
+      Number(item.qty || 0) > 0 &&
+      cartOwnerCodeOf(item) === wanted
+    )
+  );
+};
+
+function compactCarts(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const out = {};
+
+  for (const [tableKey, cart] of Object.entries(source)) {
+    if (!cart || typeof cart !== 'object' || Array.isArray(cart)) continue;
+    const cleaned = {};
+    for (const [itemKey, item] of Object.entries(cart)) {
+      if (!item || Number(item.qty || 0) <= 0) continue;
+      cleaned[itemKey] = item;
+    }
+    if (Object.keys(cleaned).length) out[tableKey] = cleaned;
+  }
+
+  return out;
+}
+
+function compactOrdersByTable(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const now = Date.now();
+  const out = {};
+
+  for (const [key, value] of Object.entries(source)) {
+    if (!Array.isArray(value)) continue;
+
+    const seen = new Set();
+    const rows = value
+      .filter(Boolean)
+      .sort((a, b) => new Date(b?.createdAt || b?.updatedAt || 0) - new Date(a?.createdAt || a?.updatedAt || 0))
+      .filter((order) => {
+        const id = String(order?.id || '');
+        if (id && seen.has(id)) return false;
+        if (id) seen.add(id);
+
+        if (!order?.tableClosed) return true;
+        const at = Date.parse(order?.closedAt || order?.updatedAt || order?.createdAt || '');
+        return Number.isFinite(at) && now - at <= LOCAL_CLOSED_ORDER_KEEP_MS;
+      })
+      .slice(0, LOCAL_ORDERS_MAX_PER_TABLE);
+
+    if (rows.length) out[key] = rows;
+  }
+
+  return out;
+}
+
+let sharedAudioContext = null;
 function playBeep() {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
-    const ctx = new AC();
+    if (!AC) return;
+    if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+      sharedAudioContext = new AC();
+    }
+    const ctx = sharedAudioContext;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.type = 'sine'; o.frequency.value = 880;
@@ -192,6 +342,32 @@ const normalize = (s) => String(s || '')
   .trim()
   .toUpperCase();
 
+
+const sanitizeCustomerSnapshotForOrder = (form = {}) => {
+  const rawName = String(form.customerName || '').trim();
+  const rawLevel = String(form.level || '').trim();
+
+  const invalidNames = new Set([
+    'Đang tìm khách...',
+    'Chưa có thông tin',
+    'Chưa có dữ liệu trong Database',
+    'Không đọc được Database',
+  ]);
+
+  const invalidLevels = new Set([
+    '',
+    '---',
+    'Đang tìm...',
+    'Chưa có thông tin',
+  ]);
+
+  return {
+    code: String(form.customerCode || form.memberCard || '').replace(/\s+/g, '').trim() || null,
+    name: rawName && !invalidNames.has(rawName) ? rawName : null,
+    level: rawLevel && !invalidLevels.has(rawLevel) ? rawLevel : null,
+  };
+};
+
 const UserFoodList = () => {
   const [foods, setFoods] = useState([]);
   const [menuLevels, setMenuLevels] = useState({}); // <— NEW: default levels per menu/type
@@ -211,37 +387,87 @@ const UserFoodList = () => {
   if (w <= 1024) return 3;
   return 4;
 });
-  const [menuOpen, setMenuOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(() => (typeof window === 'undefined' ? true : (window.innerWidth || 1200) > 1024));
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1200 : (window.innerWidth || 1200)));
+  const compactShell = viewportWidth <= 1024;
   const [previewImage, setPreviewImage] = useState(null);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth || 1200);
+    window.addEventListener('resize', onResize);
+    onResize();
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Search
   const [searchQuery, setSearchQuery] = useState('');
   const isSearching = searchQuery.trim().length > 0;
 
   // Chế độ hiển thị & bàn
-  const [mode, setMode] = useState('menu'); // 'menu' | 'tables' | 'orders'
+  const [mode, setMode] = useState('menu'); // 'menu' | 'tables' | 'orders' | 'insights' | 'floorlens' | 'tabletest'
+  // Khi chuyển sang iPad/phone, sidebar trở thành overlay thay vì chiếm chiều rộng nội dung.
+  useEffect(() => {
+    if (compactShell && mode === 'floorlens') setMenuOpen(false);
+    if (mode === 'tabletest') setMenuOpen(true);
+  }, [compactShell, mode]);
   const [activeArea, setActiveArea] = useState(AREA_DEFS[0].name);
   const [tableSearch, setTableSearch] = useState('');
+  const [tableTestRealtime, setTableTestRealtime] = useState({ rows: [], statusFilter: 'ALL' });
+  const handleTableTestRealtimeState = useCallback((next) => {
+    setTableTestRealtime(next && typeof next === 'object' ? next : { rows: [], statusFilter: 'ALL' });
+  }, []);
   const [selectedTable, setSelectedTable] = useState(() => {
     try { return JSON.parse(localStorage.getItem('selectedTable')) || null; } catch { return null; }
   });
+  const [orderPlacementConflict, setOrderPlacementConflict] = useState(null);
+
+  // Table Test trên iPad/phone dùng sidebar kiểu push thay vì overlay:
+  // mở menu => nội dung co sang phải; đóng menu => nội dung dùng full màn hình.
+  const contentLeft = menuOpen && (!compactShell || mode === 'tabletest') ? MENU_WIDTH : 0;
 
   const currentTableKey = useMemo(
     () => (selectedTable ? tableKeyOf(selectedTable.area, selectedTable.tableNo) : ''),
     [selectedTable]
   );
+  const currentTableKeyRef = useRef(currentTableKey);
+  useEffect(() => { currentTableKeyRef.current = currentTableKey; }, [currentTableKey]);
 
   // Giỏ theo bàn
 const [carts, setCarts] = useState(() => {
-  try { return JSON.parse(localStorage.getItem('tableCarts')) || {}; } catch { return {}; }
+  try { return compactCarts(JSON.parse(localStorage.getItem('tableCarts')) || {}); } catch { return {}; }
 });
+
+// Cart Guardian V2 migration
+useEffect(() => {
+  try {
+    if (localStorage.getItem(CART_GUARDIAN_MIGRATION_KEY) === '1') return;
+
+    setCarts((prev) => {
+      const next = {};
+      for (const [key, cart] of Object.entries(prev || {})) {
+        const safety = cartSafetySummary(cart);
+        if (!safety.hasItems) continue;
+        if (!safety.hasUnowned && safety.owners.length === 1) {
+          next[key] = cart;
+        }
+      }
+      return next;
+    });
+
+    localStorage.setItem(CART_GUARDIAN_MIGRATION_KEY, '1');
+  } catch {}
+}, []);
 
 
   // Orders theo bàn
   const [ordersByTable, setOrdersByTable] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('ordersByTable')) || {}; } catch { return {}; }
+    try { return compactOrdersByTable(JSON.parse(localStorage.getItem('ordersByTable')) || {}); } catch { return {}; }
   });
-  useEffect(() => { localStorage.setItem('ordersByTable', JSON.stringify(ordersByTable)); }, [ordersByTable]);
+  useEffect(() => {
+    try {
+      localStorage.setItem('ordersByTable', JSON.stringify(compactOrdersByTable(ordersByTable)));
+    } catch {}
+  }, [ordersByTable]);
 
   // Tables hiển thị ở sidebar
   const visibleTables = useMemo(() => {
@@ -258,6 +484,19 @@ const [carts, setCarts] = useState(() => {
     const area = AREA_DEFS.find(a => a.name === activeArea) || AREA_DEFS[0];
     return genTables(area).map(n => ({ area: area.name, tableNo: n }));
   }, [tableSearch, activeArea]);
+
+  const tableTestMachineMap = useMemo(() => {
+    const map = new Map();
+    for (const row of Array.isArray(tableTestRealtime?.rows) ? tableTestRealtime.rows : []) {
+      const key = String(row?.machineNumber || '').trim();
+      if (key) map.set(key, row);
+    }
+    return map;
+  }, [tableTestRealtime]);
+
+  // Table Test: metric cards chỉ mở FloorLens Map, KHÔNG lọc/sắp xếp lại sidebar.
+  // Sidebar luôn giữ nguyên danh sách machine của khu vực để staff không bị mất vị trí.
+  const tableTestSidebarTables = useMemo(() => visibleTables, [visibleTables]);
 
   // Badge đếm orders mở + màu theo trạng thái mới nhất
   const openOrderBadgeFor = useCallback((areaName, tableNo) => {
@@ -534,13 +773,13 @@ for (const o of ordersViewFiltered) {
       case 'table_asc': {
         const ac = String(a.area || '').localeCompare(String(b.area || ''));
         if (ac) return ac;
-        return Number(a.tableNo) - Number(b.tableNo);
+        return compareTableNo(a.tableNo, b.tableNo);
       }
 
       case 'table_desc': {
         const ac = String(b.area || '').localeCompare(String(a.area || ''));
         if (ac) return ac;
-        return Number(b.tableNo) - Number(a.tableNo);
+        return compareTableNo(b.tableNo, a.tableNo);
       }
 
       case 'time_desc':
@@ -564,6 +803,10 @@ for (const o of ordersViewFiltered) {
   const [toast, setToast] = useState('');
   const [globalCustomerEventAlert, setGlobalCustomerEventAlert] = useState(null);
 const [insightsOpenCode, setInsightsOpenCode] = useState('');
+const [floorlensInsightsCode, setFloorlensInsightsCode] = useState('');
+const [tableProfileCode, setTableProfileCode] = useState('');
+const [floorlensReturnTarget, setFloorlensReturnTarget] = useState(null);
+const [floorlensFocusRequestId, setFloorlensFocusRequestId] = useState(0);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const placeOrderLockRef = useRef(false);
   const orderRequestIdRef = useRef(null);
@@ -615,7 +858,9 @@ const [quickOrderForm, setQuickOrderForm] = useState({ staff: '', members: '' })
     useEffect(() => { menuOpenRef.current = menuOpen; }, [menuOpen]);
   useEffect(() => { if (selectedLevel) localStorage.setItem('ui.selectedLevel', selectedLevel); }, [selectedLevel]);
   useEffect(() => { localStorage.setItem('ui.selectedType', selectedType ?? ''); }, [selectedType]);
-  useEffect(() => { localStorage.setItem('tableCarts', JSON.stringify(carts)); }, [carts]);
+  useEffect(() => {
+    try { localStorage.setItem('tableCarts', JSON.stringify(compactCarts(carts))); } catch {}
+  }, [carts]);
   useEffect(() => { localStorage.setItem('selectedTable', JSON.stringify(selectedTable)); }, [selectedTable]);
   useEffect(() => { if (!toast) return; const t = setTimeout(()=>setToast(''),1300); return ()=>clearTimeout(t); }, [toast]);
   // Global Customer Event Alarm
@@ -767,18 +1012,22 @@ useEffect(() => {
       fetchFoods();
     };
 
+    const handleReconnectAttempt = () => setConnState('connecting');
+    const handleReconnectError = () => setConnState('offline');
+    const handleReconnect = () => { setConnState('connecting'); fetchFoods(); };
+
     socket.on('disconnect', handleDisconnect);
     socket.on('connect', handleConnect);
-    socket.on('reconnect_attempt', () => setConnState('connecting'));
-    socket.on('reconnect_error', () => setConnState('offline'));
-    socket.on('reconnect', () => { setConnState('connecting'); fetchFoods(); });
+    socket.on('reconnect_attempt', handleReconnectAttempt);
+    socket.on('reconnect_error', handleReconnectError);
+    socket.on('reconnect', handleReconnect);
 
     return () => {
       socket.off('disconnect', handleDisconnect);
       socket.off('connect', handleConnect);
-      socket.off('reconnect_attempt');
-      socket.off('reconnect_error');
-      socket.off('reconnect');
+      socket.off('reconnect_attempt', handleReconnectAttempt);
+      socket.off('reconnect_error', handleReconnectError);
+      socket.off('reconnect', handleReconnect);
     };
   }, [fetchFoods]);
 
@@ -834,29 +1083,31 @@ useEffect(() => {
   useEffect(() => {
     fetchFoods();
     loadMenuLevels();
-    socket.on('foodAdded', debounceFetch);
-    socket.on('foodStatusUpdated', debounceFetch);
-    socket.on('foodDeleted', debounceFetch);
-    socket.on('foodsReordered', ({ orderedIds }) => {
-      setFoods(prev => {
+
+    const onFoodsReordered = ({ orderedIds } = {}) => {
+      if (!Array.isArray(orderedIds)) return;
+      setFoods((prev) => {
         const orderMap = new Map();
         orderedIds.forEach((id, idx) => orderMap.set(id, idx));
-        return prev.map(f => ({ ...f, order: orderMap.has(f.id) ? orderMap.get(f.id) : f.order }));
+        return prev.map((f) => ({ ...f, order: orderMap.has(f.id) ? orderMap.get(f.id) : f.order }));
       });
-    });
-    socket.on('foodLevelsUpdated', debounceFetch);
-    socket.on('foodRenamed', debounceFetch);
-    // Khi server cập nhật default levels của menu → tải lại map levels (không cần refetch foods)
-    socket.on('menuLevelsUpdated', loadMenuLevels); 
-    const onOrderPlacedUser = ({ order }) => {
+    };
+
+    const onOrderPlacedUser = ({ order } = {}) => {
+      if (!order?.area || !order?.tableNo) return;
       const key = tableKeyOf(order.area, order.tableNo);
-      setOrdersByTable(prev => {
+      setOrdersByTable((prev) => {
         const cur = prev[key] || [];
-        const next = [order, ...cur].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const byId = new Map(cur.map((row) => [String(row.id), row]));
+        byId.set(String(order.id), order);
+        const next = Array.from(byId.values())
+          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+          .slice(0, LOCAL_ORDERS_MAX_PER_TABLE);
         return { ...prev, [key]: next };
       });
-      if (currentTableKey && key === currentTableKey) {
-        setToast(`Đã nhận order mới: ${order.items.map(i => `x${i.qty} ${i.imageName}`).join(', ')}`);
+      const activeTableKey = currentTableKeyRef.current;
+      if (activeTableKey && key === activeTableKey) {
+        setToast(`Đã nhận order mới: ${(order.items || []).map((i) => `x${i.qty} ${i.imageName || i.name || ''}`).join(', ')}`);
         playBeep();
       }
     };
@@ -869,55 +1120,67 @@ useEffect(() => {
       const key = tableKeyOf(area, tableNo);
       const reasonFinal = cancelReason ?? reason ?? order?.cancelReason ?? order?.reason ?? null;
 
-      setOrdersByTable(prev => {
-        const list = (prev[key] || []).map(o =>
-          o.id === orderId ? { ...o, ...(order || {}), status, ...(reasonFinal ? { cancelReason: reasonFinal } : {}) } : o
+      setOrdersByTable((prev) => {
+        const list = (prev[key] || []).map((o) =>
+          String(o.id) === String(orderId)
+            ? { ...o, ...(order || {}), status, ...(reasonFinal ? { cancelReason: reasonFinal } : {}) }
+            : o
         );
-        return { ...prev, [key]: list };
+        return { ...prev, [key]: list.slice(0, LOCAL_ORDERS_MAX_PER_TABLE) };
       });
 
-      if (status === 'DONE' && currentTableKey && key === currentTableKey && !(order?.tableClosed)) {
-        const itemsText = Array.isArray(order?.items) ? order.items.map(i => `x${i.qty} ${i.imageName}`).join(', ') : '';
+      const activeTableKey = currentTableKeyRef.current;
+      if (status === 'DONE' && activeTableKey && key === activeTableKey && !(order?.tableClosed)) {
+        const itemsText = Array.isArray(order?.items)
+          ? order.items.map((i) => `x${i.qty} ${i.imageName || i.name || ''}`).join(', ')
+          : '';
         setToast(`Order đã hoàn thành: ${itemsText}`);
         playBeep();
       }
     };
 
-    const onQty = ({ imageName, quantity }) => {
-      const key = String(imageName || '').toLowerCase();
-      if (!key) return;
-      setFoods(prev =>
-        prev.map(f =>
-          getImageName(f.imageUrl) === key ? { ...f, quantity, status: quantity <= 0 ? 'Sold Out' : 'Available' } : f
-        )
-      );
-    };
-
+    socket.on('foodAdded', debounceFetch);
+    socket.on('foodStatusUpdated', debounceFetch);
+    socket.on('foodDeleted', debounceFetch);
+    socket.on('foodsReordered', onFoodsReordered);
+    socket.on('foodLevelsUpdated', debounceFetch);
+    socket.on('foodRenamed', debounceFetch);
+    socket.on('menuLevelsUpdated', loadMenuLevels);
     socket.on('orderPlaced', onOrderPlacedUser);
     socket.on('orderUpdated', onOrderUpdatedUser);
-    socket.on('foodQuantityUpdated', onQty);
-    const refreshOrdersView = () => {
-  if (mode === 'orders') fetchOrdersView();
-};
-
-socket.on('orderPlaced', refreshOrdersView);
-socket.on('orderUpdated', refreshOrdersView);
 
     return () => {
       socket.off('foodAdded', debounceFetch);
       socket.off('foodStatusUpdated', debounceFetch);
       socket.off('foodDeleted', debounceFetch);
       socket.off('foodRenamed', debounceFetch);
-      socket.off('foodsReordered');
+      socket.off('foodsReordered', onFoodsReordered);
       socket.off('foodLevelsUpdated', debounceFetch);
       socket.off('orderPlaced', onOrderPlacedUser);
       socket.off('orderUpdated', onOrderUpdatedUser);
-      socket.off('foodQuantityUpdated', onQty);
       socket.off('menuLevelsUpdated', loadMenuLevels);
-      socket.off('orderPlaced', refreshOrdersView);
-socket.off('orderUpdated', refreshOrdersView);
     };
-  }, [fetchFoods, debounceFetch, selectedTable, currentTableKey, loadMenuLevels, mode, fetchOrdersView]);
+  }, [fetchFoods, debounceFetch, loadMenuLevels]);
+
+  // Orders view chỉ gắn listener khi user đang mở tab Orders.
+  useEffect(() => {
+    if (mode !== 'orders') return undefined;
+
+    let timer = null;
+    const refreshOrdersView = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fetchOrdersView(), 180);
+    };
+
+    socket.on('orderPlaced', refreshOrdersView);
+    socket.on('orderUpdated', refreshOrdersView);
+
+    return () => {
+      clearTimeout(timer);
+      socket.off('orderPlaced', refreshOrdersView);
+      socket.off('orderUpdated', refreshOrdersView);
+    };
+  }, [mode, fetchOrdersView]);
 
   // ====== Groups / types cho sidebar ======
   const [productGroups, setProductGroups] = useState([]);
@@ -1214,6 +1477,7 @@ const addOffMenuItem = () => {
   if (!selectedTable) return setToast('Hãy chọn bàn');
 
   const key = makeOffMenuKey();
+  const ownerMemberCode = String(currentMemberCardRef.current || orderForm.memberCard || orderForm.customerCode || '').replace(/\s+/g, '').trim();
   setCarts((prev) => {
     const cart = { ...(prev[currentTableKey] || {}) };
     cart[key] = {
@@ -1221,6 +1485,7 @@ const addOffMenuItem = () => {
       note: '',
       name: '',
       isOffMenu: true,
+      ownerMemberCode,
     };
     return { ...prev, [currentTableKey]: cart };
   });
@@ -1235,13 +1500,26 @@ const setCartQty = (cartKey, qty) => {
     if (qty <= 0) {
       delete cart[cartKey];
     } else {
+      const ownerMemberCode = String(currentMemberCardRef.current || orderForm.memberCard || orderForm.customerCode || '').replace(/\s+/g, '').trim();
       const cur = cart[cartKey] || {
         qty: 0,
         note: '',
         name: '',
         isOffMenu: isOffMenuKey(cartKey),
+        ownerMemberCode,
       };
-      cart[cartKey] = { ...cur, qty };
+      const existingOwner = cartOwnerCodeOf(cur);
+      const safeOwner =
+        ownerMemberCode &&
+        (!existingOwner || existingOwner === ownerMemberCode)
+          ? ownerMemberCode
+          : existingOwner;
+
+      cart[cartKey] = {
+        ...cur,
+        qty,
+        ...(safeOwner ? { ownerMemberCode: safeOwner } : {}),
+      };
     }
 
     return { ...prev, [currentTableKey]: cart };
@@ -1252,11 +1530,16 @@ const setCartQty = (cartKey, qty) => {
   const incItem = (food) => {
     if (!selectedTable) return setToast('Hãy chọn bàn');
     const imageName = getImageName(food.imageUrl);
-    // guard sold-out / tồn kho
-    if (food.status === 'Sold Out') { setToast('Món đã hết'); playBeep(); return; }
-    const max = Number.isFinite(food.quantity) ? food.quantity : Infinity;
+
+    // Chỉ có 2 trạng thái món: In Stock (Available) và Sold Out.
+    // Không còn tồn kho/số lượng tối đa: món Available được thêm không giới hạn.
+    if (food.status === 'Sold Out') {
+      setToast('Món đã Sold Out');
+      playBeep();
+      return;
+    }
+
     const now = cartQtyOf(imageName);
-    if (now >= max) { setToast('Đã đạt tồn tối đa'); playBeep(); return; }
     setCartQty(imageName, now + 1);
   };
   const decItem = (food) => {
@@ -1277,6 +1560,194 @@ const setCartQty = (cartKey, qty) => {
   });
 };
 
+const floorlensCartKey = (area, tableNo) => tableKeyOf(String(area || ''), String(tableNo || ''));
+
+const setFloorlensCartQty = ({ area, tableNo, cartKey, qty, memberCode = '' }) => {
+  const key = floorlensCartKey(area, tableNo);
+  if (!key || !cartKey) return;
+
+  setCarts((prev) => {
+    const cart = { ...(prev[key] || {}) };
+    const nextQty = Math.max(0, Number(qty || 0));
+    if (nextQty <= 0) {
+      delete cart[cartKey];
+    } else {
+      const ownerMemberCode = String(memberCode || orderForm.memberCard || orderForm.customerCode || '').replace(/\s+/g, '').trim();
+      const current = cart[cartKey] || {
+        qty: 0,
+        note: '',
+        name: '',
+        isOffMenu: isOffMenuKey(cartKey),
+        ownerMemberCode,
+      };
+      cart[cartKey] = { ...current, qty: nextQty };
+    }
+    return { ...prev, [key]: cart };
+  });
+};
+
+const updateFloorlensCartItem = ({ area, tableNo, cartKey, patch }) => {
+  const key = floorlensCartKey(area, tableNo);
+  if (!key || !cartKey) return;
+  setCarts((prev) => {
+    const cart = { ...(prev[key] || {}) };
+    if (!cart[cartKey]) return prev;
+    cart[cartKey] = { ...cart[cartKey], ...(patch || {}) };
+    return { ...prev, [key]: cart };
+  });
+};
+
+const clearFloorlensCart = ({ area, tableNo }) => {
+  const key = floorlensCartKey(area, tableNo);
+  if (!key) return;
+  setCarts((prev) => ({ ...prev, [key]: {} }));
+};
+
+const addFloorlensOffMenu = ({ area, tableNo, memberCode = '' }) => {
+  const key = floorlensCartKey(area, tableNo);
+  if (!key) return;
+  const cartKey = makeOffMenuKey();
+  const ownerMemberCode = String(memberCode || orderForm.memberCard || orderForm.customerCode || '').replace(/\s+/g, '').trim();
+  setCarts((prev) => {
+    const cart = { ...(prev[key] || {}) };
+    cart[cartKey] = { qty: 1, note: '', name: '', isOffMenu: true, ownerMemberCode };
+    return { ...prev, [key]: cart };
+  });
+};
+
+const reconcileCartsWithFloorlens = useCallback((floorlensSnapshot) => {
+  if (!floorlensSnapshot || floorlensSnapshot.stale) return;
+
+  const currentOwnerByKey = new Map();
+
+  for (const machine of Array.isArray(floorlensSnapshot?.machines) ? floorlensSnapshot.machines : []) {
+    const verified =
+      machine?.checkState === 'ok' &&
+      machine?.online !== false &&
+      Boolean(machine?.isPlaying);
+
+    const memberCode = String(machine?.memberCode || '').replace(/\s+/g, '').trim();
+    const area = String(machine?.area || '').trim();
+    const tableNo = machine?.machineNumber;
+
+    if (!verified || !memberCode || !area || tableNo === null || tableNo === undefined || tableNo === '') continue;
+    currentOwnerByKey.set(tableKeyOf(area, tableNo), memberCode);
+  }
+
+  if (!currentOwnerByKey.size) return;
+
+  setCarts((prev) => {
+    let changed = false;
+    const next = { ...prev };
+
+    for (const [key, cart] of Object.entries(prev || {})) {
+      const liveMemberCode = currentOwnerByKey.get(key);
+      if (!liveMemberCode) continue;
+
+      const tableNo = String(key).split('#').pop();
+      if (isDiningTableNo(tableNo)) continue;
+
+      const safety = cartSafetySummary(cart);
+      if (!safety.hasItems) continue;
+
+      const staleForCurrentCustomer =
+        safety.hasUnowned ||
+        safety.owners.some((ownerCode) => ownerCode !== liveMemberCode);
+
+      if (staleForCurrentCustomer) {
+        next[key] = keepOnlyCartOwner(cart, liveMemberCode);
+        changed = true;
+      }
+    }
+
+    return changed ? next : prev;
+  });
+}, []);
+
+useEffect(() => {
+  const onFloorlensUpdatedForCartGuardian = (nextSnapshot) => {
+    reconcileCartsWithFloorlens(nextSnapshot);
+  };
+
+  socket.on('floorlensUpdated', onFloorlensUpdatedForCartGuardian);
+  return () => socket.off('floorlensUpdated', onFloorlensUpdatedForCartGuardian);
+}, [reconcileCartsWithFloorlens]);
+
+const applyFloorlensMachineSelection = ({ area, tableNo, memberCode = '', customerName = '' }, { openMenu = true } = {}) => {
+  const normalizedTableNo = Number.isFinite(Number(tableNo)) ? Number(tableNo) : tableNo;
+  setSelectedTable({ area, tableNo: normalizedTableNo });
+
+  // Đồng bộ sidebar Table với machine được chọn từ FloorLens/Map/Activity.
+  // Không để user chọn máy 202 nhưng sidebar vẫn đứng ở Roulette 1.
+  const normalizedArea = String(area || '').trim();
+  if (normalizedArea && AREA_DEFS.some((item) => item.name === normalizedArea)) {
+    setActiveArea(normalizedArea);
+  }
+
+  const code = String(memberCode || '').replace(/\s+/g, '').trim();
+  const realtimeName = String(customerName || '').trim();
+
+  currentMemberCardRef.current = code;
+
+  if (code && !isDiningTableNo(tableNo)) {
+    const safetyKey = floorlensCartKey(area, tableNo);
+    const existingCart = (safetyKey && carts?.[safetyKey]) || {};
+    const safety = cartSafetySummary(existingCart);
+    const belongsToAnotherCustomer =
+      safety.hasItems &&
+      (
+        safety.hasUnowned ||
+        safety.owners.some((ownerCode) => ownerCode !== code)
+      );
+
+    if (belongsToAnotherCustomer) {
+      setCarts((prev) => ({ ...prev, [safetyKey]: {} }));
+      setToast('Old cart cleared because the realtime customer changed.');
+    }
+  }
+
+  if (code) {
+    setOrderForm((prev) => {
+      const prevCode = String(prev.memberCard || prev.customerCode || '').replace(/\s+/g, '').trim();
+      const sameCustomer = prevCode === code;
+      return {
+        ...prev,
+        memberCard: code,
+        customerCode: code,
+        customerName: realtimeName || (sameCustomer ? prev.customerName : '') || 'Đang tìm khách...',
+        level: sameCustomer ? prev.level : 'Đang tìm...',
+      };
+    });
+    setMemberSearchText(realtimeName ? `${code} - ${realtimeName}` : code);
+  } else {
+    setOrderForm((prev) => ({
+      ...prev,
+      memberCard: '',
+      customerCode: '',
+      customerName: '',
+      level: '',
+    }));
+    setMemberSearchText('');
+  }
+
+  setFloorlensReturnTarget({
+    machineNumber: String(tableNo || ''),
+    area: String(area || ''),
+    tab: 'cart',
+  });
+
+  if (openMenu) {
+    setMode('menu');
+    if (compactShell) setMenuOpen(false);
+    setToast(`Đã chọn máy ${tableNo}`);
+  }
+};
+
+const checkoutFloorlensCart = (payload) => {
+  applyFloorlensMachineSelection(payload, { openMenu: false });
+  setShowOrderForm(true);
+};
+
 const orderDraftItems = useMemo(() => {
   return Object.entries(currentCart)
     .map(([cartKey, item]) => {
@@ -1290,6 +1761,7 @@ const orderDraftItems = useMemo(() => {
         offMenu,
         qty: Number(item?.qty || 0),
         note: item?.note || '',
+        rawName: offMenu ? String(item?.name || '') : '',
 name: offMenu
   ? (String(item?.name || '').trim() || 'Món ngoài menu')
   : (food?.productName || food?.name || cartKey),
@@ -1663,6 +2135,33 @@ useEffect(() => {
   return () => clearTimeout(memberSearchTimerRef.current);
 }, [memberSearchText, orderForm.memberCard]);
 
+  const switchOrderToFloorlensMachine = useCallback((conflict) => {
+    const suggested = conflict?.suggestedMachine;
+    if (!suggested?.machineNumber || !suggested?.area) return;
+
+    const targetTableNo = Number.isFinite(Number(suggested.machineNumber))
+      ? Number(suggested.machineNumber)
+      : suggested.machineNumber;
+    const target = { area: suggested.area, tableNo: targetTableNo };
+    const sourceKey = currentTableKey;
+    const targetKey = tableKeyOf(target.area, target.tableNo);
+
+    // CART_GUARDIAN_V2: the active source cart replaces any older target cart.
+    // Never merge quantities across machine carts.
+    setCarts((prev) => {
+      const sourceCart = { ...((sourceKey && prev[sourceKey]) || {}) };
+      const next = { ...prev, [targetKey]: sourceCart };
+      if (sourceKey && sourceKey !== targetKey) next[sourceKey] = {};
+      return next;
+    });
+
+    setSelectedTable(target);
+    setActiveArea(target.area);
+    setTableSearch('');
+    setOrderPlacementConflict(null);
+    setToast(`Đã đổi sang máy ${target.tableNo}. Kiểm tra lại rồi bấm Order để gửi Kitchen.`);
+  }, [currentTableKey]);
+
   // Submit order
 const placeOrder = async () => {
   if (placeOrderLockRef.current) {
@@ -1690,7 +2189,82 @@ const placeOrder = async () => {
     setToast('Đang tìm thông tin khách, vui lòng chờ...');
     return;
   }
-const items = Object.entries(currentCart)
+let cartForOrder = currentCart;
+let autoRemovedCartRows = 0;
+
+if (!isDiningTableNo(selectedTable?.tableNo)) {
+  const cartSafety = cartSafetySummary(currentCart);
+  const activeMemberRef = String(currentMemberCardRef.current || '')
+    .replace(/\s+/g, '')
+    .trim();
+
+  const hasDifferentOwner = cartSafety.owners.some(
+    (ownerCode) => ownerCode !== memberCardVal
+  );
+
+  const canAdoptUnowned =
+    cartSafety.hasItems &&
+    cartSafety.hasUnowned &&
+    !hasDifferentOwner &&
+    activeMemberRef === memberCardVal;
+
+  if (canAdoptUnowned) {
+    const adoptedCart = Object.fromEntries(
+      Object.entries(currentCart || {})
+        .filter(([, item]) => item && Number(item.qty || 0) > 0)
+        .map(([cartKey, item]) => [
+          cartKey,
+          {
+            ...item,
+            ownerMemberCode:
+              cartOwnerCodeOf(item) || memberCardVal,
+          },
+        ])
+    );
+
+    cartForOrder = adoptedCart;
+    setCarts((prev) => ({
+      ...prev,
+      [currentTableKey]: adoptedCart,
+    }));
+  } else {
+    const needsAutoCleanup =
+      cartSafety.hasItems &&
+      (
+        hasDifferentOwner ||
+        cartSafety.owners.length > 1 ||
+        (cartSafety.hasUnowned && activeMemberRef !== memberCardVal)
+      );
+
+    if (needsAutoCleanup) {
+      const cleanedCart = keepOnlyCartOwner(currentCart, memberCardVal);
+      const cleanedSafety = cartSafetySummary(cleanedCart);
+      autoRemovedCartRows = Math.max(
+        0,
+        cartSafety.itemRows - cleanedSafety.itemRows
+      );
+
+      if (!cleanedSafety.hasItems) {
+        setCarts((prev) => ({
+          ...prev,
+          [currentTableKey]: {},
+        }));
+        setShowOrderForm(false);
+        setMode('menu');
+        setToast('Giỏ đã được đồng bộ theo khách hiện tại. Vui lòng chọn món.');
+        return;
+      }
+
+      cartForOrder = cleanedCart;
+      setCarts((prev) => ({
+        ...prev,
+        [currentTableKey]: cleanedCart,
+      }));
+    }
+  }
+}
+
+const items = Object.entries(cartForOrder)
   .map(([cartKey, item]) => {
     const offMenu = Boolean(item?.isOffMenu) || isOffMenuKey(cartKey);
 
@@ -1735,18 +2309,16 @@ if (!orderRequestIdRef.current) {
 try {
 const body = {
   clientRequestId: orderRequestIdRef.current,
+  sourceStation: currentFloorlensOrderStation() || null,
   area: selectedTable.area,
   tableNo: selectedTable.tableNo,
   staff: staffVal,
   memberCard: memberCardVal,
-     customer: {                              // <— SNAPSHOT ngay tại thời điểm gửi
-       code: (orderForm.customerCode || '').trim() || null,
-      name: (orderForm.customerName || '').trim() || null,
-       level: (orderForm.level || '').trim() || null
-    },
+     // Chỉ gửi dữ liệu khách thật; tuyệt đối không lưu text trạng thái UI
+     // như "Không đọc được Database" vào order/member.
+     customer: sanitizeCustomerSnapshotForOrder(orderForm),
         note: orderForm.note || '',
         items,
-        consumeStock: false,
       };
       const res = await axios.post(apiUrl('/api/orders'), body);
 if (res?.data?.ok) {
@@ -1776,32 +2348,27 @@ if (res?.data?.ok) {
 
 orderRequestIdRef.current = null;
 setShowOrderForm(false);
-setToast('Đã gửi Order');
+setToast(
+  autoRemovedCartRows > 0
+    ? `\u0110\u00e3 g\u1eedi Order \u2022 t\u1ef1 b\u1ecf ${autoRemovedCartRows} m\u00f3n c\u0169`
+    : '\u0110\u00e3 g\u1eedi Order'
+);
 }
     } catch (e) {
-      if (e?.response?.status === 409 && Array.isArray(e.response.data?.missing)) {
-        const miss = e.response.data.missing;
-        setCarts(prev => {
-          const cart = { ...(prev[currentTableKey] || {}) };
-          miss.forEach(m => {
-            const key = String(m.imageName).toLowerCase();
-            const available = Math.max(0, Number(m.available || 0));
-            const current = cart[key];
-
-            if (!current) return;
-
-            const currentQty = Number(current?.qty || 0);
-            if (currentQty > available) {
-              cart[key] = { ...current, qty: available };
-            }
-
-            if (Number(cart[key]?.qty || 0) <= 0) delete cart[key];
-          });
-          return { ...prev, [currentTableKey]: cart };
+      const apiError = e?.response?.data?.error || '';
+      if (e?.response?.status === 409 && apiError === 'FLOORLENS_ORDER_MACHINE_CONFLICT') {
+        setOrderPlacementConflict({
+          ...(e?.response?.data || {}),
+          requestedCustomerName: String(orderForm.customerName || '').trim() || null,
+          requestedMemberCode: memberCardVal,
         });
-        alert('Một số món không đủ số lượng. Giỏ đã được điều chỉnh theo tồn kho.');
+      } else if (e?.response?.status === 409 && apiError === 'FOOD_SOLD_OUT') {
+        const soldOut = Array.isArray(e?.response?.data?.soldOut) ? e.response.data.soldOut : [];
+        const names = soldOut.map(x => x.name || x.imageName).filter(Boolean).join(', ');
+        alert(`Một số món vừa được chuyển sang Sold Out${names ? `: ${names}` : '.'}`);
+        fetchFoods();
       } else {
-        alert('Order thất bại: ' + (e?.response?.data?.error || e?.message || ''));
+        alert('Order thất bại: ' + (apiError || e?.message || ''));
       }
     } finally {
       placeOrderLockRef.current = false;
@@ -2090,6 +2657,7 @@ setToast('Đã gửi Order');
                 <div style={{ fontSize: 14, color: '#374151', marginBottom: 6 }}>
                   Staff: <b style={{ color: '#111827' }}>{getOrderStaffDisplay(o)}</b>
                 </div>
+                {renderOrderIpadLine(o, { marginBottom: 8 })}
 
                 <div
                   style={{
@@ -2192,7 +2760,10 @@ const list = ordersViewFiltered
                         style={{
                           border: '1px solid #dbe3ee',
                           borderRadius: 12,
-                          overflow: 'hidden',
+                          overflowY: 'auto',
+                    overflowX: 'hidden',
+                    paddingRight: 2,
+                    scrollbarGutter: 'stable',
                           background: '#fff',
                           boxShadow: '0 3px 10px rgba(0,0,0,.05)',
                         }}
@@ -2240,6 +2811,7 @@ const list = ordersViewFiltered
                             <div style={{ fontSize: 16, color: '#374151' }}>
                               Staff: <b style={{ color: '#111827' }}>{getOrderStaffDisplay(o)}</b>
                             </div>
+                            {renderOrderIpadLine(o, { fontSize: 15 })}
 
                             <div
                               style={{
@@ -2335,8 +2907,8 @@ const list = ordersViewFiltered
           position: 'absolute',
           top: 20,
           left: 20,
-          zIndex: 999,
-          background: 'rgba(255,255,255,0.1)',
+          zIndex: compactShell ? 3200 : 999,
+          background: menuOpen ? 'rgba(255,255,255,0.1)' : '#111827',
           color: 'white',
           fontSize: '22px',
           border: '1px solid rgba(255,255,255,0.3)',
@@ -2365,9 +2937,11 @@ const list = ordersViewFiltered
             color: '#fff',
             display: 'flex',
             flexDirection: 'column',
-            overflowY: 'auto',
-            zIndex: 1000,
+            overflowY: mode === 'tabletest' ? 'hidden' : 'auto',
+            overflowX: 'hidden',
+            zIndex: compactShell ? 3100 : 1000,
             willChange: 'transform',
+            boxShadow: compactShell ? '12px 0 35px rgba(0,0,0,0.28)' : 'none',
           }}
         >
          {/* Tabs */}
@@ -2380,13 +2954,13 @@ const list = ordersViewFiltered
   }}
 >
             <button
-              onClick={() => setMode('tables')}
+              onClick={() => { setMode('tabletest'); setMenuOpen(true); }}
               style={{
                 minWidth: 0,
 fontSize: 12,
 padding: '8px 6px',
                 flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #555',
-                background: mode === 'tables' ? '#f59e0b' : '#333', color: '#fff', cursor: 'pointer'
+                background: mode === 'tabletest' ? '#f59e0b' : '#333', color: '#fff', cursor: 'pointer'
               }}
             >
               Table
@@ -2633,8 +3207,8 @@ padding: '8px 6px',
           </div>
 
           {/* Sidebar body */}
-          <div style={{ flexGrow: 1, overflowY: 'auto' }}>
-{mode === 'insights' ? (
+          <div style={{ flexGrow: 1, minHeight: 0, overflowY: mode === 'tabletest' ? 'hidden' : 'auto' }}>
+{mode === 'insights' || mode === 'floorlens' ? (
   <div style={{ padding: 10, color: '#d1d5db', fontSize: 12, lineHeight: 1.5 }}>
     
   </div>
@@ -2732,6 +3306,165 @@ padding: '8px 6px',
                   })}
                 </div>
               </>
+            ) : mode === 'tabletest' ? (
+              <div style={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', padding: '6px 6px 8px', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                  <input
+                    value={tableSearch}
+                    onChange={e => setTableSearch(e.target.value)}
+                    placeholder="Tìm máy…"
+                    style={{
+                      minWidth: 0, flex: 1, height: 28, boxSizing: 'border-box', padding: '4px 7px', borderRadius: 6,
+                      border: '1px solid #555', background: '#111', color: '#fff', fontSize: 11
+                    }}
+                  />
+                  <span style={{ minWidth: 34, textAlign: 'right', color: '#cbd5e1', fontSize: 9, fontWeight: 800 }}>
+                    {tableTestSidebarTables.length}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4 }}>
+                  {AREA_DEFS.filter((a) => a.name !== 'Kitchen').map(a => (
+                    <button
+                      type="button"
+                      key={a.name}
+                      onClick={() => { setActiveArea(a.name); setTableSearch(''); }}
+                      title={a.name}
+                      style={{
+                        minWidth: 0,
+                        height: 25,
+                        borderRadius: 5,
+                        border: activeArea === a.name ? '1px solid #a78bfa' : '1px solid #4b5563',
+                        background: activeArea === a.name ? '#5b21b6' : '#2d2d2d',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        fontSize: 8.5,
+                        fontWeight: activeArea === a.name ? 900 : 700,
+                        padding: '2px 3px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {a.name}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setActiveArea('Kitchen'); setTableSearch(''); }}
+                  title="Kitchen"
+                  style={{
+                    width: '100%', height: 27, borderRadius: 5,
+                    border: activeArea === 'Kitchen' ? '1px solid #a78bfa' : '1px solid #4b5563',
+                    background: activeArea === 'Kitchen' ? '#5b21b6' : '#222',
+                    color: '#fff', cursor: 'pointer', fontSize: 8.5,
+                    fontWeight: activeArea === 'Kitchen' ? 900 : 800, padding: '2px 5px',
+                  }}
+                >
+                  Kitchen
+                </button>
+
+                <div
+                  style={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                    gridAutoRows: '84px',
+                    gap: 4,
+                    alignContent: 'start',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    paddingRight: 2,
+                    scrollbarGutter: 'stable',
+                  }}
+                >
+                  {tableTestSidebarTables.map(({ area, tableNo }) => {
+                    const diningTable = isDiningTableNo(tableNo);
+                    const row = diningTable ? null : tableTestMachineMap.get(String(tableNo));
+                    const isSel = selectedTable && selectedTable.area === area && String(selectedTable.tableNo) === String(tableNo);
+                    const cartCount = tableCartCount(area, tableNo);
+                    const tone = row?.tone || 'empty';
+                    const background = diningTable ? '#6d28d9' : tone === 'ordered' ? '#15803d' : tone === 'not-ordered' ? '#b91c1c' : tone === 'uncertain' ? '#334155' : '#171717';
+                    const code = String(row?.memberCode || '').trim();
+                    const name = String(row?.customerName || '').trim();
+                    const initial = (name || code || '?').charAt(0).toUpperCase();
+                    const avatarUrl = row?.playing && code && !row?.unknown
+                      ? apiUrl(`/api/user/floorlens/avatar/${encodeURIComponent(code)}`)
+                      : '';
+                    return (
+                      <button
+                        type="button"
+                        key={`${area}-${tableNo}`}
+                        className={`tt-sidebar-machine ${row?.pulse === 'ENTER' ? 'is-enter' : ''} ${row?.pulse === 'LEAVE' ? 'is-leave' : ''}`}
+                        onClick={() => {
+                          if (diningTable) {
+                            setSelectedTable({ area, tableNo });
+                            setFloorlensReturnTarget(null);
+                          } else if (row) {
+                            applyFloorlensMachineSelection({
+                              area,
+                              tableNo,
+                              memberCode: row.unknown ? '' : code,
+                              customerName: row.unknown ? '' : name,
+                            }, { openMenu: false });
+                            setFloorlensReturnTarget(null);
+                          } else {
+                            setSelectedTable({ area, tableNo });
+                          }
+                        }}
+                        title={`${area} - ${tableNo}${name ? ` - ${name}` : ''}`}
+                        style={{
+                          position: 'relative', minWidth: 0, minHeight: 0, overflow: 'hidden',
+                          borderRadius: 6,
+                          border: row?.uncertain ? '2px solid #f59e0b' : '1px solid #555',
+                          outline: isSel ? '2px solid #22d3ee' : 'none',
+                          outlineOffset: isSel ? 1 : 0,
+                          background,
+                          color: '#fff', cursor: 'pointer', padding: '2px 2px',
+                          display: 'grid', placeItems: 'center', alignContent: 'center', gap: 1,
+                        }}
+                      >
+                        {diningTable && (
+                          <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.7)', fontSize: 13 }}>🍽️</div>
+                        )}
+                        {row?.playing && (
+                          <div style={{ position: 'relative', width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', background: row?.unknown ? '#facc15' : '#f8fafc', color: '#111827', display: 'grid', placeItems: 'center', fontSize: row?.unknown ? 14 : 9, fontWeight: 1000, border: '1px solid rgba(255,255,255,.85)' }}>
+                            <span>{row?.unknown ? '?' : initial}</span>
+                            {avatarUrl && (
+                              <img
+                                src={avatarUrl}
+                                alt=""
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            )}
+                          </div>
+                        )}
+                        <b style={{ fontSize: diningTable ? 8.5 : 11, lineHeight: 1.05, textAlign: 'center' }}>{tableNo}</b>
+                        {diningTable && <span style={{ fontSize: 6.5, lineHeight: 1, fontWeight: 900, opacity: .95 }}>BÀN ĂN</span>}
+                        {diningTable && diningTableNoteOf(area, tableNo) && (
+                          <span style={{ maxWidth: '100%', fontSize: 5.8, lineHeight: 1.05, fontWeight: 700, opacity: .9, textAlign: 'center', whiteSpace: 'normal' }}>
+                            {diningTableNoteOf(area, tableNo)}
+                          </span>
+                        )}
+                        {row?.playing && (
+                          <span style={{ fontSize: 6.5, lineHeight: 1, fontWeight: 900, opacity: .95 }}>
+                            {row?.unknown ? '?' : row?.ordered ? 'ORDER' : 'NO ORDER'}
+                          </span>
+                        )}
+                        {cartCount > 0 && (
+                          <span style={{ position: 'absolute', right: 2, bottom: 2, minWidth: 13, height: 13, borderRadius: 999, display: 'grid', placeItems: 'center', background: '#2563eb', color: '#fff', fontSize: 7, fontWeight: 1000, border: '1px solid rgba(255,255,255,.7)' }}>
+                            {cartCount}
+                          </span>
+                        )}
+                        {row?.pulse && <span className={`tt-sidebar-pulse-label ${row.pulse === 'ENTER' ? 'enter' : 'leave'}`}>{row.pulse === 'ENTER' ? 'VÀO' : 'RA'}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               ) : (
   <div style={{ padding: 10, color: '#d1d5db', fontSize: 12, lineHeight: 1.5 }}>
     Nhập mã khách ở màn chính để xem món khách hay gọi, ghi chú món và gợi ý món.
@@ -2758,7 +3491,7 @@ padding: '8px 6px',
         style={{
           height: '100vh',
           background: '#fff8dc',
-          marginLeft: menuOpen ? `${MENU_WIDTH}px` : 0,
+          marginLeft: `${contentLeft}px`,
           transition: 'margin-left 0.3s ease',
           position: 'relative',
           overflow: 'hidden',
@@ -2769,7 +3502,7 @@ padding: '8px 6px',
           style={{
             position: 'fixed',
             top: 0,
-            left: menuOpen ? `${MENU_WIDTH}px` : 0,
+            left: `${contentLeft}px`,
             right: 0,
             height: TOP_BAR_H,
             background: '#fff',
@@ -2781,8 +3514,42 @@ padding: '8px 6px',
             zIndex: 1900,
           }}
         >
+          {mode === 'menu' && floorlensReturnTarget && selectedTable &&
+            String(selectedTable.tableNo) === String(floorlensReturnTarget.machineNumber) && (
+            <button
+              type="button"
+              onClick={() => {
+                // Dùng CHÍNH selectedTable hiện tại, tuyệt đối không fallback về returnTarget cũ.
+                // Nhờ vậy đổi sang máy khác rồi có realtime event cũng không bị kéo về giỏ trước đó.
+                setFloorlensReturnTarget({
+                  machineNumber: String(selectedTable?.tableNo || ''),
+                  area: String(selectedTable?.area || ''),
+                  tab: 'cart',
+                  requestAt: Date.now(),
+                });
+                setFloorlensFocusRequestId((value) => value + 1);
+                setMode('tabletest');
+                setMenuOpen(true);
+              }}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid #0f766e',
+                background: '#ecfdf5',
+                color: '#0f766e',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 800,
+                whiteSpace: 'nowrap',
+              }}
+              title="Quay lại giỏ hàng của máy trên FloorLens"
+            >
+              ← Giỏ máy {floorlensReturnTarget.machineNumber}
+            </button>
+          )}
+
           <button
-            onClick={() => setMode(mode === 'tables' ? 'menu' : 'tables')}
+            onClick={() => setMode(mode === 'tabletest' ? 'menu' : 'tabletest')}
             style={{
               padding: '6px 10px',
               borderRadius: 8,
@@ -2796,9 +3563,9 @@ padding: '8px 6px',
             {selectedTable ? `Table: ${selectedTable.area} - ${selectedTable.tableNo}` : 'Hãy chọn bàn'}
           </button>
 
-          {mode === 'tables' && (
+          {mode === 'tabletest' && (
             <button
-              onClick={() => { setSelectedTable(null); setMode('tables'); }}
+              onClick={() => { setSelectedTable(null); setMode('tabletest'); }}
               aria-label="Đóng chọn bàn"
               title="Đóng chọn bàn"
               style={{
@@ -2836,11 +3603,12 @@ padding: '8px 6px',
           style={{
             position: 'fixed',
             top: TOP_BAR_H,
-            left: menuOpen ? `${MENU_WIDTH}px` : 0,
+            left: `${contentLeft}px`,
             right: 0,
-            bottom: selectedTable && mode !== 'orders' && mode !== 'insights' ? BOTTOM_BAR_H : 0,
-            overflowY: 'auto',
-            padding: '12px 16px',
+            bottom: selectedTable && !['orders', 'insights', 'floorlens', 'tabletest'].includes(mode) ? BOTTOM_BAR_H : 0,
+            overflowY: mode === 'floorlens' ? 'hidden' : 'auto',
+            overflowX: 'hidden',
+            padding: compactShell ? '8px' : '12px 16px',
             background: '#fff8dc',
             zIndex: 100,
           }}
@@ -2856,7 +3624,73 @@ padding: '8px 6px',
   initialProfileCode={insightsOpenCode}
   onOpenedProfileCode={() => setInsightsOpenCode('')}
   onOpenOrders={() => setMode('orders')}
+  foods={foods}
 />
+) : mode === 'tabletest' ? (
+  <TableTest
+    apiUrl={apiUrl}
+    socket={socket}
+    selectedTable={selectedTable}
+    carts={carts}
+    foods={foods}
+    staffMap={staffMap}
+    orderDoneBy={orderForm.staff || 'user'}
+    onSelectMachine={(payload) => {
+      applyFloorlensMachineSelection(payload, { openMenu: false });
+      setFloorlensReturnTarget(null);
+    }}
+    onOpenMenu={(payload) => {
+      applyFloorlensMachineSelection(payload, { openMenu: true });
+      setFloorlensReturnTarget(null);
+    }}
+    onAddOffMenu={(payload) => {
+      applyFloorlensMachineSelection(payload, { openMenu: false });
+      setFloorlensReturnTarget(null);
+      addFloorlensOffMenu(payload);
+    }}
+    onCartSetQty={setFloorlensCartQty}
+    onCartUpdateItem={updateFloorlensCartItem}
+    onCartClear={clearFloorlensCart}
+    onCheckout={(payload) => {
+      checkoutFloorlensCart(payload);
+      setFloorlensReturnTarget(null);
+    }}
+    onOpenCustomer={(memberCode) => {
+      setFloorlensInsightsCode(String(memberCode || '').replace(/\s+/g, '').trim());
+    }}
+    onOpenProfile={(memberCode) => {
+      setTableProfileCode(String(memberCode || '').replace(/\s+/g, '').trim());
+    }}
+    onRealtimeStateChange={handleTableTestRealtimeState}
+  />
+) : mode === 'floorlens' ? (
+  <FloorLens
+    apiUrl={apiUrl}
+    socket={socket}
+    selectedTable={selectedTable}
+    carts={carts}
+    foods={foods}
+    initialMachineNumber={floorlensReturnTarget?.machineNumber || ''}
+    initialDetailTab={floorlensReturnTarget?.tab || 'machine'}
+    focusRequestId={floorlensFocusRequestId}
+    onInitialTargetConsumed={({ machineNumber }) => {
+      // Consume-once: sau khi FloorLens đã mở đúng giỏ, xoá target cũ để realtime event
+      // hoặc việc bấm máy khác không thể kéo user quay lại giỏ trước đó.
+      setFloorlensReturnTarget((prev) => {
+        if (!prev) return prev;
+        return String(prev.machineNumber || '') === String(machineNumber || '') ? null : prev;
+      });
+    }}
+    onSelectTable={(payload) => applyFloorlensMachineSelection(payload, { openMenu: true })}
+    onCartSetQty={setFloorlensCartQty}
+    onCartUpdateItem={updateFloorlensCartItem}
+    onCartClear={clearFloorlensCart}
+    onAddOffMenu={addFloorlensOffMenu}
+    onCheckout={checkoutFloorlensCart}
+    onOpenCustomer={(memberCode) => {
+      setFloorlensInsightsCode(String(memberCode || '').replace(/\s+/g, '').trim());
+    }}
+  />
 ) : mode === 'menu' ? (
   selectedLevel ? (
               <>
@@ -3168,6 +4002,11 @@ return (
               })()}
             </b>
           </div>
+          {floorlensStationLabelOf(o?.sourceStation) && (
+            <div>
+              iPad: <b>{floorlensStationLabelOf(o?.sourceStation)}</b>
+            </div>
+          )}
         </div>
       </div>
 
@@ -3246,7 +4085,7 @@ decoding="async"
                                       style={{ padding:'6px 10px', background:'#111', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12 }}
                                       title="Khách rời bàn (ẩn order khỏi bàn)"
                                     >
-                                      Done (Thu bàn)
+                                      Done
                                     </button>
                                   </div>
                                 </div>
@@ -3264,7 +4103,7 @@ decoding="async"
         </div>
 
 {/* ORDER BAR */}
-{selectedTable && mode !== 'orders' && mode !== 'insights' && (
+{selectedTable && !['orders', 'insights', 'floorlens', 'tabletest'].includes(mode) && (
           <div
             style={{
               position: 'fixed',
@@ -3800,6 +4639,28 @@ decoding="async"
 {it.qty} | {it.offMenu ? it.label : `${it.name} | ${it.code || '---'}`}
                 </label>
 
+                {it.offMenu && (
+                  <input
+                    type="text"
+                    value={it.rawName || ''}
+                    onChange={(e) => updateCartItemField(it.cartKey, {
+                      name: e.target.value,
+                      isOffMenu: true,
+                    })}
+                    placeholder={'T\u00ean m\u00f3n ngo\u00e0i menu *'}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '9px 10px',
+                      marginBottom: 8,
+                      border: `1px solid ${String(it.rawName || '').trim() ? '#cbd5e1' : '#f59e0b'}`,
+                      borderRadius: 7,
+                      fontSize: 14,
+                      background: '#fff',
+                    }}
+                  />
+                )}
+
                 <textarea
                   value={it.note}
                   onChange={(e) => updateCartItemField(it.cartKey, { note: e.target.value })}
@@ -3861,7 +4722,8 @@ decoding="async"
   </div>
 )}
 
-      {/* Funnel slider */}
+      {/* Funnel slider: chỉ dùng ở Menu, không che FloorLens trên iPad/phone */}
+      {mode === 'menu' && (
       <div
         ref={sliderRef}
         role="slider"
@@ -3914,6 +4776,7 @@ decoding="async"
           />
         </svg>
       </div>
+      )}
 {/* Quick Order Overlay */}
 {quickOrderFood && (
   <div
@@ -3981,9 +4844,13 @@ const codes = (quickOrderForm.members || '')
             }
             const food = quickOrderFood;
             const imageKey = getImageName(food.imageUrl || food.imageName || '');
+            const quickBatchId = `quick-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
             try {
               for (const card of codes) {
                 const body = {
+                  clientRequestId: `${quickBatchId}-${card}`,
+                  quickOrder: true,
+                  sourceStation: currentFloorlensOrderStation() || null,
                   area: null,
                   tableNo: null,
                   staff: staffVal,
@@ -3991,7 +4858,6 @@ const codes = (quickOrderForm.members || '')
                   customer: { code: null, name: null, level: null },
                   note: '',
                   items: [{ imageKey, qty: 1, note: '' }],
-                  consumeStock: false,
                 };
                 await axios.post(apiUrl('/api/orders'), body);
               }
@@ -4009,6 +4875,164 @@ const codes = (quickOrderForm.members || '')
       </div>
     </div>
   </div>
+)}
+
+
+{orderPlacementConflict && (
+  <div
+    onClick={() => setOrderPlacementConflict(null)}
+    style={{
+      position: 'fixed', inset: 0, zIndex: 2147483200,
+      background: 'rgba(15,23,42,0.58)', display: 'grid', placeItems: 'center', padding: 16,
+      backdropFilter: 'blur(3px)',
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: 'min(620px, calc(100vw - 24px))', background: '#fff', borderRadius: 14,
+        boxShadow: '0 24px 80px rgba(0,0,0,.35)', overflow: 'hidden',
+      }}
+    >
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div>
+          <b style={{ fontSize: 17, color: '#991b1b' }}>⚠ Kiểm tra lại khách và máy</b>
+          <div style={{ marginTop: 3, color: '#64748b', fontSize: 12 }}>FloorLens realtime đang báo thông tin khác với order hiện tại.</div>
+        </div>
+        <button type="button" onClick={() => setOrderPlacementConflict(null)} style={{ marginLeft: 'auto', width: 32, height: 32, border: 0, borderRadius: 8, background: '#f1f5f9', cursor: 'pointer', fontSize: 20 }}>×</button>
+      </div>
+
+      <div style={{ padding: 16, display: 'grid', gap: 10, fontSize: 13 }}>
+        {orderPlacementConflict?.selectedMachine?.memberCode ? (
+          <div style={{ padding: 11, borderRadius: 10, background: '#fee2e2', border: '1px solid #fecaca' }}>
+            Máy <b>{orderPlacementConflict.selectedMachine.machineNumber}</b> hiện đang có
+            {' '}<b>#{orderPlacementConflict.selectedMachine.memberCode}{orderPlacementConflict.selectedMachine.customerName ? ` - ${orderPlacementConflict.selectedMachine.customerName}` : ''}</b>.
+          </div>
+        ) : (
+          <div style={{ padding: 11, borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            Máy <b>{orderPlacementConflict?.selectedMachine?.machineNumber || selectedTable?.tableNo || '—'}</b> không khớp với vị trí realtime của khách đang order.
+          </div>
+        )}
+
+        <div style={{ padding: 11, borderRadius: 10, background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+          Order đang chọn khách <b>#{orderPlacementConflict.requestedMemberCode || orderPlacementConflict?.requestedCustomer?.memberCode || '—'}{orderPlacementConflict.requestedCustomerName ? ` - ${orderPlacementConflict.requestedCustomerName}` : ''}</b>.
+          {orderPlacementConflict?.suggestedMachine?.machineNumber && (
+            <div style={{ marginTop: 5 }}>
+              FloorLens đang thấy khách này ở <b>{orderPlacementConflict.suggestedMachine.area} - máy {orderPlacementConflict.suggestedMachine.machineNumber}</b>.
+            </div>
+          )}
+        </div>
+
+        <div style={{ color: '#475569', lineHeight: 1.5 }}>
+          Order <b>chưa được ghi DB và chưa gửi Kitchen</b>. Hãy đổi sang đúng machine hoặc kiểm tra lại khách trước khi gửi.
+        </div>
+      </div>
+
+      <div style={{ padding: '0 16px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button type="button" onClick={() => setOrderPlacementConflict(null)} style={{ padding: '9px 13px', border: '1px solid #cbd5e1', borderRadius: 9, background: '#fff', cursor: 'pointer', fontWeight: 800 }}>
+          Kiểm tra lại
+        </button>
+        {orderPlacementConflict?.suggestedMachine?.machineNumber && (
+          <button
+            type="button"
+            onClick={() => switchOrderToFloorlensMachine(orderPlacementConflict)}
+            style={{ padding: '9px 13px', border: '1px solid #2563eb', borderRadius: 9, background: '#2563eb', color: '#fff', cursor: 'pointer', fontWeight: 900 }}
+          >
+            Đổi sang máy {orderPlacementConflict.suggestedMachine.machineNumber}
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+{floorlensInsightsCode && (
+  <div
+    onClick={() => setFloorlensInsightsCode('')}
+    style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 15000,
+      background: 'rgba(15,23,42,0.45)',
+      display: 'flex',
+      justifyContent: 'flex-end',
+      alignItems: compactShell ? 'stretch' : 'center',
+      padding: compactShell ? 0 : 18,
+      backdropFilter: 'blur(3px)',
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: compactShell ? '100%' : 'min(1120px, calc(100vw - 70px))',
+        height: compactShell ? '100%' : 'min(92vh, 900px)',
+        background: '#f8fafc',
+        borderRadius: compactShell ? 0 : 16,
+        boxShadow: '0 24px 70px rgba(15,23,42,0.35)',
+        overflow: 'hidden',
+        display: 'grid',
+        gridTemplateRows: '52px minmax(0,1fr)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '0 14px',
+          background: '#fff',
+          borderBottom: '1px solid #e5e7eb',
+        }}
+      >
+        <b style={{ color: '#0f172a' }}>Customer Insights • #{floorlensInsightsCode}</b>
+        <span style={{ marginLeft: 'auto', color: '#64748b', fontSize: 12 }}>Mở trực tiếp từ FloorLens</span>
+        <button
+          type="button"
+          onClick={() => setFloorlensInsightsCode('')}
+          style={{
+            width: 34,
+            height: 34,
+            border: '1px solid #d1d5db',
+            borderRadius: 9,
+            background: '#fff',
+            cursor: 'pointer',
+            fontSize: 20,
+          }}
+          aria-label="Đóng Customer Insights"
+        >
+          ×
+        </button>
+      </div>
+      <div style={{ overflow: 'auto', padding: compactShell ? 10 : 14 }}>
+        <UserCustomerInsightsPanel
+          apiUrl={apiUrl}
+          withBase={withBase}
+          currentMemberCard={floorlensInsightsCode}
+          staffMap={staffMap}
+          initialProfileCode={floorlensInsightsCode}
+          onOpenOrders={() => {
+            setFloorlensInsightsCode('');
+            setMode('orders');
+          }}
+          foods={foods}
+        />
+      </div>
+    </div>
+  </div>
+)}
+
+
+{tableProfileCode && (
+  <UserCustomerInsightsPanel
+    apiUrl={apiUrl}
+    withBase={withBase}
+    currentMemberCard={tableProfileCode}
+    staffMap={staffMap}
+    foods={foods}
+    initialProfileCode={tableProfileCode}
+    profileOnly
+    onProfileClosed={() => setTableProfileCode('')}
+  />
 )}
 
 <AIChatBox
@@ -4064,11 +5088,30 @@ function UserCustomerInsightsPanel({
   withBase,
   currentMemberCard,
   staffMap = {},
+  foods = [],
   initialProfileCode = '',
   onOpenedProfileCode = null,
   onOpenOrders = null,
+  profileOnly = false,
+  onProfileClosed = null,
 }) {
   const cleanCode = (v) => String(v || '').replace(/\s+/g, '').trim();
+  const formatCustomerDate = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '---';
+    const d = new Date(raw);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+    return raw;
+  };
+  const formatFloorlensSessionSince = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '---';
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (!m) return raw;
+    return `${m[4]}:${m[5]}:${m[6] || '00'} • ${m[3]}/${m[2]}/${m[1]}`;
+  };
 const normalizeProfileCode = (v) => {
   const code = cleanCode(v);
 
@@ -4223,6 +5266,11 @@ const profileDataScore = (data) => {
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+
+  const closeProfile = useCallback(() => {
+    setProfile(null);
+    if (profileOnly && typeof onProfileClosed === 'function') onProfileClosed();
+  }, [profileOnly, onProfileClosed]);
 
   const [overview, setOverview] = useState(null);
   const [insightsRange, setInsightsRange] = useState('all');
@@ -4706,11 +5754,13 @@ useEffect(() => {
   }, [apiUrl, profile?.member?.code]);
 
   useEffect(() => {
+    if (profileOnly) return;
     loadOverview(false, insightsRange);
     loadUpcomingEvents();
-  }, [loadOverview, loadUpcomingEvents, insightsRange]);
+  }, [loadOverview, loadUpcomingEvents, insightsRange, profileOnly]);
 
   useEffect(() => {
+    if (profileOnly) return undefined;
     let timer = null;
 
     const refreshInsights = () => {
@@ -4726,7 +5776,7 @@ useEffect(() => {
       socket.off('orderPlaced', refreshInsights);
       socket.off('orderUpdated', refreshInsights);
     };
-  }, [loadOverview, insightsRange]);
+  }, [loadOverview, insightsRange, profileOnly]);
 
 
   useEffect(() => {
@@ -4979,6 +6029,34 @@ const tabs = [
   ['events', 'Events'],
 ];
 
+  const insightImageSrc = useCallback((item = {}) => {
+    const clean = (v) => String(v || '').trim();
+    const fileKey = (v) => {
+      const raw = clean(v).split(/[?#]/)[0];
+      const part = raw.split('/').pop() || '';
+      try { return decodeURIComponent(part).trim().toLowerCase(); } catch { return part.trim().toLowerCase(); }
+    };
+    const normName = (v) => normalize(clean(v));
+    const wantedImage = fileKey(item.imageName || item.imageUrl || item.key);
+    const wantedCode = clean(item.productCode || item.code).toLowerCase();
+    const wantedName = normName(item.name || item.productName);
+
+    const current = (foods || []).find((food) => {
+      if (wantedImage && fileKey(food.imageUrl) === wantedImage) return true;
+      if (wantedCode && clean(food.productCode || food.code).toLowerCase() === wantedCode) return true;
+      if (wantedName && normName(food.name || food.productName) === wantedName) return true;
+      return false;
+    });
+
+    if (current?.imageUrl) return imageSrc(current);
+
+    const raw = clean(item.imageUrl);
+    if (!raw) return '';
+    const marker = raw.indexOf('/images/');
+    if (marker >= 0) return withBase(raw.slice(marker));
+    return imageSrc(item);
+  }, [foods]);
+
   const topItems = overview?.topItems || [];
   const topCustomers = overview?.topCustomers || [];
   const recentNotes = overview?.recentNotes || [];
@@ -5147,7 +6225,10 @@ const historyTypeStyle = (typeInput) => {
 };
 
   return (
-    <div style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+    <div className={profileOnly ? 'uci-profile-only-shell' : ''} style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+      {profileOnly && (
+        <style>{`.uci-profile-only-shell > :not(.uci-profile-modal-backdrop) { display:none !important; }`}</style>
+      )}
       <div
         style={{
           ...cardStyle,
@@ -5463,9 +6544,9 @@ const historyTypeStyle = (typeInput) => {
                     </td>
                     <td style={td}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 220 }}>
-                        {it.imageUrl ? (
+                        {insightImageSrc(it) ? (
                           <img
-                            src={imageSrc(it)}
+                            src={insightImageSrc(it)}
                             alt=""
                             loading="lazy"
                             style={{
@@ -6031,7 +7112,8 @@ const historyTypeStyle = (typeInput) => {
 
       {profile && (
         <div
-          onClick={() => setProfile(null)}
+          className="uci-profile-modal-backdrop"
+          onClick={closeProfile}
           style={{
             position: 'fixed',
             inset: 0,
@@ -6078,7 +7160,7 @@ const historyTypeStyle = (typeInput) => {
               </div>
 
               <button
-                onClick={() => setProfile(null)}
+                onClick={closeProfile}
                 style={{ ...mainBtn('#ef4444'), marginLeft: 'auto' }}
               >
                 Close
@@ -6122,6 +7204,10 @@ const historyTypeStyle = (typeInput) => {
                     <div style={infoRowStyle}>Mã khách: <b>{member.code}</b></div>
                     <div style={infoRowStyle}>Tên khách: <b>{member.name || '---'}</b></div>
                     <div style={infoRowStyle}>Level: <b>{member.level || '---'}</b></div>
+                    <div style={infoRowStyle}>Since: <b>{formatFloorlensSessionSince(profile?.currentFloorlensSession?.startedAt)}</b></div>
+                    <div style={infoRowStyle}>Máy hiện tại: <b>{profile?.currentFloorlensSession?.machineNumber || '---'}</b></div>
+                    <div style={infoRowStyle}>DOB: <b>{formatCustomerDate(member.dateOfBirth)}</b></div>
+                    <div style={infoRowStyle}>Registered: <b>{formatCustomerDate(member.registeredAt)}</b></div>
                     <div style={infoRowStyle}>Số lần order: <b>{member.ordersCount || 0}</b></div>
                     <div style={infoRowStyle}>Lần gần nhất: <b>{formatDateTime(member.lastSeenAt) || '---'}</b></div>
                     <div style={infoRowStyle}>API synced: <b>{formatDateTime(member.apiSyncedAt) || '---'}</b></div>
@@ -6335,7 +7421,7 @@ const historyTypeStyle = (typeInput) => {
                             <td style={td}>
                               {o.area || ''} {o.tableNo || ''}
                               <div style={{ color: o.tableClosed ? '#16a34a' : '#f59e0b', fontWeight: 700 }}>
-                                Table: {o.tableClosed ? 'Done (thu bàn)' : 'Pending'}
+                                Table: {o.tableClosed ? 'Done' : 'Pending'}
                               </div>
                             </td>
                             <td style={td}>{o.staff || ''}</td>
@@ -6601,3 +7687,4 @@ const infoRowStyle = {
   borderBottom: '1px solid #f3f4f6',
 };
 export default UserFoodList;
+
