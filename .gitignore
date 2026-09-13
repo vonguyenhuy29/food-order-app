@@ -32,3 +32,14 @@ food-order-backend/certs/*.key
 /PATCH_*.ps1
 /patches/
 /*.zip
+# ===== Sensitive production runtime data =====
+/Staff.txt
+/food-order-backend/data/members.json
+/food-order-backend/data/orders.json
+/food-order-backend/data/status-history.json
+/food-order-backend/data/staffs.json
+/food-order-backend/data/users.json
+/food-order-backend/data/ai-memory.json
+/food-order-backend/data/ai-pending-learning.json
+/food-order-backend/data/*.before-sqlite.json
+/food-order-backend/data/*.backup-before-sqlite.json
